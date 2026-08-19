@@ -113,40 +113,28 @@ async function initHome() {
 
         <div class="category-grid">
             <div class="category-card" data-category="mix" id="card-cat-mix">
-                <div class="category-card-img-wrap">
-                    <img class="category-card-img" id="img-cat-mix" src="" alt="All Mix" loading="lazy">
-                </div>
-                <div class="category-card-footer">
+                <div class="category-card-overlay">
                     <div class="category-card-title glow-text">🔀 All Mix</div>
                     <div class="category-card-count" id="count-mix">Loading library...</div>
                 </div>
             </div>
 
             <div class="category-card" data-category="trans" id="card-cat-trans">
-                <div class="category-card-img-wrap">
-                    <img class="category-card-img" id="img-cat-trans" src="" alt="Trans" loading="lazy">
-                </div>
-                <div class="category-card-footer">
+                <div class="category-card-overlay">
                     <div class="category-card-title" style="color: #e879f9;">⚧️ Trans</div>
                     <div class="category-card-count" id="count-trans">Loading...</div>
                 </div>
             </div>
 
             <div class="category-card" data-category="sluts" id="card-cat-sluts">
-                <div class="category-card-img-wrap">
-                    <img class="category-card-img" id="img-cat-sluts" src="" alt="Sluts" loading="lazy">
-                </div>
-                <div class="category-card-footer">
+                <div class="category-card-overlay">
                     <div class="category-card-title" style="color: #f472b6;">♀️ Sluts</div>
                     <div class="category-card-count" id="count-sluts">Loading...</div>
                 </div>
             </div>
 
             <div class="category-card" data-category="twinks" id="card-cat-twinks">
-                <div class="category-card-img-wrap">
-                    <img class="category-card-img" id="img-cat-twinks" src="" alt="Twinks" loading="lazy">
-                </div>
-                <div class="category-card-footer">
+                <div class="category-card-overlay">
                     <div class="category-card-title" style="color: #38bdf8;">♂️ Twinks</div>
                     <div class="category-card-count" id="count-twinks">Loading...</div>
                 </div>
@@ -181,24 +169,27 @@ async function initHome() {
             if (countSluts) countSluts.innerText = `${slutsChars.length} Characters`;
             if (countTwinks) countTwinks.innerText = `${twinksChars.length} Characters`;
 
-            // Set random image for cards
-            setCardImage('img-cat-mix', characters);
-            setCardImage('img-cat-trans', transChars);
-            setCardImage('img-cat-sluts', slutsChars);
-            setCardImage('img-cat-twinks', twinksChars);
+            // Set random background image for cards
+            setCardBackground('card-cat-mix', characters);
+            setCardBackground('card-cat-trans', transChars);
+            setCardBackground('card-cat-sluts', slutsChars);
+            setCardBackground('card-cat-twinks', twinksChars);
         }
     } catch (e) {
         console.error("Home counts load error", e);
     }
 
-    function setCardImage(imgId, list) {
-        const imgEl = document.getElementById(imgId);
-        if (imgEl && list && list.length > 0) {
+    function setCardBackground(cardId, list) {
+        const card = document.getElementById(cardId);
+        if (card && list && list.length > 0) {
             const randomChar = list[Math.floor(Math.random() * list.length)];
             const img = (randomChar.images && randomChar.images[0]) || '';
             if (img) {
-                imgEl.src = img;
-                imgEl.style.opacity = '0.9';
+                card.style.setProperty('--card-bg-img', `url('${img}')`);
+                card.querySelector('style')?.remove();
+                const style = document.createElement('style');
+                style.innerHTML = `#${cardId}::before { background-image: url('${img}'); }`;
+                card.appendChild(style);
             }
         }
     }
