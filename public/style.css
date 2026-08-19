@@ -976,17 +976,31 @@ input:focus, select:focus, textarea:focus {
     transform: scale(1.05);
 }
 .char-info {
-    padding: 1rem;
+    padding: 0.9rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
 }
-.char-name {
+.char-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+.char-header-row .char-name {
+    flex: 1;
+    min-width: 0;
     font-weight: 700;
     font-size: 1.05rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+.char-header-row .badge {
+    flex-shrink: 0;
+    font-size: 0.68rem;
+    padding: 0.2rem 0.55rem;
 }
 .char-meta {
     display: flex;
@@ -995,12 +1009,11 @@ input:focus, select:focus, textarea:focus {
     flex-wrap: wrap;
     font-size: 0.8rem;
     color: var(--color-text-muted);
-    margin: 0.2rem 0 0.35rem;
+    margin: 0.1rem 0 0.35rem;
 }
 .added-by-tag {
     color: var(--accent-purple);
     font-weight: 600;
-    margin-left: auto;
     font-size: 0.75rem;
 }
 

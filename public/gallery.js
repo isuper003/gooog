@@ -256,9 +256,11 @@ export async function initGallery(currentUser) {
                     ${char.images && char.images.length > 1 ? `<span class="badge badge-mix" style="position: absolute; bottom: 10px; right: 10px; z-index: 2;">📷 ${char.images.length}</span>` : ''}
                 </div>
                 <div class="char-info">
-                    <div class="char-name" title="${char.name}">${char.name}</div>
-                    <div class="char-meta">
+                    <div class="char-header-row">
+                        <div class="char-name" title="${char.name}">${char.name}</div>
                         <span class="badge badge-${char.category}">${char.category.toUpperCase()}</span>
+                    </div>
+                    <div class="char-meta">
                         <span class="added-by-tag">@${char.added_by || 'system'}</span>
                         ${char.label ? `<span class="badge" style="background: var(--bg-surface-elevated);">${char.label}</span>` : ''}
                     </div>
