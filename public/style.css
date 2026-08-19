@@ -479,7 +479,7 @@ body.modal-open {
     background: #06060c;
 }
 
-/* Real Characters Fullscreen Collage Background */
+/* Real Characters Fullscreen Animated Stream Background */
 .auth-collage-bg {
     position: fixed;
     inset: 0;
@@ -490,46 +490,82 @@ body.modal-open {
     pointer-events: none;
 }
 
-.collage-grid {
-    display: grid;
-    grid-template-columns: 1.2fr 1fr 1.1fr 1fr 1.2fr;
-    grid-template-rows: 100vh;
-    width: 100vw;
-    height: 100vh;
+.collage-stream-container {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    width: 130vw;
+    height: 140vh;
     position: absolute;
-    inset: 0;
-    gap: 4px;
-    filter: brightness(0.72) saturate(1.3) contrast(1.15);
-    transform: scale(1.04);
-    animation: collageAmbient 18s ease-in-out infinite alternate;
+    top: -20vh;
+    left: -15vw;
+    transform: rotate(-6deg);
+    filter: brightness(0.68) saturate(1.35) contrast(1.15);
 }
 
-@keyframes collageAmbient {
-    0% { transform: scale(1.02) rotate(0deg); }
-    100% { transform: scale(1.07) rotate(-0.5deg); }
+.stream-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 21vw;
+    min-width: 160px;
+    flex-shrink: 0;
+    will-change: transform;
 }
 
-.collage-card {
+.stream-card {
+    height: 28vh;
+    min-height: 180px;
+    border-radius: var(--radius-lg);
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
-    height: 100%;
-    position: relative;
-    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+    flex-shrink: 0;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.collage-card.col-1 { background-position: center top; }
-.collage-card.col-2 { background-position: center 20%; }
-.collage-card.col-3 { background-position: center 15%; }
-.collage-card.col-4 { background-position: center 60%; }
-.collage-card.col-5 { background-position: center 35%; }
+/* Animations for each column */
+.stream-down-fast {
+    animation: streamDown 28s linear infinite;
+}
+.stream-up-slow {
+    animation: streamUp 38s linear infinite;
+}
+.stream-down-slow {
+    animation: streamDown 42s linear infinite;
+}
+.stream-up-fast {
+    animation: streamUp 26s linear infinite;
+}
+.stream-down-med {
+    animation: streamDown 34s linear infinite;
+}
+
+@keyframes streamDown {
+    0% {
+        transform: translateY(-50%);
+    }
+    100% {
+        transform: translateY(0%);
+    }
+}
+
+@keyframes streamUp {
+    0% {
+        transform: translateY(0%);
+    }
+    100% {
+        transform: translateY(-50%);
+    }
+}
 
 .collage-mesh-overlay {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, rgba(8, 8, 18, 0.4) 0%, rgba(6, 6, 12, 0.88) 75%),
+    background: radial-gradient(circle at center, rgba(8, 8, 18, 0.38) 0%, rgba(6, 6, 12, 0.88) 75%),
                 linear-gradient(135deg, rgba(139, 92, 246, 0.28) 0%, rgba(236, 72, 153, 0.22) 50%, rgba(56, 189, 248, 0.25) 100%);
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(3px);
     z-index: 2;
 }
 

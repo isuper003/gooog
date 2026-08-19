@@ -30,15 +30,70 @@
     <div id="app-container">
         <!-- Auth View -->
         <section id="view-auth" class="view hidden">
-            <!-- Fullscreen Real Characters Collage Background -->
+            <!-- Fullscreen Animated Real Characters Stream Background -->
             <div class="auth-collage-bg">
-                <div class="collage-grid">
-                    <div class="collage-card col-1" style="background-image: url('/assets/real_char_2.jpg');"></div>
-                    <div class="collage-card col-2" style="background-image: url('/assets/real_char_1.jpg');"></div>
-                    <div class="collage-card col-3" style="background-image: url('/assets/real_char_3.jpg');"></div>
-                    <div class="collage-card col-4" style="background-image: url('/assets/real_char_5.jpg');"></div>
-                    <div class="collage-card col-5" style="background-image: url('/assets/real_char_4.jpg');"></div>
+                <div class="collage-stream-container">
+                    <!-- Stream Column 1 (Scrolls Down) -->
+                    <div class="stream-col stream-down-fast">
+                        <div class="stream-card" style="background-image: url('/assets/real_char_1.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_6.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_2.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_7.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_1.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_6.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_2.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_7.jpg');"></div>
+                    </div>
+
+                    <!-- Stream Column 2 (Scrolls Up) -->
+                    <div class="stream-col stream-up-slow">
+                        <div class="stream-card" style="background-image: url('/assets/real_char_3.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_8.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_4.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_9.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_3.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_8.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_4.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_9.jpg');"></div>
+                    </div>
+
+                    <!-- Stream Column 3 (Scrolls Down) -->
+                    <div class="stream-col stream-down-slow">
+                        <div class="stream-card" style="background-image: url('/assets/real_char_5.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_10.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_1.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_7.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_5.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_10.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_1.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_7.jpg');"></div>
+                    </div>
+
+                    <!-- Stream Column 4 (Scrolls Up) -->
+                    <div class="stream-col stream-up-fast">
+                        <div class="stream-card" style="background-image: url('/assets/real_char_2.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_6.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_8.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_10.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_2.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_6.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_8.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_10.jpg');"></div>
+                    </div>
+
+                    <!-- Stream Column 5 (Scrolls Down) -->
+                    <div class="stream-col stream-down-med">
+                        <div class="stream-card" style="background-image: url('/assets/real_char_4.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_9.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_3.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_5.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_4.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_9.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_3.jpg');"></div>
+                        <div class="stream-card" style="background-image: url('/assets/real_char_5.jpg');"></div>
+                    </div>
                 </div>
+                
                 <div class="collage-mesh-overlay"></div>
 
                 <!-- Floating Hype Typography Overlays -->
