@@ -112,13 +112,11 @@ export async function initCharStats() {
             card.innerHTML = `
                 <div class="char-img-container" data-img="${primaryImg}" data-name="${char.name}" data-cat="${char.category}">
                     <img src="${primaryImg}" alt="${char.name}" loading="lazy">
+                    <span class="badge badge-${char.category}" style="position: absolute; top: 10px; left: 10px; z-index: 2;">${char.category.toUpperCase()}</span>
                     ${isWeak ? '<span class="pulsing-red-dot" style="position: absolute; top: 12px; right: 12px; z-index: 2;" title="Weak - Review Soon"></span>' : ''}
                 </div>
                 <div class="char-info">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                        <div class="char-name">${char.name}</div>
-                        <span class="badge badge-${char.category}">${char.category.toUpperCase()}</span>
-                    </div>
+                    <div class="char-name">${char.name}</div>
                     <div class="star-rating">${stars}</div>
                     
                     <div class="flex justify-between items-center text-xs color-text-muted mt-2">

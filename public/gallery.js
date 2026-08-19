@@ -27,21 +27,20 @@ export async function initGallery(currentUser) {
                     </button>
                 </div>
             </div>
-            <div class="gallery-controls">
-                <div class="gallery-search-row">
-                    <input type="text" id="gallery-search" placeholder="🔍 Search celebrity name or label..." class="gallery-search-input">
-                    
-                    <select id="gallery-category-filter" class="gallery-category-select">
-                        <option value="">All Categories</option>
-                        <option value="trans">⚧️ Trans</option>
-                        <option value="sluts">♀️ Sluts</option>
-                        <option value="twinks">♂️ Twinks</option>
-                    </select>
 
-                    <div class="flex gap-2">
-                        <button id="btn-view-grid" class="btn-icon" title="Grid View">⊞</button>
-                        <button id="btn-view-list" class="btn-icon" title="List View">☰</button>
-                    </div>
+            <div class="gallery-controls">
+                <input type="text" id="gallery-search" placeholder="🔍 Search character name or tag...">
+                
+                <select id="gallery-category-filter">
+                    <option value="">All Categories</option>
+                    <option value="trans">⚧️ Trans</option>
+                    <option value="sluts">♀️ Sluts</option>
+                    <option value="twinks">♂️ Twinks</option>
+                </select>
+
+                <div class="flex gap-2">
+                    <button id="btn-view-grid" class="btn-icon" title="Grid View">⊞</button>
+                    <button id="btn-view-list" class="btn-icon" title="List View">☰</button>
                 </div>
             </div>
         </div>
@@ -83,26 +82,26 @@ export async function initGallery(currentUser) {
                     </div>
 
                     <div>
-                        <label class="text-xs color-text-muted">Custom Label / Tags (Optional)</label>
-                        <input type="text" id="char-form-label" placeholder="e.g. Brunette, Petite">
+                        <label class="text-xs color-text-muted">Label / Tag (Optional)</label>
+                        <input type="text" id="char-form-label" placeholder="e.g. Top Rated">
                     </div>
 
                     <div>
-                        <label class="text-xs color-text-muted">Image URLs (1 to 4 URLs) *</label>
-                        <div class="flex flex-col gap-2 mt-1">
-                            <input type="url" id="char-form-img-1" placeholder="Primary Image URL (Required)" required>
-                            <input type="url" id="char-form-img-2" placeholder="Image URL 2 (Optional)">
-                            <input type="url" id="char-form-img-3" placeholder="Image URL 3 (Optional)">
-                            <input type="url" id="char-form-img-4" placeholder="Image URL 4 (Optional)">
-                        </div>
+                        <label class="text-xs color-text-muted">Image URLs (1 to 4 Images) *</label>
+                        <input type="text" id="char-form-img-1" required placeholder="Image URL 1 (Primary)">
+                        <input type="text" id="char-form-img-2" placeholder="Image URL 2 (Optional)" class="mt-2">
+                        <input type="text" id="char-form-img-3" placeholder="Image URL 3 (Optional)" class="mt-2">
+                        <input type="text" id="char-form-img-4" placeholder="Image URL 4 (Optional)" class="mt-2">
                     </div>
 
-                    <button type="submit" class="btn-primary w-full mt-4">Save Character</button>
+                    <button type="submit" id="btn-save-char" class="btn-primary w-full mt-4">
+                        Save Character
+                    </button>
                 </form>
             </div>
         </div>
 
-        <!-- Report Issue Modal -->
+        <!-- Report Modal -->
         <div id="modal-report" class="modal hidden">
             <div class="modal-content">
                 <div class="modal-header">
@@ -111,26 +110,30 @@ export async function initGallery(currentUser) {
                 </div>
                 <form id="form-report-char">
                     <input type="hidden" id="report-char-id">
-                    
-                    <p class="text-sm color-text-muted mb-3">Report issue for: <strong id="report-char-name" class="color-text"></strong></p>
+                    <div class="mb-3">
+                        <div class="font-bold mb-1" id="report-char-name">Character Name</div>
+                        <div class="text-xs color-text-muted">Help us maintain quality by reporting invalid content.</div>
+                    </div>
 
-                    <div>
+                    <div class="mb-3">
                         <label class="text-xs color-text-muted">Reason *</label>
                         <select id="report-reason" required>
-                            <option value="broken_image">Broken / Blank Image</option>
-                            <option value="wrong_name">Incorrect Celebrity Name</option>
-                            <option value="wrong_category">Wrong Category</option>
-                            <option value="duplicate">Duplicate Entry</option>
-                            <option value="other">Other Violation</option>
+                            <option value="wrong_identity">Wrong Identity / Incorrect Name</option>
+                            <option value="duplicate">Duplicate Character</option>
+                            <option value="copyright">Copyright Issue</option>
+                            <option value="unsafe_content">Unsafe / Invalid Content</option>
+                            <option value="other">Other</option>
                         </select>
                     </div>
 
-                    <div class="mt-3">
-                        <label class="text-xs color-text-muted">Details / Notes (Optional)</label>
-                        <textarea id="report-note" rows="3" placeholder="Explain the issue..." style="width: 100%; border-radius: var(--radius-md); padding: 0.5rem; background: var(--bg-surface-elevated); color: var(--color-text); border: 1px solid var(--color-border);"></textarea>
+                    <div class="mb-3">
+                        <label class="text-xs color-text-muted">Additional Details (Optional)</label>
+                        <textarea id="report-note" rows="3" placeholder="Explain the issue..." style="width: 100%; background: var(--bg-surface-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px; color: var(--color-text);"></textarea>
                     </div>
 
-                    <button type="submit" class="btn-primary w-full mt-4" style="background: linear-gradient(135deg, #f43f5e, #e11d48);">Submit Report</button>
+                    <button type="submit" class="btn-primary w-full mt-2">
+                        Submit Report
+                    </button>
                 </form>
             </div>
         </div>
@@ -141,70 +144,65 @@ export async function initGallery(currentUser) {
     let hasMore = true;
     let allLoadedCharacters = [];
 
-    // Fetch and render weak spotlight
+    // Load Weak Spotlight
     async function loadWeakSpotlight() {
         try {
-            const res = await fetch('/api/me/progress');
+            const res = await fetch('/api/stats?sort=most_wrong');
             const data = await res.json();
-            if (data.success && data.data.weakCharacters && data.data.weakCharacters.length > 0) {
-                renderWeakSpotlight(data.data.weakCharacters);
-            }
-        } catch (e) {}
-    }
-
-    function renderWeakSpotlight(weakList) {
-        const spotContainer = document.getElementById('weak-spotlight-container');
-        if (!spotContainer) return;
-
-        spotContainer.innerHTML = `
-            <div class="weak-spotlight-banner mb-6">
-                <div class="flex justify-between items-center mb-3">
-                    <div class="flex items-center gap-2">
-                        <span class="pulsing-red-dot"></span>
-                        <h2 class="glow-text text-lg font-bold">🧠 Memory Priority: Weak Items</h2>
-                    </div>
-                    <button id="btn-train-weak-spotlight" class="btn-primary" style="padding: 0.4rem 1rem; font-size: 0.8rem;">
-                        ⚡ Train Weak Now
-                    </button>
-                </div>
-                <div class="weak-spotlight-scroll">
-                    ${weakList.map(c => `
-                        <div class="weak-spotlight-card cursor-pointer" data-id="${c.character_id}">
-                            <img src="${c.image_url || ''}" alt="${c.name}">
-                            <div class="weak-spotlight-info">
-                                <div class="font-bold text-xs truncate">${c.name}</div>
-                                <div class="text-xs" style="color: #fb7185;">${c.times_wrong} Errors (${c.success_rate}%)</div>
+            if (data.success && data.data.stats) {
+                const weak = data.data.stats.filter(s => s.times_wrong > 0 || s.mastery_level <= 1).slice(0, 5);
+                const spotlightEl = document.getElementById('weak-spotlight-container');
+                if (weak.length > 0 && spotlightEl) {
+                    spotlightEl.innerHTML = `
+                        <div class="weak-spotlight-banner">
+                            <div class="flex items-center gap-3">
+                                <div>
+                                    <div class="font-bold flex items-center gap-2">
+                                        <span class="pulsing-red-dot"></span>
+                                        <span>Weak Spotlight (SRS Priority)</span>
+                                    </div>
+                                    <div class="text-xs color-text-muted">Characters requiring review to cement memory</div>
+                                </div>
+                                <div class="weak-avatars-row">
+                                    ${weak.map(w => `<img class="weak-avatar-item" src="${(w.images && w.images[0]) || ''}" title="${w.name}">`).join('')}
+                                </div>
                             </div>
+                            <button id="btn-train-spotlight" class="btn-primary" style="padding: 0.6rem 1.25rem; font-size: 0.85rem;">
+                                ⚡ Train Weak
+                            </button>
                         </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
+                    `;
 
-        document.getElementById('btn-train-weak-spotlight')?.addEventListener('click', () => {
-            sound.playClick();
-            initGame('mix', 'review', 10);
-        });
+                    document.getElementById('btn-train-spotlight')?.addEventListener('click', () => {
+                        sound.playClick();
+                        initGame('mix', 'review', 10);
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("Weak spotlight load failed", e);
+        }
     }
 
-    // Load Characters from API
     async function loadCharacters(reset = false) {
-        if (loading) return;
+        if (loading || (!hasMore && !reset)) return;
+        loading = true;
+
         if (reset) {
             page = 1;
             hasMore = true;
             allLoadedCharacters = [];
-            document.getElementById('gallery-grid').innerHTML = '';
+            const grid = document.getElementById('gallery-grid');
+            if (grid) grid.innerHTML = '';
         }
-        if (!hasMore) return;
 
-        loading = true;
         document.getElementById('gallery-loading')?.classList.remove('hidden');
 
         const category = document.getElementById('gallery-category-filter')?.value || '';
         const search = document.getElementById('gallery-search')?.value.toLowerCase() || '';
 
-        const url = `/api/characters?page=${page}&limit=24${category ? `&category=${category}` : ''}`;
+        let url = `/api/characters?page=${page}&limit=24`;
+        if (category) url += `&category=${category}`;
 
         try {
             const res = await fetch(url);
@@ -255,13 +253,11 @@ export async function initGallery(currentUser) {
             card.innerHTML = `
                 <div class="char-img-container cursor-pointer">
                     <img src="${primaryImg}" alt="${char.name}" loading="lazy">
+                    <span class="badge badge-${char.category}" style="position: absolute; top: 10px; left: 10px; z-index: 2;">${char.category.toUpperCase()}</span>
                     ${char.images && char.images.length > 1 ? `<span class="badge badge-mix" style="position: absolute; bottom: 10px; right: 10px; z-index: 2;">📷 ${char.images.length}</span>` : ''}
                 </div>
                 <div class="char-info">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                        <div class="char-name" title="${char.name}">${char.name}</div>
-                        <span class="badge badge-${char.category}">${char.category.toUpperCase()}</span>
-                    </div>
+                    <div class="char-name" title="${char.name}">${char.name}</div>
                     <div class="char-meta">
                         <span class="added-by-tag">@${char.added_by || 'system'}</span>
                         ${char.label ? `<span class="badge" style="background: var(--bg-surface-elevated);">${char.label}</span>` : ''}

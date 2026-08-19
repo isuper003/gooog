@@ -479,31 +479,40 @@ input:focus, select:focus, textarea:focus {
     overflow: hidden;
     cursor: pointer;
     transition: var(--transition);
-    position: relative;
-    height: 400px; /* 25% larger than 320px */
+    height: 400px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
-.category-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-size: cover;
-    background-position: center;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-    opacity: 0.6;
-    z-index: 1;
-}
+
 .category-card:hover {
     transform: translateY(-8px) scale(1.025);
     border-color: var(--color-border-bright);
     box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65);
 }
-.category-card:hover::before {
-    transform: scale(1.1);
-    opacity: 0.82;
+
+.category-card-img-wrap {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+    background: var(--bg-surface-elevated);
+}
+
+.category-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    opacity: 0.85;
+    display: block;
+}
+
+.category-card:hover .category-card-img {
+    transform: scale(1.08);
+    opacity: 1;
 }
 
 .category-card[data-category="trans"]:hover { box-shadow: var(--glow-purple); border-color: var(--accent-magenta); }
@@ -511,21 +520,32 @@ input:focus, select:focus, textarea:focus {
 .category-card[data-category="twinks"]:hover { box-shadow: var(--glow-cyan); border-color: var(--accent-cyan); }
 .category-card[data-category="mix"]:hover { box-shadow: 0 0 35px rgba(236, 72, 153, 0.5); border-color: var(--accent-purple); }
 
-.category-card-overlay {
-    position: relative;
-    z-index: 2;
-    padding: 1rem 1.15rem;
-    background: linear-gradient(to top, rgba(6, 6, 12, 0.95) 0%, rgba(6, 6, 12, 0.6) 60%, transparent 100%);
+.category-card-footer {
+    padding: 0.9rem 1.15rem;
+    background: var(--bg-surface-elevated);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2rem;
+    flex-shrink: 0;
+    transition: var(--transition);
 }
+
+.category-card:hover .category-card-footer {
+    background: var(--bg-card-hover);
+}
+
 .category-card-title {
-    font-size: 0.95rem; /* Reduced 50% */
+    font-size: 0.95rem;
     font-weight: 800;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0;
     letter-spacing: -0.01em;
 }
+
 .category-card-count {
     color: var(--color-text-muted);
-    font-size: 0.65rem; /* Reduced 50% */
+    font-size: 0.68rem;
     font-weight: 600;
     letter-spacing: 0.2px;
 }
@@ -931,49 +951,14 @@ input:focus, select:focus, textarea:focus {
     margin-bottom: 1.5rem;
 }
 .gallery-controls {
-    width: 100%;
-}
-.gallery-search-row {
     display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    width: 100%;
+    gap: 0.75rem;
     flex-wrap: wrap;
+    align-items: center;
 }
-.gallery-search-input {
+.gallery-controls input {
     flex: 1;
-    min-width: 220px;
-    height: 42px;
-    border-radius: var(--radius-md);
-    padding: 0 1rem;
-    background: var(--bg-surface-elevated);
-    border: 1px solid var(--color-border);
-    color: var(--color-text);
-    font-size: 0.9rem;
-    transition: var(--transition);
-}
-.gallery-search-input:focus {
-    border-color: var(--accent-purple);
-    box-shadow: 0 0 12px rgba(139, 92, 246, 0.35);
-    outline: none;
-}
-.gallery-category-select {
-    height: 42px;
-    min-width: 160px;
-    border-radius: var(--radius-md);
-    padding: 0 0.85rem;
-    background: var(--bg-surface-elevated);
-    border: 1px solid var(--color-border);
-    color: var(--color-text);
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition);
-}
-.gallery-category-select:focus {
-    border-color: var(--accent-purple);
-    box-shadow: 0 0 12px rgba(139, 92, 246, 0.35);
-    outline: none;
+    min-width: 200px;
 }
 .gallery-grid {
     display: grid;
