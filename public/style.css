@@ -261,14 +261,16 @@ body.modal-open {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 2rem;
-    background: rgba(6, 6, 12, 0.88);
+    padding: 0 1.75rem;
+    background: rgba(10, 10, 20, 0.84);
     backdrop-filter: blur(20px) saturate(160%);
     position: sticky;
-    top: 0;
+    top: 0.75rem;
+    margin: 0.75rem 1rem 0;
+    border-radius: var(--radius-xl);
     z-index: 100;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
     transition: var(--transition);
 }
 
@@ -398,18 +400,19 @@ body.modal-open {
 .bottom-nav {
     display: none;
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
-    background: rgba(6, 6, 12, 0.95);
+    bottom: 0.75rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    height: calc(var(--bottom-nav-height) - 4px);
+    background: rgba(10, 10, 20, 0.94);
     backdrop-filter: blur(20px) saturate(180%);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-xl);
     z-index: 100;
     justify-content: space-around;
     align-items: center;
-    padding: 0 0.5rem env(safe-area-inset-bottom, 0px);
-    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.6);
+    padding: 0 0.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .bottom-nav .nav-item {
