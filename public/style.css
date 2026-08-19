@@ -475,17 +475,162 @@ body.modal-open {
     justify-content: center;
     padding: 2rem 1rem;
     position: relative;
-    background: radial-gradient(circle at center, rgba(6, 6, 12, 0.45) 0%, rgba(6, 6, 12, 0.88) 100%),
-                url('/assets/auth_bg.jpg') no-repeat center center / cover;
-    background-attachment: fixed;
+    overflow: hidden;
+    background: #06060c;
 }
 
-#view-auth::before {
-    content: '';
+/* Real Characters Fullscreen Collage Background */
+.auth-collage-bg {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.collage-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1.1fr 1fr 1.2fr;
+    grid-template-rows: 100vh;
+    width: 100vw;
+    height: 100vh;
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
+    gap: 4px;
+    filter: brightness(0.72) saturate(1.3) contrast(1.15);
+    transform: scale(1.04);
+    animation: collageAmbient 18s ease-in-out infinite alternate;
+}
+
+@keyframes collageAmbient {
+    0% { transform: scale(1.02) rotate(0deg); }
+    100% { transform: scale(1.07) rotate(-0.5deg); }
+}
+
+.collage-card {
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    height: 100%;
+    position: relative;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+}
+
+.collage-card.col-1 { background-position: center top; }
+.collage-card.col-2 { background-position: center 20%; }
+.collage-card.col-3 { background-position: center 15%; }
+.collage-card.col-4 { background-position: center 60%; }
+.collage-card.col-5 { background-position: center 35%; }
+
+.collage-mesh-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(8, 8, 18, 0.4) 0%, rgba(6, 6, 12, 0.88) 75%),
+                linear-gradient(135deg, rgba(139, 92, 246, 0.28) 0%, rgba(236, 72, 153, 0.22) 50%, rgba(56, 189, 248, 0.25) 100%);
+    backdrop-filter: blur(4px);
+    z-index: 2;
+}
+
+/* Floating Hype Streetwear Typography Layer */
+.hype-text-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
     pointer-events: none;
+    overflow: hidden;
+}
+
+.hype-title {
+    position: absolute;
+    font-family: 'Outfit', sans-serif;
+    font-size: clamp(2rem, 5.5vw, 4.5rem);
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.85);
+    user-select: none;
+    mix-blend-mode: overlay;
+    filter: drop-shadow(0 0 25px rgba(236, 72, 153, 0.7));
+}
+
+.title-1 {
+    top: 12%;
+    left: 4%;
+    transform: rotate(-7deg);
+    color: #fff;
+    text-shadow: 0 0 30px rgba(139, 92, 246, 0.9);
+}
+
+.title-2 {
+    top: 18%;
+    right: 4%;
+    transform: rotate(6deg);
+    color: #f43f5e;
+    text-shadow: 0 0 35px rgba(244, 63, 94, 0.9);
+}
+
+.title-3 {
+    bottom: 12%;
+    left: 6%;
+    transform: rotate(4deg);
+    color: #38bdf8;
+    text-shadow: 0 0 30px rgba(56, 189, 248, 0.9);
+}
+
+.hype-sticker {
+    position: absolute;
+    padding: 0.45rem 1.1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 900;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: var(--radius-md);
+    background: rgba(0, 0, 0, 0.75);
+    border: 2px solid #fff;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8);
+    user-select: none;
+    z-index: 4;
+}
+
+.sticker-1 {
+    top: 6%;
+    left: 8%;
+    transform: rotate(-12deg);
+    border-color: var(--accent-purple);
+    color: #c084fc;
+    box-shadow: 0 0 20px rgba(192, 132, 252, 0.5);
+}
+
+.sticker-2 {
+    top: 8%;
+    right: 8%;
+    transform: rotate(10deg);
+    border-color: var(--accent-pink);
+    color: #fb7185;
+    box-shadow: 0 0 20px rgba(251, 113, 133, 0.5);
+}
+
+.sticker-3 {
+    bottom: 8%;
+    right: 6%;
+    transform: rotate(-6deg);
+    border-color: var(--accent-cyan);
+    color: #38bdf8;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+}
+
+@media (max-width: 768px) {
+    .collage-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .hype-title {
+        font-size: 1.8rem;
+        opacity: 0.5;
+    }
 }
 
 .auth-box {
