@@ -15,7 +15,7 @@ export async function onRequestGet(context) {
     // Non-approved status (pending, rejected, hidden) requires admin/mod role
     if (status !== 'approved') {
         const auth = await authenticateUser(request, db);
-        if (auth.error || (auth.role !== 'admin' && auth.role !== 'moderator')) {
+        if (auth.error || (auth.user?.role !== 'admin' && auth.user?.role !== 'moderator')) {
             return errorResponse("Unauthorized to view non-approved characters", 403);
         }
     }
@@ -94,7 +94,8 @@ export async function onRequestPost(context) {
     
     // Validate image URLs
     for (const url of images) {
-        if (typeof url !== 'string' || (!url.startsWith('https://') && !url.startsWith('http://'))) {
+        const trimmed = typeof url === 'string' ? url.trim() : '';
+        if (!trimmed.startsWith('https://') && !trimmed.startsWith('http://')) {
             return errorResponse("Invalid image URL. Must be a valid http/https URL.", 400);
         }
     }

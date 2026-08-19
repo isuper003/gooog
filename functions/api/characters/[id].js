@@ -20,7 +20,8 @@ export async function onRequestPut(context) {
     }
     
     for (const url of images) {
-        if (typeof url !== 'string' || (!url.startsWith('https://') && !url.startsWith('http://'))) {
+        const trimmed = typeof url === 'string' ? url.trim() : '';
+        if (!trimmed.startsWith('https://') && !trimmed.startsWith('http://')) {
             return errorResponse("Invalid image URL. Must be a valid http/https URL.", 400);
         }
     }
