@@ -438,7 +438,6 @@ export function initCrawler(currentUser) {
                 <div class="row-card-header">
                     <div class="row-main-avatar" title="${char.name} Profile">
                         <img src="${avatarSrc}" alt="${char.name}" loading="lazy" referrerpolicy="no-referrer">
-                        <span class="badge badge-${char.category}" style="position: absolute; bottom: 4px; left: 4px; z-index: 2; font-size: 0.65rem; padding: 2px 6px;">${char.category.toUpperCase()}</span>
                     </div>
 
                     <div class="row-info-col">
