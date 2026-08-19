@@ -1,0 +1,1 @@
+SESSION_SECRET="replace_me_with_a_long_random_hex_string"
