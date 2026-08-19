@@ -435,38 +435,56 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* Home Screen Category Cards */
+#page-home {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - var(--header-height) - 60px);
+    padding: 1.5rem 1rem 3rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .home-hero {
     text-align: center;
-    margin: 1rem 0 2rem;
+    margin: 0 auto 2.25rem;
+    max-width: 800px;
 }
 .home-hero h1 {
-    font-size: 2.25rem;
-    margin-bottom: 0.5rem;
+    font-size: 2.65rem;
+    margin-bottom: 0.6rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
 }
 .home-hero p {
     color: var(--color-text-muted);
-    font-size: 1.1rem;
+    font-size: 1.15rem;
 }
 
 .category-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    margin-top: 1.5rem;
+    gap: 1.85rem;
+    width: 100%;
+    max-width: 1260px;
+    margin: 0 auto;
+    justify-content: center;
 }
 
 .category-card {
     background: var(--bg-card);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     overflow: hidden;
     cursor: pointer;
     transition: var(--transition);
     position: relative;
-    height: 320px;
+    height: 400px; /* 25% larger than 320px */
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .category-card::before {
     content: '';
@@ -474,38 +492,41 @@ input:focus, select:focus, textarea:focus {
     inset: 0;
     background-size: cover;
     background-position: center;
-    transition: transform 0.4s ease;
-    opacity: 0.55;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    opacity: 0.6;
     z-index: 1;
 }
 .category-card:hover {
-    transform: translateY(-6px) scale(1.02);
+    transform: translateY(-8px) scale(1.025);
     border-color: var(--color-border-bright);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65);
 }
 .category-card:hover::before {
-    transform: scale(1.08);
-    opacity: 0.75;
+    transform: scale(1.1);
+    opacity: 0.82;
 }
 
 .category-card[data-category="trans"]:hover { box-shadow: var(--glow-purple); border-color: var(--accent-magenta); }
 .category-card[data-category="sluts"]:hover { box-shadow: var(--glow-pink); border-color: var(--accent-pink); }
 .category-card[data-category="twinks"]:hover { box-shadow: var(--glow-cyan); border-color: var(--accent-cyan); }
-.category-card[data-category="mix"]:hover { box-shadow: 0 0 25px rgba(236, 72, 153, 0.4); border-color: var(--accent-purple); }
+.category-card[data-category="mix"]:hover { box-shadow: 0 0 35px rgba(236, 72, 153, 0.5); border-color: var(--accent-purple); }
 
 .category-card-overlay {
     position: relative;
     z-index: 2;
-    padding: 1.5rem;
-    background: linear-gradient(to top, rgba(8, 8, 16, 0.95) 0%, rgba(8, 8, 16, 0.6) 60%, transparent 100%);
+    padding: 1.85rem 1.5rem;
+    background: linear-gradient(to top, rgba(6, 6, 12, 0.98) 0%, rgba(6, 6, 12, 0.72) 65%, transparent 100%);
+    backdrop-filter: blur(8px);
 }
 .category-card-title {
-    font-size: 1.5rem;
-    font-weight: 800;
-    margin-bottom: 0.25rem;
+    font-size: 1.85rem; /* 25% larger than 1.5rem */
+    font-weight: 900;
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.02em;
 }
 .category-card-count {
     color: var(--color-text-muted);
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 600;
 }
 
@@ -2092,7 +2113,9 @@ input:focus, select:focus, textarea:focus {
         position: static;
     }
     .category-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(260px, 340px));
+        gap: 1.75rem;
+        justify-content: center;
     }
     .game-content-split {
         grid-template-columns: 1fr;
@@ -2122,9 +2145,14 @@ input:focus, select:focus, textarea:focus {
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 580px) {
     .category-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(260px, 380px);
+        justify-content: center;
+        gap: 1.5rem;
+    }
+    .category-card {
+        height: 360px;
     }
     .hon-cards-grid {
         grid-template-columns: 1fr;
