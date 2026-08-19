@@ -678,7 +678,10 @@ export function initCrawler(currentUser) {
 
         if (importedCount > 0) {
             sound.playWin();
-            showToast(`🎉 Successfully imported ${importedCount} characters to the library!`, 'success');
+            const msg = isAdminOrMod
+                ? `🎉 Successfully imported ${importedCount} characters to the library!`
+                : `🎉 Submitted ${importedCount} characters for review! Thank you for contributing to GoooG.`;
+            showToast(msg, 'success');
             window.location.hash = 'gallery';
         } else {
             showToast("Failed to import characters. Check server permissions.", 'error');
