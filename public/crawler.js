@@ -314,7 +314,13 @@ export function initCrawler(currentUser) {
             if (!isDup) selectedCharIds.add(newChar.id);
 
             renderCrawlerRows();
-            showToast(`Loaded ${galleryPhotos.length} Ultra-HD gallery photos for ${model.name}!`, "success");
+            sound.playCorrect();
+            showToast(`🎉 Loaded ${galleryPhotos.length} Ultra-HD photos for ${model.name}!`, "success");
+            if (directInput) directInput.value = '';
+            
+            // Scroll to the new card
+            const newCard = document.getElementById(`card-${newChar.id}`);
+            if (newCard) newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } catch (e) {
             if (btn) {
                 btn.disabled = false;

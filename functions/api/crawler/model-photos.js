@@ -19,26 +19,33 @@ export async function onRequestGet(context) {
     }
 
     // Extract slug from URL if full URL was provided
-    if (target.includes('pornpics.com')) {
-        const match = target.match(/\/pornstars\/([a-z0-9_-]+)/i);
+    let clean = target.trim();
+    if (clean.includes('pornpics.com')) {
+        const match = clean.match(/\/pornstars\/([a-z0-9_-]+)/i);
         if (match) {
-            target = match[1];
+            clean = match[1];
         }
     }
 
-    const clean = target.toLowerCase().trim();
-    const hyphenSlug = clean.replace(/_/g, '-');
-    const underscoreSlug = clean.replace(/-/g, '_');
+    // Convert spaces, underscores, and special characters to hyphens
+    const hyphenSlug = clean
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+    const underscoreSlug = hyphenSlug.replace(/-/g, '_');
     const firstLetter = underscoreSlug[0] || 'a';
     const mainProfileImg = `https://cdni.pornpics.com/models/${firstLetter}/${underscoreSlug}.jpg`;
-    const formattedName = clean.replace(/[-_]+/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const formattedName = clean
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
 
     let galleryPhotos = [];
     const pornpicsUrl = `https://www.pornpics.com/pornstars/${hyphenSlug}/`;
 
     try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 4500);
+        const timeout = setTimeout(() => controller.abort(), 6000);
 
         const res = await fetch(pornpicsUrl, {
             headers: {
@@ -56,8 +63,8 @@ export async function onRequestGet(context) {
             const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
             const extractedName = h1Match ? h1Match[1].replace(/\s*(?:Nude\s*Pics|Porn\s*Pics|Galleries)\s*$/i, '').trim() : formattedName;
 
-            // Extract all gallery photos from data-src and upgrade to 1280px HQ (excluding profile avatar)
-            const regex = /data-src=['"](https:\/\/cdni\.pornpics\.com\/[^'"]+)['"]/gi;
+            // Extract all gallery photos from data-src or src and upgrade to 1280px HQ (excluding profile avatar)
+            const regex = /(?:data-src|src)=['"](https:\/\/cdni\.pornpics\.com\/[^'"]+)['"]/gi;
             const seen = new Set();
             let match;
             while ((match = regex.exec(html)) !== null) {
@@ -72,16 +79,22 @@ export async function onRequestGet(context) {
                 }
             }
 
-            return successResponse({
-                name: extractedName || formattedName,
-                slug: hyphenSlug,
-                profileImage: mainProfileImg,
-                photos: galleryPhotos,
-                totalPhotos: galleryPhotos.length
-            });
+            if (galleryPhotos.length > 0) {
+                return successResponse({
+                    name: extractedName || formattedName,
+                    slug: hyphenSlug,
+                    profileImage: mainProfileImg,
+                    photos: galleryPhotos,
+                    totalPhotos: galleryPhotos.length
+                });
+            }
         }
     } catch (e) {
         console.warn("Live model scraping error:", e.message);
+    }
+
+    if (galleryPhotos.length === 0) {
+        return errorResponse(`Could not find photo gallery for "${formattedName}". Please check the spelling or paste a direct Pornpics URL.`, 404);
     }
 
     return successResponse({
