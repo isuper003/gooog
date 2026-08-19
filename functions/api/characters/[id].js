@@ -19,6 +19,12 @@ export async function onRequestPut(context) {
         return errorResponse("Invalid character data. Provide name, category, and 1-4 images.", 400);
     }
     
+    for (const url of images) {
+        if (typeof url !== 'string' || (!url.startsWith('https://') && !url.startsWith('http://'))) {
+            return errorResponse("Invalid image URL. Must be a valid http/https URL.", 400);
+        }
+    }
+    
     try {
         const char = await db.prepare("SELECT id, submitted_by_user_id FROM characters WHERE id = ? AND deleted_at_ms IS NULL").bind(characterId).first();
         if (!char) return errorResponse("Character not found", 404);

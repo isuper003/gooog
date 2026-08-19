@@ -1,4 +1,5 @@
 import { showToast } from './toast.js';
+import { setCsrfToken } from './csrf.js';
 
 export function initAuth() {
     const tabLogin = document.getElementById('tab-login');
@@ -35,7 +36,7 @@ export function initAuth() {
             const data = await res.json();
             
             if (res.ok && data.success) {
-                localStorage.setItem('csrf_token', data.data.csrfToken);
+                setCsrfToken(data.data.csrfToken);
                 showToast('Welcome back! Loading game...', 'success');
                 setTimeout(() => window.location.reload(), 400);
             } else {
@@ -70,7 +71,7 @@ export function initAuth() {
                 });
                 const loginData = await loginRes.json();
                 if (loginRes.ok && loginData.success) {
-                    localStorage.setItem('csrf_token', loginData.data.csrfToken);
+                    setCsrfToken(loginData.data.csrfToken);
                     setTimeout(() => window.location.reload(), 400);
                 } else {
                     tabLogin?.click();

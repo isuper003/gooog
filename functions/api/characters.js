@@ -1,5 +1,6 @@
 import { successResponse, errorResponse } from '../lib/response.js';
 import { generateUUID } from '../lib/crypto.js';
+import { authenticateUser } from '../lib/auth.js';
 
 export async function onRequestGet(context) {
     const { env, request } = context;
@@ -10,6 +11,14 @@ export async function onRequestGet(context) {
     const limit = parseInt(url.searchParams.get('limit')) || 20;
     const category = url.searchParams.get('category');
     const status = url.searchParams.get('status') || 'approved';
+    
+    // Non-approved status (pending, rejected, hidden) requires admin/mod role
+    if (status !== 'approved') {
+        const auth = await authenticateUser(request, db);
+        if (auth.error || (auth.role !== 'admin' && auth.role !== 'moderator')) {
+            return errorResponse("Unauthorized to view non-approved characters", 403);
+        }
+    }
     
     const offset = (page - 1) * limit;
     
@@ -39,13 +48,14 @@ export async function onRequestGet(context) {
         const { results } = await stmt.bind(...params).all();
         
         if (results && results.length > 0) {
-            const charIds = results.map(r => `'${r.id}'`).join(',');
+            const charIds = results.map(r => r.id);
+            const placeholders = charIds.map(() => '?').join(',');
             const { results: images } = await db.prepare(`
                 SELECT character_id, image_url, display_order 
                 FROM character_images 
-                WHERE character_id IN (${charIds})
+                WHERE character_id IN (${placeholders})
                 ORDER BY character_id, display_order
-            `).all();
+            `).bind(...charIds).all();
             
             const imageMap = {};
             (images || []).forEach(img => {
@@ -80,6 +90,13 @@ export async function onRequestPost(context) {
     
     if (!name || !category || !images || !Array.isArray(images) || images.length === 0 || images.length > 4) {
         return errorResponse("Invalid character data. Provide name, category, and 1-4 images.", 400);
+    }
+    
+    // Validate image URLs
+    for (const url of images) {
+        if (typeof url !== 'string' || (!url.startsWith('https://') && !url.startsWith('http://'))) {
+            return errorResponse("Invalid image URL. Must be a valid http/https URL.", 400);
+        }
     }
     
     const validCategories = ['trans', 'sluts', 'twinks'];

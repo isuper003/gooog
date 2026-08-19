@@ -7,6 +7,7 @@ import { initCrawler } from './crawler.js';
 import { initSettingsModal } from './settings.js';
 import { sound } from './sound.js';
 import { showToast } from './toast.js';
+import { getCsrfToken, clearCsrfToken } from './csrf.js';
 
 const state = {
     user: null,
@@ -257,10 +258,10 @@ function setupGlobalEvents() {
             await fetch('/api/auth/logout', {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                    'X-CSRF-Token': getCsrfToken()
                 }
             });
-            localStorage.removeItem('csrf_token');
+            clearCsrfToken();
             showToast('Logged out successfully', 'info');
             setTimeout(() => window.location.reload(), 300);
         }

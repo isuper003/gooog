@@ -1,6 +1,7 @@
 import { sound } from './sound.js';
 import { lightbox } from './lightbox.js';
 import { showToast } from './toast.js';
+import { getCsrfToken } from './csrf.js';
 
 export function initCrawler(currentUser) {
     const container = document.getElementById('page-admin');
@@ -650,7 +651,7 @@ export function initCrawler(currentUser) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                        'X-CSRF-Token': getCsrfToken()
                     },
                     body: JSON.stringify({
                         name: item.name,
@@ -780,7 +781,7 @@ export function initCrawler(currentUser) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify({ characterId, action })
             });
@@ -853,7 +854,7 @@ export function initCrawler(currentUser) {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify({ reportId, status })
             });

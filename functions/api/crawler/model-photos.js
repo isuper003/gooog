@@ -5,10 +5,13 @@ export async function onRequestGet(context) {
     const { env, request } = context;
     const db = env.DB;
 
-    // Verify session
+    // Verify session and role
     const auth = await authenticateUser(request, db);
     if (auth.error) {
         return errorResponse(auth.error, auth.status);
+    }
+    if (auth.role !== 'admin' && auth.role !== 'moderator') {
+        return errorResponse("Unauthorized: Admin or Moderator role required", 403);
     }
 
     const url = new URL(request.url);

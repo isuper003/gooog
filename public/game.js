@@ -2,6 +2,7 @@ import { lightbox } from './lightbox.js';
 import { sound } from './sound.js';
 import { renderResults } from './results.js';
 import { showToast } from './toast.js';
+import { getCsrfToken } from './csrf.js';
 
 export function endGame() {
     const gameView = document.getElementById('view-game');
@@ -33,7 +34,7 @@ export async function initGame(category, mode, rounds) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                'X-CSRF-Token': getCsrfToken()
             },
             body: JSON.stringify({ category, mode, rounds })
         });
@@ -55,7 +56,9 @@ export async function initGame(category, mode, rounds) {
 }
 
 function runGameEngine(sessionData, selectedCategory) {
-    const { gameSessionId, mode, questions } = sessionData;
+    const { gameSessionId, mode, questions, roundsRequested } = sessionData;
+    // Preserve original round count for "New Round" restart
+    const originalRounds = roundsRequested === 9999 ? 'unlimited' : (roundsRequested || questions.length);
     const container = document.getElementById('view-game');
 
     let currentIdx = 0;
@@ -317,7 +320,7 @@ function runGameEngine(sessionData, selectedCategory) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify({
                     answerId,
@@ -432,7 +435,7 @@ function runGameEngine(sessionData, selectedCategory) {
             wrongAnswers,
             masteryChanges
         }, () => {
-            initGame(selectedCategory, mode, questions.length);
+            initGame(selectedCategory, mode, originalRounds);
         }, () => {
             endGame();
         });

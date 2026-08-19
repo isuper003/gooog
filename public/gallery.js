@@ -2,6 +2,7 @@ import { lightbox } from './lightbox.js';
 import { sound } from './sound.js';
 import { initGame } from './game.js';
 import { showToast } from './toast.js';
+import { getCsrfToken } from './csrf.js';
 
 export async function initGallery(currentUser) {
     const container = document.getElementById('page-gallery');
@@ -216,7 +217,8 @@ export async function initGallery(currentUser) {
                 page++;
             }
         } catch (e) {
-            console.error(e);
+            console.error("Gallery load error", e);
+            showToast('Failed to load gallery characters', 'error');
         } finally {
             loading = false;
             document.getElementById('gallery-loading')?.classList.add('hidden');
@@ -327,7 +329,7 @@ export async function initGallery(currentUser) {
             const res = await fetch(`/api/characters/${charId}`, {
                 method: 'DELETE',
                 headers: {
-                    'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                    'X-CSRF-Token': getCsrfToken()
                 }
             });
             const data = await res.json();
@@ -404,7 +406,7 @@ export async function initGallery(currentUser) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify({ characterId, reason, note })
             });
@@ -444,7 +446,7 @@ export async function initGallery(currentUser) {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify({ name, category, label, images })
             });
@@ -480,7 +482,11 @@ export async function initGallery(currentUser) {
         sound.playClick();
         let csv = 'Name,Category,Label,AddedBy,Images\n';
         allLoadedCharacters.forEach(c => {
-            csv += `"${c.name}","${c.category}","${c.label || ''}","${c.added_by || ''}","${(c.images || []).join(';')}"\n`;
+            const cleanName = (c.name || '').replace(/"/g, '""');
+            const cleanCat = (c.category || '').replace(/"/g, '""');
+            const cleanLabel = (c.label || '').replace(/"/g, '""');
+            const cleanAddedBy = (c.added_by || '').replace(/"/g, '""');
+            csv += `"${cleanName}","${cleanCat}","${cleanLabel}","${cleanAddedBy}","${(c.images || []).join(';')}"\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv' });
         const a = document.createElement('a');

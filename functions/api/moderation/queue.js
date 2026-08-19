@@ -19,13 +19,14 @@ export async function onRequestGet(context) {
         `).all();
         
         if (pendingChars && pendingChars.length > 0) {
-            const charIds = pendingChars.map(c => `'${c.id}'`).join(',');
+            const charIds = pendingChars.map(c => c.id);
+            const placeholders = charIds.map(() => '?').join(',');
             const { results: images } = await db.prepare(`
                 SELECT character_id, image_url, display_order 
                 FROM character_images 
-                WHERE character_id IN (${charIds})
+                WHERE character_id IN (${placeholders})
                 ORDER BY character_id, display_order
-            `).all();
+            `).bind(...charIds).all();
             
             const imageMap = {};
             (images || []).forEach(img => {

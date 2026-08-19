@@ -61,13 +61,14 @@ export async function onRequestPost(context) {
         }
         
         // Fetch character images in bulk
-        const charIds = characters.map(c => `'${c.id}'`).join(',');
+        const charIds = characters.map(c => c.id);
+        const placeholders = charIds.map(() => '?').join(',');
         const { results: allImages } = await db.prepare(`
             SELECT character_id, image_url, display_order 
             FROM character_images 
-            WHERE character_id IN (${charIds})
+            WHERE character_id IN (${placeholders})
             ORDER BY character_id, display_order
-        `).all();
+        `).bind(...charIds).all();
         
         const charImagesMap = {};
         (allImages || []).forEach(img => {
@@ -148,6 +149,7 @@ export async function onRequestPost(context) {
         return successResponse({
             gameSessionId,
             mode,
+            roundsRequested: isUnlimited ? 9999 : numRounds,
             questions: clientQuestions
         });
         

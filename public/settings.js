@@ -136,7 +136,7 @@ export async function initSettingsModal(currentUser) {
                 const res = await fetch('/api/me/delete-account', {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                        'X-CSRF-Token': getCsrfToken()
                     }
                 });
                 const data = await res.json();

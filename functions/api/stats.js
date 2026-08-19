@@ -51,13 +51,14 @@ export async function onRequestGet(context) {
         const { results } = await db.prepare(query).bind(...params).all();
         
         if (results.length > 0) {
-            const charIds = results.map(r => `'${r.id}'`).join(',');
+            const charIds = results.map(r => r.id);
+            const placeholders = charIds.map(() => '?').join(',');
             const { results: images } = await db.prepare(`
                 SELECT character_id, image_url, display_order 
                 FROM character_images 
-                WHERE character_id IN (${charIds})
+                WHERE character_id IN (${placeholders})
                 ORDER BY character_id, display_order
-            `).all();
+            `).bind(...charIds).all();
             
             const imageMap = {};
             images.forEach(img => {
