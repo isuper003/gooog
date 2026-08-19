@@ -514,20 +514,20 @@ input:focus, select:focus, textarea:focus {
 .category-card-overlay {
     position: relative;
     z-index: 2;
-    padding: 1.85rem 1.5rem;
-    background: linear-gradient(to top, rgba(6, 6, 12, 0.98) 0%, rgba(6, 6, 12, 0.72) 65%, transparent 100%);
-    backdrop-filter: blur(8px);
+    padding: 1rem 1.15rem;
+    background: linear-gradient(to top, rgba(6, 6, 12, 0.95) 0%, rgba(6, 6, 12, 0.6) 60%, transparent 100%);
 }
 .category-card-title {
-    font-size: 1.85rem; /* 25% larger than 1.5rem */
-    font-weight: 900;
-    margin-bottom: 0.35rem;
-    letter-spacing: -0.02em;
+    font-size: 0.95rem; /* Reduced 50% */
+    font-weight: 800;
+    margin-bottom: 0.2rem;
+    letter-spacing: -0.01em;
 }
 .category-card-count {
     color: var(--color-text-muted);
-    font-size: 1rem;
+    font-size: 0.65rem; /* Reduced 50% */
     font-weight: 600;
+    letter-spacing: 0.2px;
 }
 
 /* Modals & Bottom Sheets */
