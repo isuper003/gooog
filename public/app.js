@@ -200,27 +200,58 @@ async function initHome() {
             sound.playClick();
             state.selectedCategory = e.currentTarget.dataset.category;
             
-            const titleMap = {
-                mix: '🔀 All Mix Challenge',
-                trans: '⚧️ Trans Category',
-                sluts: '♀️ Sluts Category',
-                twinks: '♂️ Twinks Category'
+            const categoryMeta = {
+                mix: { title: 'All Mix Challenge', icon: '🔀', subtitle: 'Randomized blend from all categories' },
+                trans: { title: 'Trans Category', icon: '⚧️', subtitle: 'Test your recognition of trans celebrities' },
+                sluts: { title: 'Sluts Category', icon: '♀️', subtitle: 'Female celebrity trivia & visual test' },
+                twinks: { title: 'Twinks Category', icon: '♂️', subtitle: 'Male celebrity trivia & visual test' }
             };
 
+            const meta = categoryMeta[state.selectedCategory] || { title: state.selectedCategory.toUpperCase(), icon: '🎮', subtitle: 'Configure game settings' };
+
+            const iconEl = document.getElementById('setup-category-icon');
             const titleEl = document.getElementById('setup-category-title');
-            if (titleEl) titleEl.innerText = titleMap[state.selectedCategory] || state.selectedCategory.toUpperCase();
+            const boxEl = document.getElementById('setup-modal-box');
+            
+            if (iconEl) iconEl.innerText = meta.icon;
+            if (titleEl) titleEl.innerText = meta.title;
+            if (boxEl) boxEl.setAttribute('data-category', state.selectedCategory);
+            
             document.getElementById('modal-round-setup')?.classList.remove('hidden');
         });
     });
 }
 
 function setupGlobalEvents() {
-    // Setup Modal Pill selection
-    document.querySelectorAll('.pill-group .pill').forEach(pill => {
+    // Mode Card Selection
+    document.querySelectorAll('#setup-mode .mode-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            sound.playClick();
+            document.querySelectorAll('#setup-mode .mode-card').forEach(c => c.classList.remove('active'));
+            const targetCard = e.currentTarget;
+            targetCard.classList.add('active');
+            
+            const mode = targetCard.dataset.val;
+            const roundsContainer = document.getElementById('setup-rounds');
+            const roundsLabel = document.getElementById('setup-rounds-label');
+            
+            if (mode === 'sudden_death') {
+                if (roundsContainer) roundsContainer.style.opacity = '0.4';
+                if (roundsContainer) roundsContainer.style.pointerEvents = 'none';
+                if (roundsLabel) roundsLabel.innerHTML = '<span>🔢 Questions Count: <strong style="color: var(--accent-red);">Fixed 50 Rounds (1 Life)</strong></span>';
+            } else {
+                if (roundsContainer) roundsContainer.style.opacity = '1';
+                if (roundsContainer) roundsContainer.style.pointerEvents = 'auto';
+                if (roundsLabel) roundsLabel.innerHTML = '<span>🔢 Number of Questions</span>';
+            }
+        });
+    });
+
+    // Round Pill selection
+    document.querySelectorAll('#setup-rounds .round-pill').forEach(pill => {
         pill.addEventListener('click', (e) => {
             sound.playClick();
-            const group = e.currentTarget.closest('.pill-group');
-            group.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('#setup-rounds .round-pill').forEach(p => p.classList.remove('active'));
             e.currentTarget.classList.add('active');
         });
     });
@@ -239,8 +270,8 @@ function setupGlobalEvents() {
         newStartBtn.addEventListener('click', () => {
             sound.playClick();
             document.getElementById('modal-round-setup')?.classList.add('hidden');
-            const mode = document.querySelector('#setup-mode .pill.active')?.dataset.val || 'classic';
-            const rounds = document.querySelector('#setup-rounds .pill.active')?.dataset.val || '10';
+            const mode = document.querySelector('#setup-mode .mode-card.active')?.dataset.val || 'classic';
+            const rounds = document.querySelector('#setup-rounds .round-pill.active')?.dataset.val || '15';
             initGame(state.selectedCategory, mode, rounds);
         });
     }

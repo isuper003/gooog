@@ -110,33 +110,72 @@
         </div>
     </div>
     
-    <!-- Round Setup Modal -->
-    <div id="modal-round-setup" class="modal hidden bottom-sheet">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="setup-category-title" class="glow-text text-xl">Category</h2>
-                <button class="close-modal" id="btn-close-setup-modal">×</button>
+    <!-- Enhanced Round Setup Modal -->
+    <div id="modal-round-setup" class="modal hidden">
+        <div class="modal-content setup-modal-content" id="setup-modal-box">
+            <div class="setup-modal-header">
+                <div class="flex items-center gap-3">
+                    <div id="setup-category-icon" class="setup-category-icon">🔀</div>
+                    <div>
+                        <h2 id="setup-category-title" class="setup-modal-title glow-text">All Mix Challenge</h2>
+                        <p class="setup-modal-subtitle">Configure your game mode and round length</p>
+                    </div>
+                </div>
+                <button class="close-modal" id="btn-close-setup-modal" aria-label="Close">×</button>
             </div>
-            <div class="modal-body">
-                <div class="font-bold text-sm color-text-muted mb-2">Select Game Mode</div>
-                <div class="pill-group" id="setup-mode">
-                    <button class="pill active" data-val="classic">🎯 Classic (4 Options)</button>
-                    <button class="pill" data-val="hot_or_not">🔥 Hot or Not (2 Images)</button>
-                    <button class="pill" data-val="sudden_death">💀 Sudden Death (1-Life)</button>
-                    <button class="pill" data-val="review">🧠 SRS Review (Due First)</button>
+
+            <div class="modal-body setup-modal-body">
+                <!-- Section 1: Mode Selection Grid -->
+                <div class="setup-section-label">
+                    <span>🎮 Game Mode</span>
+                </div>
+                <div class="mode-cards-grid" id="setup-mode">
+                    <div class="mode-card active" data-val="classic">
+                        <div class="mode-card-icon">🎯</div>
+                        <div class="mode-card-details">
+                            <div class="mode-card-title">Classic Trivia</div>
+                            <div class="mode-card-desc">4 choices · Untimed · 50/50 & Skip</div>
+                        </div>
+                    </div>
+                    <div class="mode-card" data-val="hot_or_not">
+                        <div class="mode-card-icon">🔥</div>
+                        <div class="mode-card-details">
+                            <div class="mode-card-title">Hot or Not</div>
+                            <div class="mode-card-desc">2 photos · Fast visual comparison</div>
+                        </div>
+                    </div>
+                    <div class="mode-card" data-val="sudden_death">
+                        <div class="mode-card-icon">💀</div>
+                        <div class="mode-card-details">
+                            <div class="mode-card-title">Sudden Death</div>
+                            <div class="mode-card-desc">1 mistake = Game Over · 50 Rounds</div>
+                        </div>
+                    </div>
+                    <div class="mode-card" data-val="review">
+                        <div class="mode-card-icon">🧠</div>
+                        <div class="mode-card-details">
+                            <div class="mode-card-title">SRS Review</div>
+                            <div class="mode-card-desc">Weak & due memory items first</div>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="font-bold text-sm color-text-muted mb-2">Select Questions Count</div>
-                <div class="pill-group" id="setup-rounds">
-                    <button class="pill active" data-val="15">15</button>
-                    <button class="pill" data-val="35">35</button>
-                    <button class="pill" data-val="50">50</button>
-                    <button class="pill" data-val="100">100</button>
-                    <button class="pill" data-val="unlimited">∞ Unlimited</button>
+                <!-- Section 2: Rounds Selection Matrix -->
+                <div class="setup-section-label mt-4" id="setup-rounds-label">
+                    <span>🔢 Number of Questions</span>
+                </div>
+                <div class="rounds-pills-row" id="setup-rounds">
+                    <button class="round-pill active" data-val="15">15</button>
+                    <button class="round-pill" data-val="35">35</button>
+                    <button class="round-pill" data-val="50">50</button>
+                    <button class="round-pill" data-val="100">100</button>
+                    <button class="round-pill round-pill-unlimited" data-val="unlimited">∞ Unlimited</button>
                 </div>
                 
-                <button id="btn-start-game" class="btn-primary w-full mt-4 btn-huge">
-                    START ROUND 🚀
+                <!-- Launch CTA Button -->
+                <button id="btn-start-game" class="btn-start-game-glow">
+                    <span>START GAME</span>
+                    <span class="rocket-icon">🚀</span>
                 </button>
             </div>
         </div>
