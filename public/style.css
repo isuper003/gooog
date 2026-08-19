@@ -931,14 +931,49 @@ input:focus, select:focus, textarea:focus {
     margin-bottom: 1.5rem;
 }
 .gallery-controls {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    align-items: center;
+    width: 100%;
 }
-.gallery-controls input {
+.gallery-search-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: 100%;
+    flex-wrap: wrap;
+}
+.gallery-search-input {
     flex: 1;
-    min-width: 200px;
+    min-width: 220px;
+    height: 42px;
+    border-radius: var(--radius-md);
+    padding: 0 1rem;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+.gallery-search-input:focus {
+    border-color: var(--accent-purple);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.35);
+    outline: none;
+}
+.gallery-category-select {
+    height: 42px;
+    min-width: 160px;
+    border-radius: var(--radius-md);
+    padding: 0 0.85rem;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.gallery-category-select:focus {
+    border-color: var(--accent-purple);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.35);
+    outline: none;
 }
 .gallery-grid {
     display: grid;
