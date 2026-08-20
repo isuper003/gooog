@@ -17,13 +17,14 @@ describe('Auth Helpers', () => {
     });
 
     it('should format session cookie correctly for login and logout', () => {
-        const loginCookie = createCookieHeader('goooog_session', 'mytoken', 86400);
-        expect(loginCookie).toContain('goooog_session=mytoken');
+        const loginCookie = createCookieHeader('__Host-goooog_session', 'mytoken', 86400);
+        expect(loginCookie).toContain('__Host-goooog_session=mytoken');
         expect(loginCookie).toContain('HttpOnly');
+        expect(loginCookie).toContain('Secure');
         expect(loginCookie).toContain('SameSite=Lax');
         expect(loginCookie).toContain('Max-Age=86400');
 
-        const logoutCookie = createCookieHeader('goooog_session', '', 0, true);
+        const logoutCookie = createCookieHeader('__Host-goooog_session', '', 0, true);
         expect(logoutCookie).toContain('Max-Age=0');
     });
 });

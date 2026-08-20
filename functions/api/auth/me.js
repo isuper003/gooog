@@ -3,28 +3,34 @@ import { authenticateUser } from '../../lib/auth.js';
 import { generateRandomString, hashToken } from '../../lib/crypto.js';
 
 export async function onRequestGet(context) {
-    const { request, env } = context;
-    const authResult = await authenticateUser(request, env.DB);
+    const { request, env, data } = context;
     
-    if (authResult.error) {
-        return errorResponse(authResult.error, authResult.status);
+    let user = data?.user;
+    let sessionId = data?.sessionId;
+    
+    if (!user || !sessionId) {
+        const authResult = await authenticateUser(request, env.DB);
+        if (authResult.error) {
+            return errorResponse(authResult.error, authResult.status);
+        }
+        user = authResult.user;
+        sessionId = authResult.sessionId;
     }
-
+    
+    // Generate fresh CSRF token and bind to session in DB
+    const csrfToken = generateRandomString(32);
+    const csrfTokenHash = await hashToken(csrfToken);
+    
     try {
-        const csrfToken = generateRandomString(32);
-        const csrfTokenHash = await hashToken(csrfToken);
-        
-        await env.DB.prepare(`
-            UPDATE sessions SET csrf_token_hash = ? WHERE id = ?
-        `).bind(csrfTokenHash, authResult.sessionId).run();
-        
-        return successResponse({
-            user: authResult.user,
-            csrfToken: csrfToken
-        });
+        await env.DB.prepare("UPDATE sessions SET csrf_token_hash = ?, last_seen_at_ms = ? WHERE id = ?")
+            .bind(csrfTokenHash, Date.now(), sessionId)
+            .run();
     } catch (e) {
-        return successResponse({
-            user: authResult.user
-        });
+        console.error("Failed to update session csrf token", e);
     }
+    
+    return successResponse({
+        user,
+        csrfToken
+    });
 }

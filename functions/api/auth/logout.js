@@ -1,5 +1,5 @@
 import { successResponse, errorResponse } from '../../lib/response.js';
-import { createCookieHeader, parseCookies, SESSION_COOKIE_NAME } from '../../lib/auth.js';
+import { createCookieHeader, parseCookies, SESSION_COOKIE_NAME, SECURE_SESSION_COOKIE_NAME } from '../../lib/auth.js';
 import { hashToken } from '../../lib/crypto.js';
 
 export async function onRequestPost(context) {
@@ -8,20 +8,26 @@ export async function onRequestPost(context) {
     
     if (cookieHeader) {
         const cookies = parseCookies(cookieHeader);
-        const sessionToken = cookies[SESSION_COOKIE_NAME];
+        const sessionToken = cookies[SECURE_SESSION_COOKIE_NAME] || cookies[SESSION_COOKIE_NAME];
         
         if (sessionToken) {
-            const tokenHash = await hashToken(sessionToken);
-            const db = env.DB;
-            const nowMs = Date.now();
-            
-            await db.prepare("UPDATE sessions SET revoked_at_ms = ? WHERE token_hash = ?").bind(nowMs, tokenHash).run();
+            try {
+                const tokenHash = await hashToken(sessionToken);
+                const db = env.DB;
+                const nowMs = Date.now();
+                await db.prepare("UPDATE sessions SET revoked_at_ms = ? WHERE token_hash = ?").bind(nowMs, tokenHash).run();
+            } catch (e) {
+                console.error("Session revoke error", e);
+            }
         }
     }
     
-    const logoutCookie = createCookieHeader(SESSION_COOKIE_NAME, '', 0, true);
+    const logoutCookies = [
+        createCookieHeader(SECURE_SESSION_COOKIE_NAME, '', 0, true, true),
+        createCookieHeader(SESSION_COOKIE_NAME, '', 0, true, false)
+    ];
     
     return successResponse({ message: "Logout successful" }, 200, {
-        'Set-Cookie': logoutCookie
+        'Set-Cookie': logoutCookies
     });
 }

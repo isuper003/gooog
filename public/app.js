@@ -22,11 +22,13 @@ async function checkAuth() {
         const res = await fetch('/api/auth/me');
         if (res.ok) {
             const data = await res.json();
-            state.user = data.data.user;
-            if (data.data?.csrfToken) {
-                setCsrfToken(data.data.csrfToken);
+            if (data.success && data.data?.user) {
+                state.user = data.data.user;
+                if (data.data.csrfToken) {
+                    setCsrfToken(data.data.csrfToken);
+                }
+                return true;
             }
-            return true;
         }
     } catch (e) {
         console.error("Auth check failed", e);

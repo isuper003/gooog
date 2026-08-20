@@ -1,5 +1,6 @@
 import { sound } from './sound.js';
 import { showToast } from './toast.js';
+import { getCsrfToken, clearCsrfToken } from './csrf.js';
 
 export async function initSettingsModal(currentUser) {
     let modal = document.getElementById('modal-settings');
@@ -35,6 +36,7 @@ export async function initSettingsModal(currentUser) {
                     <div>
                         <div class="font-bold text-lg">@${currentUser?.username || 'User'}</div>
                         <div class="text-xs color-text-muted">Role: ${(currentUser?.role || 'user').toUpperCase()}</div>
+                        ${currentUser?.deletionRequestedAtMs ? '<div class="text-xs text-rose-400 font-bold mt-1">⚠️ Deletion scheduled (14-day grace active)</div>' : ''}
                     </div>
                     <span class="badge badge-mix">${currentUser?.role === 'admin' ? '👑 Admin' : (currentUser?.role === 'moderator' ? '🛡️ Moderator' : '⭐ Member')}</span>
                 </div>
@@ -102,9 +104,12 @@ export async function initSettingsModal(currentUser) {
                     </div>
                 </div>
 
-                <!-- Account Deletion (14-day Grace Period) -->
-                <div class="py-2">
-                    <button id="btn-delete-account-flow" class="btn-secondary w-full" style="color: var(--accent-red); border-color: rgba(225, 29, 72, 0.3);">
+                <!-- Account Actions -->
+                <div class="py-2 flex flex-col gap-2">
+                    <button id="btn-logout-settings" class="btn-secondary w-full font-bold" style="background: rgba(255, 255, 255, 0.08);">
+                        🚪 Log Out of Account
+                    </button>
+                    <button id="btn-delete-account-flow" class="btn-secondary w-full text-xs" style="color: var(--accent-red); border-color: rgba(225, 29, 72, 0.3);">
                         🗑️ Request Account Deletion (14-day grace)
                     </button>
                 </div>
@@ -128,6 +133,22 @@ export async function initSettingsModal(currentUser) {
 
     document.getElementById('setting-timer-seconds')?.addEventListener('change', (e) => {
         localStorage.setItem('timer_seconds', e.target.value);
+    });
+
+    document.getElementById('btn-logout-settings')?.addEventListener('click', async () => {
+        sound.playClick();
+        if (confirm("Are you sure you want to log out?")) {
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': getCsrfToken() }
+                });
+            } catch (e) {}
+            clearCsrfToken();
+            showToast('Logged out successfully', 'info');
+            modal.classList.add('hidden');
+            setTimeout(() => window.location.reload(), 300);
+        }
     });
 
     document.getElementById('btn-delete-account-flow')?.addEventListener('click', async () => {

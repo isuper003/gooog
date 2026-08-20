@@ -2,22 +2,7 @@ import { sound } from './sound.js';
 import { lightbox } from './lightbox.js';
 import { showToast } from './toast.js';
 import { initGame } from './game.js';
-import { getCsrfToken, setCsrfToken } from './csrf.js';
-
-async function getValidCsrfToken() {
-    let token = getCsrfToken();
-    if (!token) {
-        try {
-            const res = await fetch('/api/auth/me');
-            const data = await res.json();
-            if (data.success && data.data?.csrfToken) {
-                setCsrfToken(data.data.csrfToken);
-                token = data.data.csrfToken;
-            }
-        } catch (e) {}
-    }
-    return token;
-}
+import { getCsrfToken } from './csrf.js';
 
 let state = {
     selectedCategory: 'all',
@@ -340,10 +325,9 @@ function attachChamberListeners(char, phrases) {
         sound.playStreak();
         triggerPraiseEffect();
 
-        const token = await getValidCsrfToken();
         const res = await fetch('/api/worship', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             body: JSON.stringify({ characterId: char.id, action: 'praise' })
         });
         const data = await res.json();
@@ -359,8 +343,6 @@ function attachChamberListeners(char, phrases) {
             if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
             showToast("تم إيقاد سِراج التبجيل وقبول الثناء ✨", "success");
             handleRiteProgress(char);
-        } else {
-            showToast(data.error || "تعذر إتمام الطقس", "error");
         }
     });
 
@@ -369,10 +351,9 @@ function attachChamberListeners(char, phrases) {
         sound.playWin();
         triggerSubmissionEffect();
 
-        const token = await getValidCsrfToken();
         const res = await fetch('/api/worship', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             body: JSON.stringify({ characterId: char.id, action: 'submit' })
         });
         const data = await res.json();
@@ -388,18 +369,15 @@ function attachChamberListeners(char, phrases) {
             if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
             showToast("قُبِل فرض الخضوع وسُجِّلت عبوديتك في ديوان السلطانة 🧎‍♂️✨", "success");
             handleRiteProgress(char);
-        } else {
-            showToast(data.error || "تعذر إتمام الطقس", "error");
         }
     });
 
     // Penance click
     document.getElementById('btn-offer-penance')?.addEventListener('click', async () => {
         sound.playCorrect();
-        const token = await getValidCsrfToken();
         const res = await fetch('/api/worship', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             body: JSON.stringify({ characterId: char.id, action: 'penance' })
         });
         const data = await res.json();
@@ -413,8 +391,6 @@ function attachChamberListeners(char, phrases) {
             if (wrongEl) wrongEl.innerText = char.times_wrong;
             showToast("قُبِل الاعتراف ورُفِع عنك التقصير 🙇‍♂️", "info");
             handleRiteProgress(char);
-        } else {
-            showToast(data.error || "تعذر إتمام الطقس", "error");
         }
     });
 

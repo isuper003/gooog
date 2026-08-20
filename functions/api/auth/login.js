@@ -1,6 +1,6 @@
 import { successResponse, errorResponse } from '../../lib/response.js';
 import { generateUUID, hashPassword, generateRandomString, hashToken } from '../../lib/crypto.js';
-import { createCookieHeader, SESSION_COOKIE_NAME } from '../../lib/auth.js';
+import { createCookieHeader } from '../../lib/auth.js';
 
 export async function onRequestPost(context) {
     const { request, env } = context;
@@ -21,18 +21,27 @@ export async function onRequestPost(context) {
     const db = env.DB;
     
     try {
-        const stmt = db.prepare("SELECT id, password_hash, password_salt, role FROM users WHERE username_normalized = ?").bind(normalizedUsername);
+        const stmt = db.prepare("SELECT id, password_hash, password_salt, role, deleted_at_ms, deletion_requested_at_ms FROM users WHERE username_normalized = ?").bind(normalizedUsername);
         const user = await stmt.first();
         
         if (!user) {
             await hashPassword(password, generateRandomString(32));
-            return errorResponse("Invalid credentials", 401);
+            return errorResponse("Invalid username or password", 401);
+        }
+
+        if (user.deleted_at_ms) {
+            return errorResponse("This account has been deleted.", 403);
         }
         
         const providedHash = await hashPassword(password, user.password_salt);
         
         if (providedHash !== user.password_hash) {
-            return errorResponse("Invalid credentials", 401);
+            return errorResponse("Invalid username or password", 401);
+        }
+
+        // If user had requested deletion within grace period, cancel it upon successful login
+        if (user.deletion_requested_at_ms) {
+            await db.prepare("UPDATE users SET deletion_requested_at_ms = NULL WHERE id = ?").bind(user.id).run();
         }
         
         const sessionId = generateUUID();
@@ -44,7 +53,6 @@ export async function onRequestPost(context) {
         
         const isRememberMe = rememberMe === true;
         const maxAge = isRememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
-        
         const expiresAtMs = Date.now() + (maxAge * 1000);
         
         await db.prepare(`
@@ -54,7 +62,13 @@ export async function onRequestPost(context) {
         
         await updateDailyStreak(db, user.id);
         
-        const cookieHeader = createCookieHeader(SESSION_COOKIE_NAME, sessionToken, maxAge);
+        const isHttps = new URL(request.url).protocol === 'https:';
+        const cookieHeaders = [
+            createCookieHeader('goooog_session', sessionToken, maxAge, false, isHttps)
+        ];
+        if (isHttps) {
+            cookieHeaders.push(createCookieHeader('__Host-goooog_session', sessionToken, maxAge, false, true));
+        }
         
         return successResponse({ 
             message: "Login successful",
@@ -66,11 +80,11 @@ export async function onRequestPost(context) {
             },
             csrfToken: csrfToken 
         }, 200, {
-            'Set-Cookie': cookieHeader
+            'Set-Cookie': cookieHeaders
         });
         
     } catch (error) {
-        console.error(error);
+        console.error("Login error", error);
         return errorResponse("Internal server error", 500);
     }
 }
