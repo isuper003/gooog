@@ -251,6 +251,11 @@ function runGameEngine(sessionData, selectedCategory) {
             lightbox.open(q.imageUrl, { showCaption: false });
         });
 
+        document.getElementById('game-target-img')?.addEventListener('click', () => {
+            sound.playClick();
+            lightbox.open(q.imageUrl, { showCaption: false });
+        });
+
         // 50/50 Lifeline
         document.getElementById('btn-5050')?.addEventListener('click', () => {
             if (lifelines.fiftyFifty <= 0) return;
