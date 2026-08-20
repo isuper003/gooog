@@ -1767,23 +1767,50 @@ input:focus, select:focus, textarea:focus {
     background: var(--bg-surface);
     padding: 0.35rem;
     border-radius: var(--radius-full);
+.leaderboard-tabs {
+    display: flex;
+    gap: 0.35rem;
+    background: var(--bg-surface);
+    padding: 0.35rem;
+    border-radius: var(--radius-full);
     border: 1px solid var(--color-border);
+    flex-wrap: wrap;
 }
 .leaderboard-tab {
     flex: 1;
-    padding: 0.65rem;
-    border: none;
+    min-width: 80px;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid transparent;
     background: transparent;
     color: var(--color-text-muted);
     border-radius: var(--radius-full);
     font-weight: 700;
+    font-size: 0.88rem;
     cursor: pointer;
     transition: var(--transition);
+    text-align: center;
+}
+.leaderboard-tab:hover {
+    color: #fff;
 }
 .leaderboard-tab.active {
     background: var(--bg-surface-elevated);
     color: #fff;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border-color: var(--color-border-bright);
+}
+
+.leaderboard-type-switch .pill {
+    padding: 0.55rem 1.15rem;
+    font-size: 0.88rem;
+}
+
+.leaderboard-controls-ribbon {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .leaderboard-list {
@@ -1791,10 +1818,11 @@ input:focus, select:focus, textarea:focus {
     flex-direction: column;
     gap: 0.75rem;
 }
+
 .leaderboard-row {
     background: var(--bg-card);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     padding: 1rem 1.25rem;
     display: flex;
     align-items: center;
@@ -1806,11 +1834,201 @@ input:focus, select:focus, textarea:focus {
     box-shadow: var(--glow-purple);
     background: rgba(139, 92, 246, 0.1);
 }
-.rank-badge {
-    font-size: 1.4rem;
-    font-weight: 800;
-    min-width: 40px;
+
+/* Star/Pornstar Specific Row */
+.star-rank-row {
+    position: relative;
+    padding: 0.9rem 1.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
+
+.star-rank-row:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-border-bright);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.star-rank-row.rank-1 {
+    border-color: rgba(251, 191, 36, 0.4);
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, var(--bg-card) 60%);
+    box-shadow: 0 4px 20px rgba(251, 191, 36, 0.12);
+}
+
+.star-rank-row.rank-2 {
+    border-color: rgba(203, 213, 225, 0.35);
+    background: linear-gradient(135deg, rgba(203, 213, 225, 0.06) 0%, var(--bg-card) 60%);
+}
+
+.star-rank-row.rank-3 {
+    border-color: rgba(249, 115, 22, 0.35);
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.06) 0%, var(--bg-card) 60%);
+}
+
+.star-main-col {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.rank-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    flex-shrink: 0;
+}
+
+.rank-badge {
+    font-size: 1.35rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.trend-indicator {
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+    margin-top: 3px;
+}
+
+.trend-indicator.trend-up {
+    color: #34d399;
+    filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));
+}
+
+.trend-indicator.trend-down {
+    color: #f43f5e;
+    filter: drop-shadow(0 0 4px rgba(244, 63, 94, 0.6));
+}
+
+.trend-indicator.trend-same {
+    color: var(--color-text-muted);
+    font-size: 0.65rem;
+}
+
+.star-avatar-box {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid var(--color-border);
+    background: var(--bg-surface-elevated);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.star-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    transition: transform 0.25s ease;
+}
+
+.star-avatar-box:hover .star-avatar-img {
+    transform: scale(1.12);
+}
+
+.star-info-box {
+    flex: 1;
+    min-width: 0;
+}
+
+.star-name-text {
+    font-size: 1.05rem;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.duration-badge {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent-cyan);
+    font-weight: 700;
+    font-size: 0.75rem;
+}
+
+.star-stats-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.accuracy-badge {
+    padding: 0.35rem 0.85rem;
+    border-radius: var(--radius-full);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.accuracy-badge.accuracy-high {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.4);
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.2);
+}
+
+.accuracy-badge.accuracy-med {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.accuracy-badge.accuracy-low {
+    background: rgba(244, 63, 94, 0.15);
+    color: #fb7185;
+    border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.answers-breakdown-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.stat-correct {
+    color: #34d399;
+}
+
+.stat-wrong {
+    color: #fb7185;
+}
+
+@media (max-width: 640px) {
+    .star-rank-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.85rem 1rem;
+    }
+    .star-stats-col {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        padding-top: 0.6rem;
+    }
+}
+
 .user-avatar-circle {
     width: 42px;
     height: 42px;
@@ -1822,7 +2040,7 @@ input:focus, select:focus, textarea:focus {
     font-weight: 800;
     font-size: 1.1rem;
     color: #fff;
-    margin-right: 1rem;
+    margin-right: 0.5rem;
 }
 
 /* Universal Zoom Lightbox */
