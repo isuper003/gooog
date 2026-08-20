@@ -45,6 +45,9 @@ async function checkAuth() {
             const data = await res.json();
             if (data.success && data.data?.user) {
                 state.user = data.data.user;
+                try {
+                    localStorage.setItem('goooog_user', JSON.stringify(data.data.user));
+                } catch (e) {}
                 if (data.data.csrfToken) {
                     setCsrfToken(data.data.csrfToken);
                 }
@@ -59,6 +62,9 @@ async function checkAuth() {
 
 export function onLoginSuccess(user) {
     state.user = user;
+    try {
+        localStorage.setItem('goooog_user', JSON.stringify(user));
+    } catch (e) {}
     document.getElementById('view-auth')?.classList.add('hidden');
     document.getElementById('view-main')?.classList.remove('hidden');
     initRouter();
@@ -67,17 +73,47 @@ export function onLoginSuccess(user) {
 }
 window.onLoginSuccess = onLoginSuccess;
 
+export function performClientLogout() {
+    localStorage.removeItem('goooog_session_token');
+    sessionStorage.removeItem('goooog_session_token');
+    localStorage.removeItem('goooog_user');
+    clearCsrfToken();
+    state.user = null;
+    document.getElementById('view-main')?.classList.add('hidden');
+    document.getElementById('view-auth')?.classList.remove('hidden');
+    initAuth();
+}
+window.performClientLogout = performClientLogout;
+
 async function init() {
     registerServiceWorker();
 
-    const isAuthenticated = await checkAuth();
-    
-    if (!isAuthenticated) {
-        document.getElementById('view-auth')?.classList.remove('hidden');
-        document.getElementById('view-main')?.classList.add('hidden');
-        initAuth();
+    const token = localStorage.getItem('goooog_session_token') || sessionStorage.getItem('goooog_session_token');
+    const cachedUserStr = localStorage.getItem('goooog_user');
+    let cachedUser = null;
+    try {
+        if (cachedUserStr) cachedUser = JSON.parse(cachedUserStr);
+    } catch (e) {}
+
+    // If local token and cached profile exist, enter game IMMEDIATELY with 0ms delay
+    if (token && cachedUser) {
+        onLoginSuccess(cachedUser);
+        // Verify in background and sync fresh state
+        checkAuth().then(isValid => {
+            if (!isValid) {
+                // If server explicitly revoked session, return to login
+                performClientLogout();
+            }
+        });
     } else {
-        onLoginSuccess(state.user);
+        const isAuthenticated = await checkAuth();
+        if (!isAuthenticated) {
+            document.getElementById('view-auth')?.classList.remove('hidden');
+            document.getElementById('view-main')?.classList.add('hidden');
+            initAuth();
+        } else {
+            onLoginSuccess(state.user);
+        }
     }
 }
 
@@ -330,11 +366,8 @@ function setupGlobalEvents() {
             try {
                 await fetch('/api/auth/logout', { method: 'POST' });
             } catch (e) {}
-            localStorage.removeItem('goooog_session_token');
-            sessionStorage.removeItem('goooog_session_token');
-            clearCsrfToken();
+            performClientLogout();
             showToast('Logged out successfully', 'info');
-            setTimeout(() => window.location.reload(), 300);
         }
     });
 

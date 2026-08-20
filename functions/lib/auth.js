@@ -112,7 +112,16 @@ export async function authenticateUser(request, db) {
     
     const now = Date.now();
     if (session.revoked_at_ms) return { error: 'Session revoked', status: 401 };
-    if (session.expires_at_ms < now) return { error: 'Session expired', status: 401 };
+    
+    // Auto-extend rolling session so active users never expire unless they click logout
+    if (session.expires_at_ms < now || (session.expires_at_ms - now < 60 * 24 * 60 * 60 * 1000)) {
+        const newExpiry = now + (365 * 24 * 60 * 60 * 1000);
+        try {
+            await db.prepare("UPDATE sessions SET expires_at_ms = ?, last_seen_at_ms = ? WHERE id = ?")
+                .bind(newExpiry, now, session.session_id)
+                .run();
+        } catch (e) {}
+    }
     
     // Multi-layer CSRF validation
     const csrfCheck = await validateCsrfProtection(request, session, sessionToken);

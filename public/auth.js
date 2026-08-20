@@ -56,6 +56,9 @@ export function initAuth() {
                     localStorage.setItem('goooog_session_token', data.data.sessionToken);
                     sessionStorage.setItem('goooog_session_token', data.data.sessionToken);
                 }
+                if (data.data?.user) {
+                    localStorage.setItem('goooog_user', JSON.stringify(data.data.user));
+                }
                 setCsrfToken(data.data.csrfToken);
                 showToast('Welcome back! Loading game...', 'success');
                 if (typeof window.onLoginSuccess === 'function') {
@@ -98,6 +101,9 @@ export function initAuth() {
                     if (loginData.data?.sessionToken) {
                         localStorage.setItem('goooog_session_token', loginData.data.sessionToken);
                         sessionStorage.setItem('goooog_session_token', loginData.data.sessionToken);
+                    }
+                    if (loginData.data?.user) {
+                        localStorage.setItem('goooog_user', JSON.stringify(loginData.data.user));
                     }
                     setCsrfToken(loginData.data.csrfToken);
                     if (typeof window.onLoginSuccess === 'function') {

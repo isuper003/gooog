@@ -50,8 +50,8 @@ export async function onRequestPost(context) {
         const csrfToken = await generateCsrfTokenForSession(tokenHash);
         const csrfTokenHash = await hashToken(csrfToken);
         
-        const isRememberMe = rememberMe === true;
-        const maxAge = isRememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
+        const isRememberMe = rememberMe !== false;
+        const maxAge = 365 * 24 * 60 * 60; // 1 year perpetual session
         const expiresAtMs = Date.now() + (maxAge * 1000);
         
         await db.prepare(`

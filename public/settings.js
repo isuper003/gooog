@@ -141,12 +141,17 @@ export async function initSettingsModal(currentUser) {
             try {
                 await fetch('/api/auth/logout', { method: 'POST' });
             } catch (e) {}
-            localStorage.removeItem('goooog_session_token');
-            sessionStorage.removeItem('goooog_session_token');
-            clearCsrfToken();
-            showToast('Logged out successfully', 'info');
             modal.classList.add('hidden');
-            setTimeout(() => window.location.reload(), 300);
+            if (typeof window.performClientLogout === 'function') {
+                window.performClientLogout();
+            } else {
+                localStorage.removeItem('goooog_session_token');
+                sessionStorage.removeItem('goooog_session_token');
+                localStorage.removeItem('goooog_user');
+                clearCsrfToken();
+                window.location.reload();
+            }
+            showToast('Logged out successfully', 'info');
         }
     });
 
