@@ -54,7 +54,11 @@ export function initAuth() {
             if (res.ok && data.success) {
                 setCsrfToken(data.data.csrfToken);
                 showToast('Welcome back! Loading game...', 'success');
-                setTimeout(() => window.location.reload(), 400);
+                if (typeof window.onLoginSuccess === 'function') {
+                    window.onLoginSuccess(data.data.user);
+                } else {
+                    setTimeout(() => window.location.reload(), 300);
+                }
             } else {
                 showToast(data.error || 'Login failed', 'error');
             }
@@ -88,7 +92,11 @@ export function initAuth() {
                 const loginData = await loginRes.json();
                 if (loginRes.ok && loginData.success) {
                     setCsrfToken(loginData.data.csrfToken);
-                    setTimeout(() => window.location.reload(), 400);
+                    if (typeof window.onLoginSuccess === 'function') {
+                        window.onLoginSuccess(loginData.data.user);
+                    } else {
+                        setTimeout(() => window.location.reload(), 300);
+                    }
                 } else {
                     tabLogin?.click();
                     const loginUserInput = document.getElementById('login-username');

@@ -36,6 +36,16 @@ async function checkAuth() {
     return false;
 }
 
+export function onLoginSuccess(user) {
+    state.user = user;
+    document.getElementById('view-auth')?.classList.add('hidden');
+    document.getElementById('view-main')?.classList.remove('hidden');
+    initRouter();
+    setupGlobalEvents();
+    checkDailyStreak();
+}
+window.onLoginSuccess = onLoginSuccess;
+
 async function init() {
     registerServiceWorker();
 
@@ -46,11 +56,7 @@ async function init() {
         document.getElementById('view-main')?.classList.add('hidden');
         initAuth();
     } else {
-        document.getElementById('view-auth')?.classList.add('hidden');
-        document.getElementById('view-main')?.classList.remove('hidden');
-        initRouter();
-        setupGlobalEvents();
-        checkDailyStreak();
+        onLoginSuccess(state.user);
     }
 }
 
