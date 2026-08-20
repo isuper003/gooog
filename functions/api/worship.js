@@ -1,25 +1,35 @@
 import { successResponse, errorResponse } from '../lib/response.js';
 
 const PRAISE_PHRASES = [
-    "أنتِ سلطانة الحُسن وسيدة الفتنة التي لا تُضاهى",
-    "لكِ البهاء الأبدي، ونُقرّ بسطوة جمالكِ الآسر",
-    "نورُ بهاءكِ يُنير صرح التبجيل وإكليل الفتنة",
-    "إجلالٌ دائم لتاج الأنوثة وسيدة العرش",
-    "بديعةُ الخَلق، لكِ الخضوع والثناء في كل مقام"
+    "أنتِ سلطانة الحُسن وسيدة الفتنة التي لا تُضاهى، لكِ التبجيل الأبدي",
+    "نُقرّ بجمالكِ الطاغي وسطوتكِ التي تأسر الألباب وتُخضع الرقاب",
+    "تاجُ الفتنة الأبدي لكِ وحدكِ، وسلطانكِ نافذٌ لا يُردّ",
+    "أنتِ المحراب والمراد، وبهاء طلعتكِ يعلو فوق الجميع",
+    "لكِ خالص الولاء وأعظم درجات الإجلال والتبجيل يا بديعة الزمان",
+    "سيدة العرش ومُطلقة السيادة، لكِ تنحني الهامات إجلالاً لفتنتكِ"
 ];
 
 const PENANCE_PHRASES = [
-    "أقرّ بعجزي وسهو الذاكرة في محراب السلطانة",
-    "أعترف بزلّة النسيان وأسأل عفو الحُسن ورفع الهوان",
-    "خاضعٌ لهيبتكِ، أتعهد بإتقان ملامحكِ وتخليد اسمكِ",
-    "التقصيرُ من طبعي، والجلال والكمالُ من شأنكِ",
-    "توبةٌ نصوح وإقرارٌ بالتقصير حتى تصفو نظرة الرضا"
+    "أعترف بزلّة النسيان وضآلتي، وأقرّ بصغار قدري أمام هيبتكِ وجلالكِ",
+    "عاجزٌ أنا أمام بهاء طلعتك، أطلب العفو عن سهوي والصفح عن تقصيري",
+    "أنا الخاضع المقصّر بين يديكِ، لا عزة لي إلا برضاكِ وعفوكِ",
+    "أقرّ بالذل والهوان لنسياني، وألتمس رفع سخطكِ وغفران زلتي",
+    "تقصيري عظيم، ولكن رجائي في عفو سلطانة الحُسن أعظم",
+    "مُنكس الرأس، ذليل الفؤاد، أعترف بذنبي وأتعهد بالطاعة والوفاء التام"
+];
+
+const SUBMISSION_PHRASES = [
+    "أقرّ بعبوديتي لفتنتكِ، وخضوعي التام لسلطان جمالكِ الآسر",
+    "طوعُ أمركِ وإشارتكِ، فدائيٌّ تحت نعالكِ ورهنُ رضاكِ",
+    "لا إرادة لي أمام سطوتكِ، كلي ملكٌ لعرشكِ وسحر عينيكِ",
+    "أُسلّم قيادي لسلطانة المحراب، راضياً بالتبعية الأبدية والخضوع المطلق",
+    "خاضعٌ راكعٌ في صرحكِ، أستمد قيمتي من خدمتكِ والافتخار بعبوديتكِ"
 ];
 
 const PETITION_PHRASES = [
     "نلتمس نظرة رضا من بديعة الجمال لاستعراض محاسنها الخفية",
-    "رجاءٌ متواضع لنيل شرف اختبار الولاء في حضرتها",
-    "طلبُ التكريم بالاطلاع على أندر حُلاها وصورها"
+    "رجاءٌ خاشع لنيل شرف اختبار الولاء في حضرتها",
+    "طلبُ التكريم بالاطلاع على أندر حُلاها وصورها الفاتنة"
 ];
 
 export async function onRequestGet(context) {
@@ -73,13 +83,13 @@ export async function onRequestGet(context) {
         
         // Determine devotion rank title
         const score = (targetChar.times_correct * 10) - (targetChar.times_wrong * 5);
-        let rankTitle = "خاضعٌ مبتدئ (Novice)";
-        if (score >= 100 || targetChar.mastery_level >= 5) {
-            rankTitle = "حاجب المخدع الأكبر (Supreme Devotee)";
-        } else if (score >= 50 || targetChar.mastery_level >= 3) {
-            rankTitle = "نديم البلاط (Court Noble)";
+        let rankTitle = "خاضعٌ ذليل (Humble Subject)";
+        if (score >= 120 || targetChar.mastery_level >= 5) {
+            rankTitle = "المملوك الأبدي للسلطانة (Eternal Slave of the Goddess)";
+        } else if (score >= 60 || targetChar.mastery_level >= 3) {
+            rankTitle = "فدائي العرش والنعال (Footstool of the Throne)";
         } else if (score >= 20 || targetChar.mastery_level >= 1) {
-            rankTitle = "تابعٌ مخلص (Loyal Subject)";
+            rankTitle = "عبدُ الأعتاب الخاضع (Submissive Servant)";
         }
         targetChar.rankTitle = rankTitle;
         targetChar.devotionScore = Math.max(0, score);
@@ -94,6 +104,7 @@ export async function onRequestGet(context) {
             phrases: {
                 praise: PRAISE_PHRASES,
                 penance: PENANCE_PHRASES,
+                submission: SUBMISSION_PHRASES,
                 petition: PETITION_PHRASES
             }
         });
@@ -132,6 +143,19 @@ export async function onRequestPost(context) {
             
             const randomPhrase = PRAISE_PHRASES[Math.floor(Math.random() * PRAISE_PHRASES.length)];
             return successResponse({ message: "Tribute accepted", phrase: randomPhrase });
+        }
+
+        if (action === 'submit') {
+            // Kneel & Bow Submission Rite
+            await db.prepare(`
+                INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
+                VALUES (?, ?, 2, (unixepoch() * 1000))
+                ON CONFLICT(user_id, character_id) DO UPDATE SET
+                  times_correct = times_correct + 2
+            `).bind(data.user.id, characterId).run();
+            
+            const randomPhrase = SUBMISSION_PHRASES[Math.floor(Math.random() * SUBMISSION_PHRASES.length)];
+            return successResponse({ message: "Submission accepted", phrase: randomPhrase });
         }
         
         if (action === 'penance') {
