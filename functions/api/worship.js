@@ -4,7 +4,8 @@ import { PRAISE_PHRASES, SUBMISSION_PHRASES, PENANCE_PHRASES, PETITION_PHRASES, 
 import { successResponse, errorResponse } from '../lib/response.js';
 
 import { PRAISE_PHRASES, SUBMISSION_PHRASES, PENANCE_PHRASES, PETITION_PHRASES, GLORY_LITANY, SUBMISSION_LITANY, MERCY_LITANY, ARTIST_LITANY, ARTIST_PROSE_TEXTS } from './data/phrases.js';
-/* const PRAISE_PHRASES = [
+/*
+const PRAISE_PHRASES = [
     "أنتِ ملكة الكون وسلطانة الفتنة المطلقة، لكِ السطوة التامة والتبجيل الأبدي",
     "نُقرّ بجبروت جمالكِ وسلطانكِ القاهر الذي لا يُقاوم ولا يُردّ وتخضع له الرقاب",
     "تاجُ السيادة الأبدية على رؤوس الأكوان لكِ وحدكِ يا سيدة العرش والفتنة",
