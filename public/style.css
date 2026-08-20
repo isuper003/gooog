@@ -1365,7 +1365,7 @@ input:focus, select:focus, textarea:focus {
 /* Classic & Sudden Death Gameplay Layout (Split on Desktop) */
 .game-content-split {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
     gap: 2rem;
     align-items: center;
     justify-content: center;
@@ -1380,12 +1380,12 @@ input:focus, select:focus, textarea:focus {
     width: fit-content;
     max-width: 100%;
     height: fit-content;
-    max-height: 65vh;
+    max-height: 78vh;
     margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65);
+    box-shadow: 0 14px 45px rgba(0, 0, 0, 0.7);
     cursor: pointer;
     line-height: 0;
 }
@@ -1393,7 +1393,7 @@ input:focus, select:focus, textarea:focus {
     width: auto;
     height: auto;
     max-width: 100%;
-    max-height: 65vh;
+    max-height: 78vh;
     object-fit: contain;
     display: block;
     border-radius: var(--radius-lg);
@@ -3217,11 +3217,11 @@ input:focus, select:focus, textarea:focus {
         width: fit-content;
         max-width: 100%;
         height: fit-content;
-        max-height: 50vh;
+        max-height: 60vh;
         margin: 0 auto;
     }
     .game-image-card img {
-        max-height: 50vh;
+        max-height: 60vh;
         max-width: 100%;
         width: auto;
         height: auto;
