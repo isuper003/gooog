@@ -3,8 +3,8 @@ import { lightbox } from './lightbox.js';
 import { showToast } from './toast.js';
 import { initGame } from './game.js';
 
-let cachedCharacters = null;
-let isSpinning = false;
+let currentRandomCharacter = null;
+let isLoading = false;
 
 export async function openRandomPicker() {
     let modal = document.getElementById('modal-random-picker');
@@ -16,54 +16,56 @@ export async function openRandomPicker() {
     }
 
     modal.innerHTML = `
-        <div class="modal-content roulette-modal-content">
-            <div class="modal-header">
+        <div class="modal-content random-picker-modal-content">
+            <div class="modal-header" style="margin-bottom: 0.75rem;">
                 <div class="flex items-center gap-2">
-                    <span class="auth-badge" style="margin: 0; font-size: 0.75rem;">🎲 STAR ROULETTE</span>
+                    <span class="auth-badge" style="margin: 0; font-size: 0.75rem;">🎲 RANDOM CELEBRITY</span>
                 </div>
                 <button class="close-modal" id="btn-close-roulette" aria-label="Close">×</button>
             </div>
 
-            <!-- Main Stage Card -->
-            <div class="roulette-stage">
-                <div class="roulette-card-box" id="roulette-card-box">
-                    <div class="roulette-img-container" id="roulette-img-container">
-                        <img id="roulette-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='380' fill='%23111'%3E%3C/svg%3E" alt="Roulette Character">
-                        <div class="roulette-scanline"></div>
-                        <div class="roulette-blur-overlay" id="roulette-blur-overlay"></div>
+            <!-- Character Card Stage -->
+            <div class="random-picker-stage" id="random-picker-stage">
+                <div class="random-card-wrapper" id="random-card-wrapper">
+                    <!-- Loading state indicator -->
+                    <div class="random-loader-wrap" id="random-loader" style="display: none;">
+                        <div class="spinner"></div>
+                        <div class="text-sm color-text-muted mt-2">Picking random star...</div>
                     </div>
 
-                    <div class="roulette-details-overlay" id="roulette-details-overlay">
-                        <div class="roulette-status-text glow-text" id="roulette-status">
-                            🎰 Shuffling celebrities...
-                        </div>
-                        <div class="roulette-revealed-info hidden" id="roulette-revealed-info">
-                            <h2 class="roulette-char-name glow-text" id="roulette-char-name">Celebrity Name</h2>
-                            <div class="flex items-center justify-center gap-2 mt-1">
-                                <span class="badge badge-sluts" id="roulette-char-cat">SLUTS</span>
-                                <span class="text-xs color-text-muted" id="roulette-char-photos-count">0 Photos</span>
-                            </div>
+                    <!-- Full Uncropped Image Display -->
+                    <div class="random-img-box" id="random-img-box">
+                        <img id="random-char-img" src="" alt="Random Celebrity" style="display: none;">
+                        <button class="zoom-trigger-btn" id="btn-zoom-random" aria-label="Zoom image" title="Zoom full resolution">🔍</button>
+                    </div>
+
+                    <!-- Character Name & Details Below Image -->
+                    <div class="random-info-bar mt-3" id="random-info-bar" style="display: none;">
+                        <h2 class="random-winner-name glow-text" id="random-char-name">Celebrity Name</h2>
+                        <div class="flex items-center justify-center gap-2 mt-1">
+                            <span class="badge" id="random-char-cat">CATEGORY</span>
+                            <span class="text-xs color-text-muted" id="random-char-photos-count">0 Photos</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Action Controls -->
-                <div class="roulette-actions-row mt-4 flex gap-3 flex-wrap justify-center">
+                <!-- Action Controls Row -->
+                <div class="random-actions-row mt-4 flex gap-2 flex-wrap justify-center w-full">
                     <button id="btn-spin-again" class="btn-primary flex-1" style="min-width: 140px;">
-                        🎲 Spin Again
+                        🎲 Pick Another
                     </button>
-                    <button id="btn-view-roulette-gallery" class="btn-secondary" style="display: none;">
-                        🖼️ Full Gallery
+                    <button id="btn-view-random-gallery" class="btn-secondary">
+                        🖼️ Gallery
                     </button>
-                    <button id="btn-play-roulette-char" class="btn-secondary" style="display: none;">
-                        🎮 Play Mode
+                    <button id="btn-play-random-char" class="btn-secondary">
+                        🎮 Play
                     </button>
                 </div>
             </div>
         </div>
     `;
 
-    // Event listeners
+    // Modal Close handlers
     document.getElementById('btn-close-roulette')?.addEventListener('click', () => {
         modal.classList.add('hidden');
         document.body.classList.remove('modal-open');
@@ -76,175 +78,149 @@ export async function openRandomPicker() {
         }
     });
 
+    // "Pick Another" Button
     document.getElementById('btn-spin-again')?.addEventListener('click', () => {
-        if (!isSpinning) runRouletteAnimation();
+        sound.playClick();
+        fetchAndDisplayRandomCharacter();
+    });
+
+    // Zoom Image click
+    document.getElementById('btn-zoom-random')?.addEventListener('click', () => {
+        if (currentRandomCharacter && currentRandomCharacter.images?.length > 0) {
+            sound.playClick();
+            lightbox.open(currentRandomCharacter.images, {
+                name: currentRandomCharacter.name,
+                category: currentRandomCharacter.category,
+                showCaption: true
+            });
+        }
+    });
+
+    document.getElementById('random-char-img')?.addEventListener('click', () => {
+        if (currentRandomCharacter && currentRandomCharacter.images?.length > 0) {
+            sound.playClick();
+            lightbox.open(currentRandomCharacter.images, {
+                name: currentRandomCharacter.name,
+                category: currentRandomCharacter.category,
+                showCaption: true
+            });
+        }
+    });
+
+    // Gallery button
+    document.getElementById('btn-view-random-gallery')?.addEventListener('click', () => {
+        if (currentRandomCharacter && currentRandomCharacter.images?.length > 0) {
+            sound.playClick();
+            lightbox.open(currentRandomCharacter.images, {
+                name: currentRandomCharacter.name,
+                category: currentRandomCharacter.category,
+                showCaption: true
+            });
+        }
+    });
+
+    // Play button
+    document.getElementById('btn-play-random-char')?.addEventListener('click', () => {
+        if (currentRandomCharacter) {
+            sound.playClick();
+            modal.classList.add('hidden');
+            document.body.classList.remove('modal-open');
+            initGame(currentRandomCharacter.category, 'classic', 15);
+        }
     });
 
     modal.classList.remove('hidden');
     document.body.classList.add('modal-open');
 
-    // Fetch characters and start spin
-    await runRouletteAnimation();
+    // Fetch initial random character
+    await fetchAndDisplayRandomCharacter();
 }
 
-async function runRouletteAnimation() {
-    if (isSpinning) return;
-    isSpinning = true;
+async function fetchAndDisplayRandomCharacter() {
+    if (isLoading) return;
+    isLoading = true;
 
-    const imgEl = document.getElementById('roulette-img');
-    const containerEl = document.getElementById('roulette-img-container');
-    const statusEl = document.getElementById('roulette-status');
-    const infoEl = document.getElementById('roulette-revealed-info');
-    const nameEl = document.getElementById('roulette-char-name');
-    const catEl = document.getElementById('roulette-char-cat');
-    const countEl = document.getElementById('roulette-char-photos-count');
+    const loaderEl = document.getElementById('random-loader');
+    const imgEl = document.getElementById('random-char-img');
+    const infoEl = document.getElementById('random-info-bar');
+    const nameEl = document.getElementById('random-char-name');
+    const catEl = document.getElementById('random-char-cat');
+    const countEl = document.getElementById('random-char-photos-count');
     const spinBtn = document.getElementById('btn-spin-again');
-    const galleryBtn = document.getElementById('btn-view-roulette-gallery');
-    const playBtn = document.getElementById('btn-play-roulette-char');
 
     if (spinBtn) spinBtn.disabled = true;
-    if (galleryBtn) galleryBtn.style.display = 'none';
-    if (playBtn) playBtn.style.display = 'none';
-
-    // Reset visual state
-    if (statusEl) {
-        statusEl.classList.remove('hidden');
-        statusEl.innerText = "🎰 Shuffling Celebrities...";
-    }
-    if (infoEl) infoEl.classList.add('hidden');
-    if (containerEl) {
-        containerEl.classList.add('roulette-spinning');
-        containerEl.classList.remove('roulette-revealed');
-    }
+    if (loaderEl) loaderEl.style.display = 'flex';
+    if (imgEl) imgEl.style.opacity = '0.3';
 
     try {
-        if (!cachedCharacters || cachedCharacters.length === 0) {
-            try {
-                const res = await fetch(`/api/characters?limit=300&status=approved&_t=${Date.now()}`, {
-                    cache: 'no-store'
-                });
-                const data = await res.json();
-                if (data.success && data.data?.characters) {
-                    cachedCharacters = data.data.characters.filter(c => c.images && c.images.length > 0);
-                }
-            } catch (fetchErr) {
-                console.warn("Primary fetch error, trying fallback", fetchErr);
-                const res2 = await fetch('/api/characters?limit=100');
-                const data2 = await res2.json();
-                if (data2.success && data2.data?.characters) {
-                    cachedCharacters = data2.data.characters.filter(c => c.images && c.images.length > 0);
-                }
-            }
-        }
+        const res = await fetch(`/api/characters?random=true&_t=${Date.now()}`);
+        const data = await res.json();
 
-        if (!cachedCharacters || cachedCharacters.length === 0) {
-            showToast("No approved characters found in library", "error");
-            isSpinning = false;
+        if (!data.success || !data.data?.character) {
+            showToast(data.error || "Failed to pick random character", "error");
+            if (loaderEl) loaderEl.style.display = 'none';
             if (spinBtn) spinBtn.disabled = false;
-            if (statusEl) statusEl.innerText = "⚠️ No characters available";
+            isLoading = false;
             return;
         }
 
-        const characters = cachedCharacters;
-        const totalSteps = 22; // Total shuffle steps
-        const chosenCharacter = characters[Math.floor(Math.random() * characters.length)];
+        const char = data.data.character;
+        currentRandomCharacter = char;
 
-        // Generate rapid shuffle sequence
-        const sequence = [];
-        for (let i = 0; i < totalSteps - 1; i++) {
-            sequence.push(characters[Math.floor(Math.random() * characters.length)]);
+        const primaryImg = (char.images && char.images.length > 0) ? char.images[0] : '';
+        const hdImg = primaryImg ? primaryImg.replace(/\/(?:460|300|560)\//g, '/1280/') : '';
+
+        if (imgEl && hdImg) {
+            const preloader = new Image();
+            preloader.onload = () => {
+                imgEl.src = hdImg;
+                imgEl.style.display = 'block';
+                imgEl.style.opacity = '1';
+                if (loaderEl) loaderEl.style.display = 'none';
+                if (infoEl) infoEl.style.display = 'block';
+                if (nameEl) nameEl.innerText = char.name;
+                if (catEl) {
+                    catEl.innerText = char.category.toUpperCase();
+                    catEl.className = `badge badge-${char.category}`;
+                }
+                if (countEl) {
+                    countEl.innerText = `${char.images?.length || 1} Ultra-HD Photos`;
+                }
+                sound.playCorrect();
+                if (spinBtn) spinBtn.disabled = false;
+                isLoading = false;
+            };
+            preloader.onerror = () => {
+                imgEl.src = hdImg;
+                imgEl.style.display = 'block';
+                imgEl.style.opacity = '1';
+                if (loaderEl) loaderEl.style.display = 'none';
+                if (infoEl) infoEl.style.display = 'block';
+                if (nameEl) nameEl.innerText = char.name;
+                if (catEl) {
+                    catEl.innerText = char.category.toUpperCase();
+                    catEl.className = `badge badge-${char.category}`;
+                }
+                if (countEl) {
+                    countEl.innerText = `${char.images?.length || 1} Ultra-HD Photos`;
+                }
+                if (spinBtn) spinBtn.disabled = false;
+                isLoading = false;
+            };
+            preloader.src = hdImg;
+        } else {
+            if (loaderEl) loaderEl.style.display = 'none';
+            if (infoEl) infoEl.style.display = 'block';
+            if (nameEl) nameEl.innerText = char.name;
+            if (spinBtn) spinBtn.disabled = false;
+            isLoading = false;
         }
-        sequence.push(chosenCharacter);
-
-        // Exponential deceleration delays
-        let currentStep = 0;
-        
-        function step() {
-            if (currentStep >= sequence.length) {
-                // Finale reveal
-                finishSpin(chosenCharacter);
-                return;
-            }
-
-            const char = sequence[currentStep];
-            const primaryImg = (char.images && char.images[0]) || '';
-            if (imgEl && primaryImg) {
-                imgEl.src = primaryImg.replace(/\/(?:460|300|560)\//g, '/1280/');
-            }
-
-            sound.playTick();
-            currentStep++;
-
-            // Calculate delay: starts at 50ms, ramps up to 450ms at the end
-            const progress = currentStep / totalSteps;
-            const delay = Math.round(45 + Math.pow(progress, 3) * 400);
-
-            setTimeout(step, delay);
-        }
-
-        step();
 
     } catch (e) {
-        console.error("Roulette error", e);
-        isSpinning = false;
+        console.error("Random character pick error", e);
+        showToast("Error picking random character", "error");
+        if (loaderEl) loaderEl.style.display = 'none';
         if (spinBtn) spinBtn.disabled = false;
-    }
-}
-
-function finishSpin(char) {
-    isSpinning = false;
-    const containerEl = document.getElementById('roulette-img-container');
-    const statusEl = document.getElementById('roulette-status');
-    const infoEl = document.getElementById('roulette-revealed-info');
-    const nameEl = document.getElementById('roulette-char-name');
-    const catEl = document.getElementById('roulette-char-cat');
-    const countEl = document.getElementById('roulette-char-photos-count');
-    const spinBtn = document.getElementById('btn-spin-again');
-    const galleryBtn = document.getElementById('btn-view-roulette-gallery');
-    const playBtn = document.getElementById('btn-play-roulette-char');
-
-    if (containerEl) {
-        containerEl.classList.remove('roulette-spinning');
-        containerEl.classList.add('roulette-revealed');
-    }
-
-    if (statusEl) statusEl.classList.add('hidden');
-    if (infoEl) infoEl.classList.remove('hidden');
-
-    if (nameEl) nameEl.innerText = char.name;
-    if (catEl) {
-        catEl.innerText = char.category.toUpperCase();
-        catEl.className = `badge badge-${char.category}`;
-    }
-    if (countEl) {
-        countEl.innerText = `${char.images?.length || 1} Ultra-HD Photos`;
-    }
-
-    sound.playWin();
-
-    if (spinBtn) spinBtn.disabled = false;
-
-    // Show action buttons
-    if (galleryBtn) {
-        galleryBtn.style.display = 'inline-flex';
-        galleryBtn.onclick = () => {
-            sound.playClick();
-            lightbox.open(char.images, {
-                name: char.name,
-                category: char.category,
-                showCaption: true
-            });
-        };
-    }
-
-    if (playBtn) {
-        playBtn.style.display = 'inline-flex';
-        playBtn.onclick = () => {
-            sound.playClick();
-            const modal = document.getElementById('modal-random-picker');
-            if (modal) modal.classList.add('hidden');
-            document.body.classList.remove('modal-open');
-            initGame(char.category, 'classic', 15);
-        };
+        isLoading = false;
     }
 }

@@ -7,9 +7,46 @@ export async function onRequestGet(context) {
     const db = env.DB;
     const url = new URL(request.url);
     
+    const isRandom = url.searchParams.get('random') === 'true' || url.searchParams.get('random') === '1';
+    const category = url.searchParams.get('category');
+    
+    // Fast single random approved character query
+    if (isRandom) {
+        let randQuery = `
+            SELECT c.id, c.name, c.category, c.label, c.status, c.submitted_by_user_id, u.username as added_by
+            FROM characters c
+            LEFT JOIN users u ON c.submitted_by_user_id = u.id
+            WHERE c.status = 'approved' AND c.deleted_at_ms IS NULL
+        `;
+        const randParams = [];
+        if (category && ['sluts', 'trans', 'twinks'].includes(category)) {
+            randQuery += " AND c.category = ?";
+            randParams.push(category);
+        }
+        randQuery += " ORDER BY RANDOM() LIMIT 1";
+        
+        try {
+            const { results } = await db.prepare(randQuery).bind(...randParams).all();
+            if (!results || results.length === 0) {
+                return errorResponse("No approved characters found", 404);
+            }
+            const character = results[0];
+            const { results: images } = await db.prepare(`
+                SELECT image_url, display_order 
+                FROM character_images 
+                WHERE character_id = ?
+                ORDER BY display_order ASC
+            `).bind(character.id).all();
+            character.images = (images || []).map(img => img.image_url);
+            return successResponse({ character });
+        } catch (err) {
+            console.error("Random character error", err);
+            return errorResponse("Failed to fetch random character", 500);
+        }
+    }
+
     const page = parseInt(url.searchParams.get('page')) || 1;
     const limit = parseInt(url.searchParams.get('limit')) || 20;
-    const category = url.searchParams.get('category');
     const status = url.searchParams.get('status') || 'approved';
     
     // Non-approved status (pending, rejected, hidden) requires admin/mod role

@@ -3268,18 +3268,18 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ==========================================================================
-   Random Star Roulette Modal & Overlay Animation
+   Random Celebrity Picker Modal & Card
    ========================================================================== */
-.roulette-modal-content {
-    max-width: 420px;
-    width: 90%;
+.random-picker-modal-content {
+    max-width: 480px;
+    width: 92%;
     padding: 1.25rem;
-    background: rgba(13, 13, 26, 0.92);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    background: rgba(13, 13, 26, 0.94);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
     border: 1px solid rgba(139, 92, 246, 0.35);
     border-radius: var(--radius-xl);
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 45px rgba(139, 92, 246, 0.2);
+    box-shadow: 0 25px 65px rgba(0, 0, 0, 0.85), 0 0 50px rgba(139, 92, 246, 0.2);
     animation: zoomInModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -3288,129 +3288,71 @@ input:focus, select:focus, textarea:focus {
     to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-.roulette-stage {
+.random-picker-stage {
     display: flex;
     flex-direction: column;
     align-items: center;
     width: 100%;
 }
 
-.roulette-card-box {
+.random-card-wrapper {
     position: relative;
     width: 100%;
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    background: #080812;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.roulette-img-container {
-    position: relative;
-    width: 100%;
-    height: 380px;
-    overflow: hidden;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle at center, #1a1a2e 0%, #080811 100%);
 }
 
-.roulette-img-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center top;
+.random-loader-wrap {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.random-img-box {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    height: fit-content;
+    max-height: 65vh;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+    cursor: pointer;
+    line-height: 0;
+    margin: 0 auto;
+}
+
+.random-img-box img {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 65vh;
+    object-fit: contain;
     display: block;
-    transition: filter 0.15s ease, transform 0.25s ease;
+    border-radius: var(--radius-lg);
+    transition: transform 0.25s ease;
 }
 
-/* Spinning Motion Blur State */
-.roulette-img-container.roulette-spinning {
-    animation: roulettePulse 0.4s infinite alternate ease-in-out;
+.random-img-box:hover img {
+    transform: scale(1.02);
 }
 
-.roulette-img-container.roulette-spinning img {
-    filter: blur(7px) brightness(1.25) saturate(1.3);
-    transform: scale(1.06);
-}
-
-.roulette-scanline {
-    display: none;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 8px;
-    background: linear-gradient(180deg, transparent, rgba(139, 92, 246, 0.9), transparent);
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.8);
-    pointer-events: none;
-    z-index: 5;
-}
-
-.roulette-img-container.roulette-spinning .roulette-scanline {
-    display: block;
-    animation: scanlineMove 0.35s infinite linear;
-}
-
-@keyframes scanlineMove {
-    0% { top: -10%; opacity: 0; }
-    50% { opacity: 1; }
-    100% { top: 110%; opacity: 0; }
-}
-
-@keyframes roulettePulse {
-    0% { border-color: rgba(139, 92, 246, 0.4); box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
-    100% { border-color: rgba(236, 72, 153, 0.7); box-shadow: 0 0 35px rgba(236, 72, 153, 0.5); }
-}
-
-/* Revealed Finale State */
-.roulette-img-container.roulette-revealed img {
-    filter: blur(0px) brightness(1) saturate(1);
-    animation: revealWinnerPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-@keyframes revealWinnerPop {
-    0% { transform: scale(0.94); filter: brightness(1.4); }
-    50% { transform: scale(1.03); filter: brightness(1.15); }
-    100% { transform: scale(1); filter: brightness(1); }
-}
-
-.roulette-details-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 2.25rem 1rem 1rem;
-    background: linear-gradient(0deg, rgba(7, 7, 15, 0.96) 0%, rgba(7, 7, 15, 0.75) 65%, transparent 100%);
+.random-info-bar {
     text-align: center;
-    z-index: 6;
+    width: 100%;
 }
 
-.roulette-status-text {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--accent-cyan);
-    animation: blinkGlow 0.6s infinite alternate;
-}
-
-@keyframes blinkGlow {
-    from { opacity: 0.7; }
-    to { opacity: 1; text-shadow: 0 0 12px var(--accent-cyan); }
-}
-
-.roulette-char-name {
-    font-size: 1.35rem;
+.random-winner-name {
+    font-size: 1.45rem;
     font-weight: 800;
     margin: 0;
     letter-spacing: 0.5px;
-    animation: fadeInUp 0.4s ease-out;
-}
-
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    color: #fff;
 }
 
 #btn-random-pick {
