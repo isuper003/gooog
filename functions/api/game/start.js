@@ -47,10 +47,10 @@ export async function onRequestPost(context) {
         
         if (mode === 'review') {
             charQuery += ` ORDER BY due_at_ms ASC, p.mastery_level ASC LIMIT ?`;
-            params.push(Math.max(20, numRounds * 4));
+            params.push(Math.min(100, Math.max(20, numRounds * 2)));
         } else {
             charQuery += ` ORDER BY due_at_ms ASC, RANDOM() LIMIT ?`;
-            params.push(Math.max(20, numRounds * 4));
+            params.push(Math.min(100, Math.max(20, numRounds * 2)));
         }
         
         const { results: characters } = await db.prepare(charQuery).bind(...params).all();
@@ -60,21 +60,26 @@ export async function onRequestPost(context) {
             return errorResponse(`Not enough approved characters (need at least ${minCharsRequired}).`, 400);
         }
         
-        // Fetch character images in bulk
+        // Fetch character images in safe chunks of 30 to prevent SQLite variable limit
         const charIds = characters.map(c => c.id);
-        const placeholders = charIds.map(() => '?').join(',');
-        const { results: allImages } = await db.prepare(`
-            SELECT character_id, image_url, display_order 
-            FROM character_images 
-            WHERE character_id IN (${placeholders})
-            ORDER BY character_id, display_order
-        `).bind(...charIds).all();
-        
         const charImagesMap = {};
-        (allImages || []).forEach(img => {
-            if (!charImagesMap[img.character_id]) charImagesMap[img.character_id] = [];
-            charImagesMap[img.character_id].push(img.image_url);
-        });
+        const chunkSize = 30;
+        
+        for (let i = 0; i < charIds.length; i += chunkSize) {
+            const chunk = charIds.slice(i, i + chunkSize);
+            const placeholders = chunk.map(() => '?').join(',');
+            const { results: imagesChunk } = await db.prepare(`
+                SELECT character_id, image_url, display_order 
+                FROM character_images 
+                WHERE character_id IN (${placeholders})
+                ORDER BY character_id, display_order ASC
+            `).bind(...chunk).all();
+            
+            (imagesChunk || []).forEach(img => {
+                if (!charImagesMap[img.character_id]) charImagesMap[img.character_id] = [];
+                charImagesMap[img.character_id].push(img.image_url);
+            });
+        }
         
         const questionsToInsert = [];
         const clientQuestions = [];
