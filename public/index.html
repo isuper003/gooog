@@ -124,8 +124,9 @@
                     <div class="input-wrap">
                         <input type="text" id="login-username" placeholder="Username" required autocomplete="username">
                     </div>
-                    <div class="input-wrap">
+                    <div class="input-wrap password-wrap">
                         <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+                        <button type="button" class="btn-toggle-pwd" data-target="login-password" aria-label="Toggle password visibility" title="Show/Hide Password">👁️</button>
                     </div>
                     <label class="remember-me">
                         <input type="checkbox" id="login-remember"> Remember me (30 days)
@@ -139,8 +140,9 @@
                     <div class="input-wrap">
                         <input type="text" id="register-username" placeholder="Choose Username (3-20 chars)" required minlength="3" maxlength="20" autocomplete="username">
                     </div>
-                    <div class="input-wrap">
+                    <div class="input-wrap password-wrap">
                         <input type="password" id="register-password" placeholder="Create Password (min 8 chars)" required minlength="8" autocomplete="new-password">
+                        <button type="button" class="btn-toggle-pwd" data-target="register-password" aria-label="Toggle password visibility" title="Show/Hide Password">👁️</button>
                     </div>
                     <button type="submit" class="btn-primary auth-submit-btn">
                         <span>Join & Play Now</span> <span>🚀</span>

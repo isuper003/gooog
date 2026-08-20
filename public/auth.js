@@ -21,6 +21,22 @@ export function initAuth() {
         formLogin.classList.add('hidden');
     });
 
+    // Password Hide/Unhide Toggle
+    document.querySelectorAll('.btn-toggle-pwd').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = btn.dataset.target;
+            const input = document.getElementById(targetId);
+            if (!input) return;
+
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            btn.innerText = isPassword ? '🙈' : '👁️';
+            btn.title = isPassword ? 'Hide Password' : 'Show Password';
+            btn.classList.toggle('active', isPassword);
+        });
+    });
+
     formLogin?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = document.getElementById('login-username').value;
