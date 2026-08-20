@@ -184,6 +184,21 @@ function renderStarsStrip(characters, selectedId) {
     });
 }
 
+function formatDevotion(num) {
+    if (!num) return '0';
+    const n = Number(num);
+    if (n >= 1000000000) {
+        return (n / 1000000000).toFixed(2).replace(/\.00$/, '') + 'B';
+    }
+    if (n >= 1000000) {
+        return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (n >= 1000) {
+        return (n / 1000).toFixed(0) + 'K';
+    }
+    return n.toLocaleString();
+}
+
 function renderMainChamber(char, phrases, penanceList) {
     const chamberEl = document.getElementById('worship-main-chamber');
     if (!chamberEl) return;
@@ -212,11 +227,13 @@ function renderMainChamber(char, phrases, penanceList) {
                                 <span class="badge text-xs font-bold" id="worship-step-counter" style="background: rgba(236, 72, 153, 0.2); border-color: rgba(236, 72, 153, 0.4); color: #f472b6;">
                                     ⚡ ${state.actionCount}/3
                                 </span>
-                                <span class="text-xs text-amber-300 font-bold" id="worship-devotion-score">✨ ${char.devotionScore || 0} Devotion Pts</span>
+                                <span class="text-xs text-amber-300 font-bold" id="worship-devotion-score">✨ ${formatDevotion(char.devotionScore || 0)} Pts</span>
                             </div>
                         </div>
                         <h2 class="worship-star-title glow-text">${char.name}</h2>
-                        <div class="worship-rank-badge font-bold mt-1" id="worship-char-rank">👑 ${char.rankTitle}</div>
+                        <div class="worship-rank-badge font-bold mt-1 cursor-pointer" id="worship-char-rank" title="انقر لعرض سُلَّم المراتب العشر">
+                            ${char.rankBadge || '👑'} ${char.rankTitle}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -240,7 +257,7 @@ function renderMainChamber(char, phrases, penanceList) {
 
                     <div class="flex gap-2 mt-3">
                         <button class="btn-primary flex-1" id="btn-offer-praise" style="background: linear-gradient(135deg, #d97706, #ec4899); border: none;">
-                            🕯️ إيقاد سِراج التبجيل (+10 Devotion)
+                            🕯️ إيقاد سِراج التبجيل (+500K Devotion)
                         </button>
                     </div>
                 </div>
@@ -261,7 +278,7 @@ function renderMainChamber(char, phrases, penanceList) {
 
                     <div class="flex gap-2 mt-3">
                         <button class="btn-primary flex-1" id="btn-offer-submission" style="background: linear-gradient(135deg, #ec4899, #8b5cf6); border: none;">
-                            🧎‍♂️ أداء فرض الانحناء والخضوع (+20 Devotion)
+                            🧎‍♂️ أداء فرض الانحناء والخضوع (+1M Devotion)
                         </button>
                     </div>
                 </div>
@@ -287,7 +304,7 @@ function renderMainChamber(char, phrases, penanceList) {
 
                     <div class="flex gap-2 mt-3">
                         <button class="btn-secondary flex-1" id="btn-offer-penance" style="border-color: rgba(244, 63, 94, 0.5); color: #fda4af;">
-                            🙇‍♂️ إقرار التقصير ومحو الزلل
+                            🙇‍♂️ إقرار التقصير ومحو الزلل (إزالة -250K غرامة)
                         </button>
                     </div>
                 </div>
@@ -304,7 +321,7 @@ function renderMainChamber(char, phrases, penanceList) {
 
                     <div class="flex gap-2 mt-3">
                         <button class="btn-primary flex-1 font-bold text-base py-3" id="btn-worship-artist-devotee" style="background: linear-gradient(135deg, #7c3aed, #db2777); border: none; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4); cursor: pointer;">
-                            🎨 العابد الفنان
+                            🎨 العابد الفنان (+2.5M Devotion)
                         </button>
                     </div>
                 </div>
@@ -317,6 +334,12 @@ function renderMainChamber(char, phrases, penanceList) {
 }
 
 function attachChamberListeners(char, phrases) {
+    // Rank click to open full 10 ranks guide
+    document.getElementById('worship-char-rank')?.addEventListener('click', () => {
+        sound.playClick();
+        openDevotionRanksModal(state.worshipData?.ranks, char.devotionScore || 0);
+    });
+
     // Zoom image
     document.getElementById('btn-zoom-worship')?.addEventListener('click', () => {
         sound.playClick();
@@ -349,8 +372,9 @@ function attachChamberListeners(char, phrases) {
             }
             if (data.data?.rankTitle) {
                 char.rankTitle = data.data.rankTitle;
+                char.rankBadge = data.data.rankBadge;
                 const rankEl = document.getElementById('worship-char-rank');
-                if (rankEl) rankEl.innerText = `👑 ${char.rankTitle}`;
+                if (rankEl) rankEl.innerText = `${char.rankBadge || '👑'} ${char.rankTitle}`;
             }
             if (data.data?.times_correct !== undefined) {
                 char.times_correct = data.data.times_correct;
@@ -359,11 +383,11 @@ function attachChamberListeners(char, phrases) {
             }
             if (data.data?.totalDevotion !== undefined) {
                 const totalEl = document.getElementById('worship-total-pts');
-                if (totalEl) totalEl.innerText = data.data.totalDevotion;
+                if (totalEl) totalEl.innerText = formatDevotion(data.data.totalDevotion);
             }
             const scoreEl = document.getElementById('worship-devotion-score');
-            if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
-            showToast("تم إيقاد سِراج التبجيل وقبول الثناء ✨ (+10 Devotion)", "success");
+            if (scoreEl) scoreEl.innerText = `✨ ${formatDevotion(char.devotionScore)} Pts`;
+            showToast("تم إيقاد سِراج التبجيل وقبول الثناء ✨ (+500K Devotion)", "success");
             handleRiteProgress(char);
         }
     });
@@ -390,8 +414,9 @@ function attachChamberListeners(char, phrases) {
             }
             if (data.data?.rankTitle) {
                 char.rankTitle = data.data.rankTitle;
+                char.rankBadge = data.data.rankBadge;
                 const rankEl = document.getElementById('worship-char-rank');
-                if (rankEl) rankEl.innerText = `👑 ${char.rankTitle}`;
+                if (rankEl) rankEl.innerText = `${char.rankBadge || '👑'} ${char.rankTitle}`;
             }
             if (data.data?.times_correct !== undefined) {
                 char.times_correct = data.data.times_correct;
@@ -400,11 +425,11 @@ function attachChamberListeners(char, phrases) {
             }
             if (data.data?.totalDevotion !== undefined) {
                 const totalEl = document.getElementById('worship-total-pts');
-                if (totalEl) totalEl.innerText = data.data.totalDevotion;
+                if (totalEl) totalEl.innerText = formatDevotion(data.data.totalDevotion);
             }
             const scoreEl = document.getElementById('worship-devotion-score');
-            if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
-            showToast("قُبِل فرض الخضوع وسُجِّلت عبوديتك في ديوان السلطانة 🧎‍♂️✨ (+20 Devotion)", "success");
+            if (scoreEl) scoreEl.innerText = `✨ ${formatDevotion(char.devotionScore)} Pts`;
+            showToast("قُبِل فرض الخضوع وسُجِّلت عبوديتك في ديوان السلطانة 🧎‍♂️✨ (+1M Devotion)", "success");
             handleRiteProgress(char);
         }
     });
@@ -437,16 +462,17 @@ function attachChamberListeners(char, phrases) {
             }
             if (data.data?.rankTitle) {
                 char.rankTitle = data.data.rankTitle;
+                char.rankBadge = data.data.rankBadge;
                 const rankEl = document.getElementById('worship-char-rank');
-                if (rankEl) rankEl.innerText = `👑 ${char.rankTitle}`;
+                if (rankEl) rankEl.innerText = `${char.rankBadge || '👑'} ${char.rankTitle}`;
             }
             if (data.data?.totalDevotion !== undefined) {
                 const totalEl = document.getElementById('worship-total-pts');
-                if (totalEl) totalEl.innerText = data.data.totalDevotion;
+                if (totalEl) totalEl.innerText = formatDevotion(data.data.totalDevotion);
             }
             const scoreEl = document.getElementById('worship-devotion-score');
-            if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
-            showToast("قُبِل الاعتراف ورُفِع عنك التقصير 🙇‍♂️", "info");
+            if (scoreEl) scoreEl.innerText = `✨ ${formatDevotion(char.devotionScore)} Pts`;
+            showToast("قُبِل الاعتراف ورُفِع عنك التقصير ومُحي الزلل 🙇‍♂️", "info");
             handleRiteProgress(char);
         }
     });
@@ -456,6 +482,80 @@ function attachChamberListeners(char, phrases) {
         sound.playClick();
         openArtistDevoteeOverlay(char);
     });
+}
+
+export function openDevotionRanksModal(ranks, currentScore) {
+    let modal = document.getElementById('modal-worship-ranks');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-worship-ranks';
+        modal.className = 'modal hidden';
+        document.body.appendChild(modal);
+    }
+
+    const defaultRanks = [
+        { minScore: 2500000000, title: "العدمُ المحض تحت السيادة المطلقة (Total Void Under Supreme Dominance)", tier: 10, badge: "👑🌌", desc: "أعلى مراتب الانمحاء والعدمية التامة تحت السيادة المطلقة للسلطانات." },
+        { minScore: 1200000000, title: "العبدُ الأبدي لتاج الفتنة (Supreme Thrall of the Royal Crown)", tier: 9, badge: "👑💎", desc: "تاج التبعية الخالصة والخضوع الأبدي لبهاء السلطانة." },
+        { minScore: 600000000,  title: "كاهن المذلّة والتبجيل الخالص (Zealot of Absolute Humiliation)", tier: 8, badge: "🧎‍♂️🔥", desc: "حارس طقوس الهوان ومقدم القرابين بلا انقطاع." },
+        { minScore: 300000000,  title: "مملوك الجبروت مسلوب الإرادة (Will-Stripped Sovereign Chattel)", tier: 7, badge: "⛓️👑", desc: "مسلوب المشيئة والقرار، مملوك بالكامل تحت السطوة." },
+        { minScore: 150000000,  title: "ممسحة البلاط الخالدة (Eternal Court Foot-Wiper)", tier: 6, badge: "🧹✨", desc: "شرف التطهير والتذلل تحت وطأة النعال وخطوات القصر." },
+        { minScore: 75000000,   title: "فدائي العرش والأقدام (Sacrificial Throne & Feet Serf)", tier: 5, badge: "🛡️🧎‍♂️", desc: "فداءٌ دائم لتراب المسير وحرمة العرش المهيب." },
+        { minScore: 35000000,   title: "سِقاط التراب المبتذل (Dust Beneath the Soles)", tier: 4, badge: "👣🌪️", desc: "الانكسار كثائر الغبار تحت وطأة الأقدام البهية." },
+        { minScore: 15000000,   title: "عبدُ النعال الممتثل (Submissive Footstool Servant)", tier: 3, badge: "🧎‍♂️📜", desc: "الركوع الدائم تحت النعال وتقديم فروض السمع والطاعة." },
+        { minScore: 5000000,    title: "خاضعٌ ذليل تحت الأعتاب (Humble & Abased Subject)", tier: 2, badge: "🙇‍♂️🕯️", desc: "الوقوف الخاضع على عتبات البلاط مستجدياً الرضا." },
+        { minScore: 0,          title: "عديم الوجود والقيمة (Worthless Nonentity)", tier: 1, badge: "🌑", desc: "البداية في ظلمات العدم قبل اكتساب أي استحقاق في المحراب." }
+    ];
+
+    const rankList = (ranks && ranks.length > 0) ? ranks : defaultRanks;
+
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 720px; max-height: 88vh; overflow-y: auto; background: radial-gradient(circle at top, rgba(88, 28, 135, 0.45), rgba(15, 15, 30, 0.98)); border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 10px 40px rgba(0,0,0,0.85); border-radius: var(--radius-lg);">
+            <div class="modal-header flex items-center justify-between pb-3" style="border-bottom: 1px solid rgba(168, 85, 247, 0.3);">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">👑</span>
+                    <div>
+                        <h2 class="glow-text text-lg font-extrabold text-purple-300">سُلَّم مراتب العبودية والخضوع (10 مراتب)</h2>
+                        <span class="text-xs color-text-muted">درجات الارتقاء في الهوان والتبجيل حسب نقاط الولاء</span>
+                    </div>
+                </div>
+                <button class="close-modal" id="btn-close-ranks-modal" style="font-size: 1.6rem; color: #d8b4fe;">×</button>
+            </div>
+
+            <div class="ranks-list-container mt-4 flex flex-col gap-2.5">
+                ${rankList.map(r => {
+                    const isCurrent = currentScore >= r.minScore && (rankList.find(other => other.tier === r.tier + 1)?.minScore ? currentScore < rankList.find(other => other.tier === r.tier + 1).minScore : true);
+                    return `
+                        <div class="rank-card p-3 rounded-lg flex items-center justify-between ${isCurrent ? 'active-rank' : ''}" style="background: ${isCurrent ? 'rgba(168, 85, 247, 0.25)' : 'rgba(255, 255, 255, 0.03)'}; border: 1px solid ${isCurrent ? '#c084fc' : 'rgba(255, 255, 255, 0.08)'}; box-shadow: ${isCurrent ? '0 0 15px rgba(168, 85, 247, 0.3)' : 'none'};">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">${r.badge || '👑'}</span>
+                                <div>
+                                    <div class="font-bold text-sm ${isCurrent ? 'text-purple-200' : 'text-slate-200'}">
+                                        المرتبة ${r.tier}: ${r.title} ${isCurrent ? '<span class="badge badge-primary text-xs mr-2">مرتبتك الحالية ✨</span>' : ''}
+                                    </div>
+                                    <div class="text-xs color-text-muted mt-0.5">${r.desc || 'درجة ملكية رفيعة في محراب الخدمة والتبجيل'}</div>
+                                </div>
+                            </div>
+                            <div class="text-left flex-shrink-0">
+                                <span class="badge ${isCurrent ? 'badge-primary font-bold' : ''}" style="font-size: 0.75rem; border-color: rgba(168, 85, 247, 0.5);">
+                                    ${formatDevotion(r.minScore)} Pts
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+
+            <div class="mt-4 pt-3 text-center" style="border-top: 1px solid rgba(168, 85, 247, 0.2);">
+                <button class="btn-secondary w-full" id="btn-close-ranks-bottom">إغلاق الدليل</button>
+            </div>
+        </div>
+    `;
+
+    modal.classList.remove('hidden');
+    sound.playClick();
+
+    document.getElementById('btn-close-ranks-modal')?.addEventListener('click', () => modal.classList.add('hidden'));
+    document.getElementById('btn-close-ranks-bottom')?.addEventListener('click', () => modal.classList.add('hidden'));
 }
 
 export function openArtistDevoteeOverlay(char) {
@@ -523,7 +623,7 @@ export function openArtistDevoteeOverlay(char) {
                     ❌ إغلاق المقام
                 </button>
                 <button class="btn-primary flex-1 font-bold text-sm" id="btn-artist-renew-submission" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none; padding: 0.75rem;">
-                    🧎‍♂️ تجديد ميثاق العابد الفنان (+25 Devotion)
+                    🧎‍♂️ تجديد ميثاق العابد الفنان (+2.5M Devotion)
                 </button>
             </div>
         </div>
@@ -553,16 +653,22 @@ export function openArtistDevoteeOverlay(char) {
         
         const res = await fetch('/api/worship', {
             method: 'POST',
-            body: JSON.stringify({ characterId: char.id, action: 'submit' })
+            body: JSON.stringify({ characterId: char.id, action: 'artist_devotee' })
         });
         const data = await res.json();
         if (data.success) {
-            char.devotionScore = (data.data?.devotionScore !== undefined) ? data.data.devotionScore : (char.devotionScore || 0) + 25;
+            char.devotionScore = (data.data?.devotionScore !== undefined) ? data.data.devotionScore : (char.devotionScore || 0) + 2500000;
+            if (data.data?.rankTitle) {
+                char.rankTitle = data.data.rankTitle;
+                char.rankBadge = data.data.rankBadge;
+                const rankEl = document.getElementById('worship-char-rank');
+                if (rankEl) rankEl.innerText = `${char.rankBadge || '👑'} ${char.rankTitle}`;
+            }
             const scoreEl = document.getElementById('worship-devotion-score');
-            if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
+            if (scoreEl) scoreEl.innerText = `✨ ${formatDevotion(char.devotionScore)} Pts`;
             const totalEl = document.getElementById('worship-total-pts');
-            if (totalEl && data.data?.totalDevotion !== undefined) totalEl.innerText = data.data.totalDevotion;
-            showToast("جُدِّد ميثاق العابد الفنان وسُجّل خضوعك في ديوان الخلود 🎨🧎‍♂️✨", "success");
+            if (totalEl && data.data?.totalDevotion !== undefined) totalEl.innerText = formatDevotion(data.data.totalDevotion);
+            showToast("جُدِّد ميثاق العابد الفنان وسُجّل خضوعك في ديوان الخلود 🎨🧎‍♂️✨ (+2.5M)", "success");
             modal.classList.add('hidden');
             handleRiteProgress(char);
         }

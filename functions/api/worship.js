@@ -74,6 +74,33 @@ const PETITION_PHRASES = [
     "رغبةٌ خاضعة في نيل الإذن لاستعراض تفاصيل حسنكِ البديع والارتقاء في خدمتكِ"
 ];
 
+export const DEVOTION_RANKS = [
+    { minScore: 2500000000, title: "العدمُ المحض تحت السيادة المطلقة (Total Void Under Supreme Dominance)", tier: 10, badge: "👑🌌" },
+    { minScore: 1200000000, title: "العبدُ الأبدي لتاج الفتنة (Supreme Thrall of the Royal Crown)", tier: 9, badge: "👑💎" },
+    { minScore: 600000000,  title: "كاهن المذلّة والتبجيل الخالص (Zealot of Absolute Humiliation)", tier: 8, badge: "🧎‍♂️🔥" },
+    { minScore: 300000000,  title: "مملوك الجبروت مسلوب الإرادة (Will-Stripped Sovereign Chattel)", tier: 7, badge: "⛓️👑" },
+    { minScore: 150000000,  title: "ممسحة البلاط الخالدة (Eternal Court Foot-Wiper)", tier: 6, badge: "🧹✨" },
+    { minScore: 75000000,   title: "فدائي العرش والأقدام (Sacrificial Throne & Feet Serf)", tier: 5, badge: "🛡️🧎‍♂️" },
+    { minScore: 35000000,   title: "سِقاط التراب المبتذل (Dust Beneath the Soles)", tier: 4, badge: "👣🌪️" },
+    { minScore: 15000000,   title: "عبدُ النعال الممتثل (Submissive Footstool Servant)", tier: 3, badge: "🧎‍♂️📜" },
+    { minScore: 5000000,    title: "خاضعٌ ذليل تحت الأعتاب (Humble & Abased Subject)", tier: 2, badge: "🙇‍♂️🕯️" },
+    { minScore: 0,          title: "عديم الوجود والقيمة (Worthless Nonentity)", tier: 1, badge: "🌑" }
+];
+
+export function getDevotionRank(score) {
+    for (const r of DEVOTION_RANKS) {
+        if (score >= r.minScore) {
+            return r;
+        }
+    }
+    return DEVOTION_RANKS[DEVOTION_RANKS.length - 1];
+}
+
+export function computeDevotionScore(timesCorrect, timesWrong) {
+    const score = ((timesCorrect || 0) * 500000) - ((timesWrong || 0) * 250000);
+    return Math.max(0, score);
+}
+
 export async function onRequestGet(context) {
     const { env, request, data } = context;
     const db = env.DB;
@@ -105,7 +132,8 @@ export async function onRequestGet(context) {
             return successResponse({
                 characters: [],
                 selectedCharacter: null,
-                phrases: { praise: PRAISE_PHRASES, penance: PENANCE_PHRASES, petition: PETITION_PHRASES }
+                phrases: { praise: PRAISE_PHRASES, penance: PENANCE_PHRASES, petition: PETITION_PHRASES },
+                ranks: DEVOTION_RANKS
             });
         }
         
@@ -123,25 +151,20 @@ export async function onRequestGet(context) {
         
         targetChar.images = (images || []).map(img => img.image_url);
         
-        // Determine devotion rank title
-        const score = (targetChar.times_correct * 10) - (targetChar.times_wrong * 5);
-        let rankTitle = "خاضعٌ ذليل (Humble Subject)";
-        if (score >= 120 || targetChar.mastery_level >= 5) {
-            rankTitle = "المملوك الأبدي للسلطانة (Eternal Slave of the Goddess)";
-        } else if (score >= 60 || targetChar.mastery_level >= 3) {
-            rankTitle = "فدائي العرش والنعال (Footstool of the Throne)";
-        } else if (score >= 20 || targetChar.mastery_level >= 1) {
-            rankTitle = "عبدُ الأعتاب الخاضع (Submissive Servant)";
-        }
-        targetChar.rankTitle = rankTitle;
-        targetChar.devotionScore = Math.max(0, score);
+        // Determine devotion rank title & score
+        const score = computeDevotionScore(targetChar.times_correct, targetChar.times_wrong);
+        const rankObj = getDevotionRank(score);
+        targetChar.rankTitle = rankObj.title;
+        targetChar.rankBadge = rankObj.badge;
+        targetChar.rankTier = rankObj.tier;
+        targetChar.devotionScore = score;
         
         // List characters needing penance (wrong > 0)
         const penanceList = characters.filter(c => c.times_wrong > 0).slice(0, 8);
 
         // Compute total devotion across all characters
         const totalDevotionStmt = db.prepare(`
-            SELECT COALESCE(SUM(times_correct * 10 - times_wrong * 5), 0) as total_devotion
+            SELECT COALESCE(SUM(times_correct * 500000 - times_wrong * 250000), 0) as total_devotion
             FROM user_character_progress
             WHERE user_id = ?
         `).bind(data.user.id);
@@ -153,6 +176,7 @@ export async function onRequestGet(context) {
             selectedCharacter: targetChar,
             penanceList,
             totalDevotion,
+            ranks: DEVOTION_RANKS,
             phrases: {
                 praise: PRAISE_PHRASES,
                 penance: PENANCE_PHRASES,
@@ -185,7 +209,7 @@ export async function onRequestPost(context) {
     
     try {
         if (action === 'praise') {
-            // Reward praise tribute (+10 pts)
+            // Reward praise tribute (+500,000 pts)
             await db.prepare(`
                 INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
                 VALUES (?, ?, 1, (unixepoch() * 1000))
@@ -193,12 +217,20 @@ export async function onRequestPost(context) {
                   times_correct = times_correct + 1
             `).bind(data.user.id, characterId).run();
         } else if (action === 'submit') {
-            // Kneel & Bow Submission Rite (+20 pts)
+            // Kneel & Bow Submission Rite (+1,000,000 pts / 2 steps)
             await db.prepare(`
                 INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
                 VALUES (?, ?, 2, (unixepoch() * 1000))
                 ON CONFLICT(user_id, character_id) DO UPDATE SET
                   times_correct = times_correct + 2
+            `).bind(data.user.id, characterId).run();
+        } else if (action === 'artist_devotee') {
+            // High tribute of the artist devotee (+2,500,000 pts / 5 steps)
+            await db.prepare(`
+                INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
+                VALUES (?, ?, 5, (unixepoch() * 1000))
+                ON CONFLICT(user_id, character_id) DO UPDATE SET
+                  times_correct = times_correct + 5
             `).bind(data.user.id, characterId).run();
         } else if (action === 'penance') {
             // Acknowledge error and reduce times_wrong penalty
@@ -219,19 +251,12 @@ export async function onRequestPost(context) {
         `).bind(data.user.id, characterId);
         const progress = await progressStmt.first() || { times_correct: 0, times_wrong: 0, mastery_level: 0 };
         
-        const score = Math.max(0, (progress.times_correct * 10) - (progress.times_wrong * 5));
-        let rankTitle = "خاضعٌ ذليل (Humble Subject)";
-        if (score >= 120 || progress.mastery_level >= 5) {
-            rankTitle = "المملوك الأبدي للسلطانة (Eternal Slave of the Goddess)";
-        } else if (score >= 60 || progress.mastery_level >= 3) {
-            rankTitle = "فدائي العرش والنعال (Footstool of the Throne)";
-        } else if (score >= 20 || progress.mastery_level >= 1) {
-            rankTitle = "عبدُ الأعتاب الخاضع (Submissive Servant)";
-        }
+        const score = computeDevotionScore(progress.times_correct, progress.times_wrong);
+        const rankObj = getDevotionRank(score);
 
         // Fetch updated total user devotion across all characters
         const totalDevotionStmt = db.prepare(`
-            SELECT COALESCE(SUM(times_correct * 10 - times_wrong * 5), 0) as total_devotion
+            SELECT COALESCE(SUM(times_correct * 500000 - times_wrong * 250000), 0) as total_devotion
             FROM user_character_progress
             WHERE user_id = ?
         `).bind(data.user.id);
@@ -240,7 +265,7 @@ export async function onRequestPost(context) {
 
         let phrase = "";
         if (action === 'praise') phrase = PRAISE_PHRASES[Math.floor(Math.random() * PRAISE_PHRASES.length)];
-        else if (action === 'submit') phrase = SUBMISSION_PHRASES[Math.floor(Math.random() * SUBMISSION_PHRASES.length)];
+        else if (action === 'submit' || action === 'artist_devotee') phrase = SUBMISSION_PHRASES[Math.floor(Math.random() * SUBMISSION_PHRASES.length)];
         else if (action === 'penance') phrase = PENANCE_PHRASES[Math.floor(Math.random() * PENANCE_PHRASES.length)];
 
         return successResponse({
@@ -249,7 +274,9 @@ export async function onRequestPost(context) {
             devotionScore: score,
             times_correct: progress.times_correct,
             times_wrong: progress.times_wrong,
-            rankTitle,
+            rankTitle: rankObj.title,
+            rankBadge: rankObj.badge,
+            rankTier: rankObj.tier,
             totalDevotion
         });
     } catch (e) {
