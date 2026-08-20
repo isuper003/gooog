@@ -139,11 +139,10 @@ export async function initSettingsModal(currentUser) {
         sound.playClick();
         if (confirm("Are you sure you want to log out?")) {
             try {
-                await fetch('/api/auth/logout', {
-                    method: 'POST',
-                    headers: { 'X-CSRF-Token': getCsrfToken() }
-                });
+                await fetch('/api/auth/logout', { method: 'POST' });
             } catch (e) {}
+            localStorage.removeItem('goooog_session_token');
+            sessionStorage.removeItem('goooog_session_token');
             clearCsrfToken();
             showToast('Logged out successfully', 'info');
             modal.classList.add('hidden');

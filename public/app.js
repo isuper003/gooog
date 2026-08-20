@@ -11,6 +11,24 @@ import { sound } from './sound.js';
 import { showToast } from './toast.js';
 import { getCsrfToken, clearCsrfToken } from './csrf.js';
 
+// Intercept all fetch requests to /api/ and automatically inject Authorization & CSRF headers
+const originalFetch = window.fetch;
+window.fetch = function(url, options = {}) {
+    if (typeof url === 'string' && url.startsWith('/api/')) {
+        const token = localStorage.getItem('goooog_session_token') || sessionStorage.getItem('goooog_session_token');
+        const csrf = getCsrfToken();
+        const headers = new Headers(options.headers || {});
+        if (token && !headers.has('Authorization')) {
+            headers.set('Authorization', `Bearer ${token}`);
+        }
+        if (csrf && !headers.has('X-CSRF-Token') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes((options.method || 'GET').toUpperCase())) {
+            headers.set('X-CSRF-Token', csrf);
+        }
+        options.headers = headers;
+    }
+    return originalFetch.call(this, url, options);
+};
+
 const state = {
     user: null,
     selectedCategory: 'mix',
@@ -306,12 +324,11 @@ function setupGlobalEvents() {
     document.getElementById('btn-logout')?.addEventListener('click', async () => {
         sound.playClick();
         if (confirm("Are you sure you want to log out?")) {
-            await fetch('/api/auth/logout', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-Token': getCsrfToken()
-                }
-            });
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+            } catch (e) {}
+            localStorage.removeItem('goooog_session_token');
+            sessionStorage.removeItem('goooog_session_token');
             clearCsrfToken();
             showToast('Logged out successfully', 'info');
             setTimeout(() => window.location.reload(), 300);

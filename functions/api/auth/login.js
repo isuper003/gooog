@@ -78,6 +78,7 @@ export async function onRequestPost(context) {
                 username: normalizedUsername,
                 role: user.role
             },
+            sessionToken: sessionToken,
             csrfToken: csrfToken 
         }, 200, {
             'Set-Cookie': cookieHeaders

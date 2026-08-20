@@ -52,6 +52,10 @@ export function initAuth() {
             const data = await res.json();
             
             if (res.ok && data.success) {
+                if (data.data?.sessionToken) {
+                    localStorage.setItem('goooog_session_token', data.data.sessionToken);
+                    sessionStorage.setItem('goooog_session_token', data.data.sessionToken);
+                }
                 setCsrfToken(data.data.csrfToken);
                 showToast('Welcome back! Loading game...', 'success');
                 if (typeof window.onLoginSuccess === 'function') {
@@ -91,6 +95,10 @@ export function initAuth() {
                 });
                 const loginData = await loginRes.json();
                 if (loginRes.ok && loginData.success) {
+                    if (loginData.data?.sessionToken) {
+                        localStorage.setItem('goooog_session_token', loginData.data.sessionToken);
+                        sessionStorage.setItem('goooog_session_token', loginData.data.sessionToken);
+                    }
                     setCsrfToken(loginData.data.csrfToken);
                     if (typeof window.onLoginSuccess === 'function') {
                         window.onLoginSuccess(loginData.data.user);

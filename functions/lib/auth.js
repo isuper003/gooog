@@ -29,10 +29,12 @@ export function parseCookies(cookieHeader) {
 
 export async function authenticateUser(request, db) {
     const cookieHeader = request.headers.get('Cookie');
-    if (!cookieHeader) return { error: "Unauthorized", status: 401 };
-    
     const cookies = parseCookies(cookieHeader);
-    const sessionToken = cookies[SECURE_SESSION_COOKIE_NAME] || cookies[SESSION_COOKIE_NAME];
+    const authHeader = request.headers.get('Authorization');
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+    const headerToken = request.headers.get('X-Session-Token');
+    
+    const sessionToken = cookies[SECURE_SESSION_COOKIE_NAME] || cookies[SESSION_COOKIE_NAME] || bearerToken || headerToken;
     
     if (!sessionToken) return { error: "Unauthorized", status: 401 };
     
