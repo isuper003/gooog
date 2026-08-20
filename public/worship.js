@@ -1157,48 +1157,68 @@ export function renderRosaryView(worshipData) {
             <span class="badge badge-${char.category}" style="font-size: 0.75rem;">فئة ${char.category.toUpperCase()}</span>
         </div>
 
-        <!-- Grand Rosary Altar Arena Card -->
+        <!-- Grand Rosary Altar Arena Card (Dual-Panel Layout) -->
         <div class="rosary-arena-card">
-            <!-- 4 Litany Selector Chips -->
-            <div class="rosary-litany-nav" id="rosary-litany-nav">
-                <button class="rosary-litany-btn ${state.rosaryLitany === 'glory' ? 'active' : ''}" data-litany="glory">
-                    <span>🌟 ورد الثناء والتمجيد</span>
-                </button>
-                <button class="rosary-litany-btn ${state.rosaryLitany === 'submission' ? 'active' : ''}" data-litany="submission">
-                    <span>🧎‍♂️ ورد الخضوع والطاعة</span>
-                </button>
-                <button class="rosary-litany-btn ${state.rosaryLitany === 'mercy' ? 'active' : ''}" data-litany="mercy">
-                    <span>🙇‍♂️ ورد محو الزلل والتقصير</span>
-                </button>
-                <button class="rosary-litany-btn ${state.rosaryLitany === 'artist' ? 'active' : ''}" data-litany="artist">
-                    <span>🎨 ورد العابد الفنان</span>
-                </button>
-            </div>
-
-            <!-- Floating Litany Chanting Bubble -->
-            <div class="rosary-chant-bubble" id="rosary-chant-bubble">
-                « ${currentLitanyText} »
-            </div>
-
-            <!-- Central Circular Rosary Beads & Keystone -->
-            <div class="rosary-ring-container" id="rosary-ring-container">
-                ${beadsHTML}
-                
-                <!-- Grand Keystone Medallion -->
-                <div class="rosary-keystone" id="rosary-keystone" title="انقر هنا للتسبيح">
-                    <img src="${imgUrl}" alt="${char.name}">
-                    <div class="rosary-keystone-overlay">
-                        <div class="rosary-keystone-counter" id="rosary-counter-val">${state.rosaryCurrentBead} / 33</div>
-                        <div class="rosary-keystone-target">عقد التسبيح الملكي</div>
+            <div class="rosary-grid-layout">
+                <!-- Left: Full Uncropped Goddess Portrait Altar -->
+                <div class="rosary-portrait-altar" id="rosary-portrait-altar">
+                    <img id="rosary-target-img" src="${imgUrl}" alt="${char.name}" loading="eager">
+                    <button class="zoom-trigger-btn" id="btn-zoom-rosary" aria-label="Zoom image">🔍</button>
+                    
+                    <div class="rosary-portrait-overlay">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <span class="badge badge-${char.category}">${char.category.toUpperCase()}</span>
+                            <span class="text-xs text-amber-300 font-bold">✨ ${formatDevotion(char.devotionScore || 0)} Pts</span>
+                        </div>
+                        <h3 class="worship-star-title glow-text" style="font-size: 1.35rem;">${char.name}</h3>
+                        <div class="worship-rank-badge font-bold mt-1 text-xs" style="padding: 0.2rem 0.6rem;">
+                            ${char.rankBadge || '👑'} ${char.rankTitle}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Big Interactive Trigger Button -->
-            <button class="rosary-main-action-btn" id="btn-rosary-chant">
-                <span>📿 تسبـيـح وتـمجـيـد</span>
-                <span class="rosary-key-hint">Space / Tap</span>
-            </button>
+                <!-- Right: Litany Chants, Beads Ring, & Trigger Button -->
+                <div class="rosary-rites-column">
+                    <!-- 4 Litany Selector Chips -->
+                    <div class="rosary-litany-nav" id="rosary-litany-nav">
+                        <button class="rosary-litany-btn ${state.rosaryLitany === 'glory' ? 'active' : ''}" data-litany="glory">
+                            <span>🌟 ورد الثناء والتمجيد</span>
+                        </button>
+                        <button class="rosary-litany-btn ${state.rosaryLitany === 'submission' ? 'active' : ''}" data-litany="submission">
+                            <span>🧎‍♂️ ورد الخضوع والطاعة</span>
+                        </button>
+                        <button class="rosary-litany-btn ${state.rosaryLitany === 'mercy' ? 'active' : ''}" data-litany="mercy">
+                            <span>🙇‍♂️ ورد محو الزلل والتقصير</span>
+                        </button>
+                        <button class="rosary-litany-btn ${state.rosaryLitany === 'artist' ? 'active' : ''}" data-litany="artist">
+                            <span>🎨 ورد العابد الفنان</span>
+                        </button>
+                    </div>
+
+                    <!-- Floating Litany Chanting Bubble -->
+                    <div class="rosary-chant-bubble" id="rosary-chant-bubble">
+                        « ${currentLitanyText} »
+                    </div>
+
+                    <!-- Central Circular Rosary Beads & Keystone -->
+                    <div class="rosary-ring-container" id="rosary-ring-container">
+                        ${beadsHTML}
+                        
+                        <!-- Grand Keystone Medallion -->
+                        <div class="rosary-keystone" id="rosary-keystone" title="انقر هنا للتسبيح">
+                            <span class="rosary-keystone-icon">📿</span>
+                            <div class="rosary-keystone-counter" id="rosary-counter-val">${state.rosaryCurrentBead} / 33</div>
+                            <div class="rosary-keystone-target">عقد التسبيح</div>
+                        </div>
+                    </div>
+
+                    <!-- Big Interactive Trigger Button -->
+                    <button class="rosary-main-action-btn" id="btn-rosary-chant">
+                        <span>📿 تسبـيـح وتـمجـيـد</span>
+                        <span class="rosary-key-hint">Space / Tap</span>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Milestones Badges Shelf -->
@@ -1271,6 +1291,20 @@ function attachRosaryEventListeners(char, litanies) {
         bead.addEventListener('click', () => {
             triggerRosaryBeadAdvance(char);
         });
+    });
+
+    // Zoom Lightbox for Rosary Portrait
+    const rosaryImgs = char.images && char.images.length > 0 ? char.images : [char.primary_image || ''];
+    document.getElementById('btn-zoom-rosary')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sound.playClick();
+        lightbox.open(rosaryImgs, { name: char.name, category: char.category, startIndex: 0, showCaption: true });
+    });
+
+    document.getElementById('rosary-portrait-altar')?.addEventListener('click', (e) => {
+        if (e.target.closest('#btn-zoom-rosary')) return;
+        sound.playClick();
+        lightbox.open(rosaryImgs, { name: char.name, category: char.category, startIndex: 0, showCaption: true });
     });
 }
 
