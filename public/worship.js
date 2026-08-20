@@ -10,6 +10,7 @@ let state = {
     selectedCharId: null,
     worshipData: null,
     autoSwitchEnabled: localStorage.getItem('worship_auto_switch') === 'true',
+    rosaryAutoSwitchEnabled: localStorage.getItem('worship_rosary_auto_switch') === 'true',
     actionCount: 0,
     throneRankFilter: 'all',
     throneCategoryFilter: 'all',
@@ -1146,15 +1147,32 @@ export function renderRosaryView(worshipData) {
 
         <!-- Target Goddess Switcher Strip -->
         <div class="flex items-center justify-between gap-3 flex-wrap p-3 rounded-xl" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
-            <div class="flex items-center gap-2">
-                <span class="text-sm font-bold text-slate-300">سلطانة المسبحة الحالية:</span>
-                <select id="rosary-goddess-select" class="form-select text-xs font-bold" style="background: #131127; border: 1px solid rgba(245, 158, 11, 0.4); color: #fef08a; border-radius: var(--radius-md); padding: 0.35rem 0.75rem;">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-bold text-slate-300">سلطانة المسبحة:</span>
+                <select id="rosary-goddess-select" class="form-select text-xs font-bold worship-select-clean" style="background: #131127; border: 1px solid rgba(245, 158, 11, 0.4); color: #fef08a; border-radius: var(--radius-md); padding: 0.4rem 0.85rem; max-width: 290px;">
                     ${characters.map(c => `
                         <option value="${c.id}" ${c.id === char.id ? 'selected' : ''}>${c.name} (${c.category.toUpperCase()}) - ${c.rankBadge || '👑'} ${c.rankTitle || ''}</option>
                     `).join('')}
                 </select>
             </div>
-            <span class="badge badge-${char.category}" style="font-size: 0.75rem;">فئة ${char.category.toUpperCase()}</span>
+            
+            <div class="flex items-center gap-3 flex-wrap">
+                <span class="badge badge-${char.category}" style="font-size: 0.75rem;">فئة ${char.category.toUpperCase()}</span>
+                
+                <!-- Independent Supreme Goddess Auto-Switch Toggle for Rosary -->
+                <label class="flex items-center gap-2 cursor-pointer select-none" for="toggle-rosary-supreme-goddess" title="تبديل تلقائي وعشوائي للسلطانة بعد إتمام كل عقد تسبيحة (33 حبة)">
+                    <span class="text-xs font-bold text-amber-300 flex items-center gap-1">
+                        ⚡ الآلهة المطلقة (تبديل تلقائي بعد كل ختمة)
+                    </span>
+                    <label class="worship-switch" style="transform: scale(0.85); margin: 0;">
+                        <input type="checkbox" id="toggle-rosary-supreme-goddess" ${state.rosaryAutoSwitchEnabled ? 'checked' : ''}>
+                        <span class="worship-slider"></span>
+                    </label>
+                </label>
+                <span class="badge text-xs" id="rosary-supreme-status-badge" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.4); color: #fcd34d;">
+                    ${state.rosaryAutoSwitchEnabled ? '🟢 مفعّل' : '⚪ معطّل'}
+                </span>
+            </div>
         </div>
 
         <!-- Grand Rosary Altar Arena Card (Dual-Panel Layout) -->
@@ -1276,6 +1294,19 @@ function attachRosaryEventListeners(char, litanies) {
         renderRosaryView(state.worshipData);
     });
 
+    // Independent Supreme Goddess Auto-Switch Toggle for Rosary
+    const rosaryToggle = document.getElementById('toggle-rosary-supreme-goddess');
+    const rosaryBadge = document.getElementById('rosary-supreme-status-badge');
+    rosaryToggle?.addEventListener('change', (e) => {
+        state.rosaryAutoSwitchEnabled = e.target.checked;
+        localStorage.setItem('worship_rosary_auto_switch', state.rosaryAutoSwitchEnabled ? 'true' : 'false');
+        sound.playClick();
+        if (rosaryBadge) {
+            rosaryBadge.innerText = state.rosaryAutoSwitchEnabled ? '🟢 مفعّل' : '⚪ معطّل';
+        }
+        showToast(state.rosaryAutoSwitchEnabled ? "تم تفعيل طور الآلهة المطلقة للمسبحة ⚡ (تبديل عشوائي بعد كل ختمة)" : "تم تعطيل طور التبديل التلقائي للمسبحة", "info");
+    });
+
     // Main Chant Trigger Button
     document.getElementById('btn-rosary-chant')?.addEventListener('click', () => {
         triggerRosaryBeadAdvance(char);
@@ -1366,11 +1397,16 @@ export async function triggerRosaryBeadAdvance(char) {
             b.classList.toggle('current', idx === 0);
         });
 
-        // Trigger pulse on keystone
+        // Trigger pulse on keystone and altar portrait
         const keystone = document.getElementById('rosary-keystone');
         if (keystone) {
             keystone.classList.add('submission-pulse');
             setTimeout(() => keystone.classList.remove('submission-pulse'), 1000);
+        }
+        const altar = document.getElementById('rosary-portrait-altar');
+        if (altar) {
+            altar.classList.add('submission-pulse');
+            setTimeout(() => altar.classList.remove('submission-pulse'), 1000);
         }
 
         // Post cycle tribute to backend (+330 Pts)
@@ -1391,6 +1427,22 @@ export async function triggerRosaryBeadAdvance(char) {
             }
         } catch (e) {
             console.error("Rosary cycle sync error", e);
+        }
+
+        // Auto-switch Supreme Goddess if enabled for Rosary
+        if (state.rosaryAutoSwitchEnabled) {
+            const characters = state.worshipData?.characters || [];
+            const candidateChars = characters.filter(c => c.id !== char.id);
+            if (candidateChars.length > 0) {
+                const nextChar = candidateChars[Math.floor(Math.random() * candidateChars.length)];
+                setTimeout(() => {
+                    sound.playWin();
+                    showToast(`👑 تم إتمام العقد! يتم الآن استدعاء السلطانة ${nextChar.name} بالطور المطلق ⚡...`, "success");
+                    state.selectedCharId = nextChar.id;
+                    state.rosaryCurrentBead = 0;
+                    renderRosaryView(state.worshipData);
+                }, 850);
+            }
         }
     }
 }

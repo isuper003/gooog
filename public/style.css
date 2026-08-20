@@ -4529,4 +4529,30 @@ input:checked + .worship-slider:before {
     }
 }
 
+/* ==========================================================================
+   Clean Scrollbar-free Dropdown Selects
+   ========================================================================== */
+
+#rosary-goddess-select,
+.worship-select-clean,
+select.form-select {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+#rosary-goddess-select::-webkit-scrollbar,
+.worship-select-clean::-webkit-scrollbar,
+select.form-select::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+#rosary-goddess-select option {
+    background: #0f0e1e;
+    color: #fef08a;
+    padding: 0.5rem 0.75rem;
+}
+
+
 
