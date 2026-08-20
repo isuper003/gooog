@@ -49,19 +49,24 @@ export async function onRequestGet(context) {
         
         if (results && results.length > 0) {
             const charIds = results.map(r => r.id);
-            const placeholders = charIds.map(() => '?').join(',');
-            const { results: images } = await db.prepare(`
-                SELECT character_id, image_url, display_order 
-                FROM character_images 
-                WHERE character_id IN (${placeholders})
-                ORDER BY character_id, display_order
-            `).bind(...charIds).all();
-            
             const imageMap = {};
-            (images || []).forEach(img => {
-                if (!imageMap[img.character_id]) imageMap[img.character_id] = [];
-                imageMap[img.character_id].push(img.image_url);
-            });
+            const chunkSize = 30;
+
+            for (let i = 0; i < charIds.length; i += chunkSize) {
+                const chunk = charIds.slice(i, i + chunkSize);
+                const placeholders = chunk.map(() => '?').join(',');
+                const { results: imagesChunk } = await db.prepare(`
+                    SELECT character_id, image_url, display_order 
+                    FROM character_images 
+                    WHERE character_id IN (${placeholders})
+                    ORDER BY character_id, display_order ASC
+                `).bind(...chunk).all();
+
+                (imagesChunk || []).forEach(img => {
+                    if (!imageMap[img.character_id]) imageMap[img.character_id] = [];
+                    imageMap[img.character_id].push(img.image_url);
+                });
+            }
             
             results.forEach(char => {
                 char.images = imageMap[char.id] || [];

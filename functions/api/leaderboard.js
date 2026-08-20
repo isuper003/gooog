@@ -54,18 +54,23 @@ export async function onRequestGet(context) {
             // Fetch primary image for each character
             if (charList.length > 0) {
                 const charIds = charList.map(c => c.id);
-                const placeholders = charIds.map(() => '?').join(',');
-                const { results: images } = await db.prepare(`
-                    SELECT character_id, image_url, display_order 
-                    FROM character_images 
-                    WHERE character_id IN (${placeholders})
-                    ORDER BY character_id, display_order ASC
-                `).bind(...charIds).all();
-
                 const imgMap = {};
-                (images || []).forEach(img => {
-                    if (!imgMap[img.character_id]) imgMap[img.character_id] = img.image_url;
-                });
+                const chunkSize = 30;
+
+                for (let i = 0; i < charIds.length; i += chunkSize) {
+                    const chunk = charIds.slice(i, i + chunkSize);
+                    const placeholders = chunk.map(() => '?').join(',');
+                    const { results: imagesChunk } = await db.prepare(`
+                        SELECT character_id, image_url, display_order 
+                        FROM character_images 
+                        WHERE character_id IN (${placeholders})
+                        ORDER BY character_id, display_order ASC
+                    `).bind(...chunk).all();
+
+                    (imagesChunk || []).forEach(img => {
+                        if (!imgMap[img.character_id]) imgMap[img.character_id] = img.image_url;
+                    });
+                }
 
                 charList.forEach(char => {
                     char.image = imgMap[char.id] || '';
