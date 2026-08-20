@@ -7,7 +7,9 @@ import { getCsrfToken } from './csrf.js';
 let state = {
     selectedCategory: 'all',
     selectedCharId: null,
-    worshipData: null
+    worshipData: null,
+    autoSwitchEnabled: localStorage.getItem('worship_auto_switch') === 'true',
+    actionCount: 0
 };
 
 export async function initWorship() {
@@ -17,7 +19,7 @@ export async function initWorship() {
     container.innerHTML = `
         <div class="page-container worship-page-container">
             <!-- Header Banner -->
-            <div class="worship-header text-center mb-6">
+            <div class="worship-header text-center mb-4">
                 <div class="inline-flex items-center gap-2 mb-2">
                     <span class="auth-badge" style="margin: 0; font-size: 0.8rem; letter-spacing: 1px;">👑 صرح الولاء وديوان التبجيل</span>
                 </div>
@@ -27,6 +29,22 @@ export async function initWorship() {
                 <p class="color-text-muted text-sm max-w-lg mx-auto mt-1" style="line-height: 1.6;">
                     مجلس الثناء والتمجيد لسيدات الحُسن والفتنة — قدّم فروض الولاء وأقرّ بالتقصير لتنال شرف الرضا
                 </p>
+            </div>
+
+            <!-- Supreme Goddess Auto-Switch Toggle Bar -->
+            <div class="worship-toggle-bar mb-4">
+                <label class="flex items-center gap-3 cursor-pointer select-none" for="toggle-supreme-goddess">
+                    <span class="text-xs font-bold text-amber-300 flex items-center gap-1">
+                        ⚡ الآلهة المطلقة (تبديل تلقائي بعد 3 طقوس)
+                    </span>
+                    <label class="worship-switch">
+                        <input type="checkbox" id="toggle-supreme-goddess" ${state.autoSwitchEnabled ? 'checked' : ''}>
+                        <span class="worship-slider"></span>
+                    </label>
+                </label>
+                <span class="badge text-xs" id="supreme-status-badge" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.4); color: #fcd34d;">
+                    ${state.autoSwitchEnabled ? '🟢 مفعّل' : '⚪ معطّل'}
+                </span>
             </div>
 
             <!-- Category Ribbon -->
@@ -50,7 +68,24 @@ export async function initWorship() {
     `;
 
     attachRibbonEvents();
+    attachToggleEvents();
     await loadWorshipData();
+}
+
+function attachToggleEvents() {
+    const toggle = document.getElementById('toggle-supreme-goddess');
+    const badge = document.getElementById('supreme-status-badge');
+    if (!toggle) return;
+
+    toggle.addEventListener('change', (e) => {
+        state.autoSwitchEnabled = e.target.checked;
+        localStorage.setItem('worship_auto_switch', state.autoSwitchEnabled ? 'true' : 'false');
+        sound.playClick();
+        if (badge) {
+            badge.innerText = state.autoSwitchEnabled ? '🟢 مفعّل' : '⚪ معطّل';
+        }
+        showToast(state.autoSwitchEnabled ? "تم تفعيل طور الآلهة المطلقة ⚡ (تبديل بعد 3 طقوس)" : "تم تعطيل طور التبديل التلقائي", "info");
+    });
 }
 
 function attachRibbonEvents() {
@@ -61,6 +96,7 @@ function attachRibbonEvents() {
             btn.classList.add('active');
             state.selectedCategory = btn.dataset.cat;
             state.selectedCharId = null;
+            state.actionCount = 0;
             await loadWorshipData();
         });
     });
@@ -115,6 +151,7 @@ function renderStarsStrip(characters, selectedId) {
         card.addEventListener('click', () => {
             sound.playClick();
             state.selectedCharId = card.dataset.id;
+            state.actionCount = 0;
             loadWorshipData();
         });
     });
@@ -144,7 +181,12 @@ function renderMainChamber(char, phrases, penanceList) {
                     <div class="worship-portrait-overlay">
                         <div class="flex items-center justify-between gap-2 mb-1">
                             <span class="badge badge-${char.category}">${char.category.toUpperCase()}</span>
-                            <span class="text-xs text-amber-300 font-bold" id="worship-devotion-score">✨ ${char.devotionScore || 0} Devotion Pts</span>
+                            <div class="flex items-center gap-2">
+                                <span class="badge text-xs font-bold" id="worship-step-counter" style="background: rgba(236, 72, 153, 0.2); border-color: rgba(236, 72, 153, 0.4); color: #f472b6;">
+                                    ⚡ ${state.actionCount}/3
+                                </span>
+                                <span class="text-xs text-amber-300 font-bold" id="worship-devotion-score">✨ ${char.devotionScore || 0} Pts</span>
+                            </div>
                         </div>
                         <h2 class="worship-star-title glow-text">${char.name}</h2>
                         <div class="worship-rank-badge font-bold mt-1" id="worship-char-rank">👑 ${char.rankTitle}</div>
@@ -283,6 +325,7 @@ function attachChamberListeners(char, phrases) {
             const scoreEl = document.getElementById('worship-devotion-score');
             if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
             showToast("تم إيقاد سِراج التبجيل وقبول الثناء ✨", "success");
+            handleRiteProgress(char);
         }
     });
 
@@ -308,6 +351,7 @@ function attachChamberListeners(char, phrases) {
             const scoreEl = document.getElementById('worship-devotion-score');
             if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
             showToast("قُبِل فرض الخضوع وسُجِّلت عبوديتك في ديوان السلطانة 🧎‍♂️✨", "success");
+            handleRiteProgress(char);
         }
     });
 
@@ -329,6 +373,7 @@ function attachChamberListeners(char, phrases) {
             const wrongEl = document.getElementById('worship-penance-wrong');
             if (wrongEl) wrongEl.innerText = char.times_wrong;
             showToast("قُبِل الاعتراف ورُفِع عنك التقصير 🙇‍♂️", "info");
+            handleRiteProgress(char);
         }
     });
 
@@ -343,6 +388,32 @@ function attachChamberListeners(char, phrases) {
         sound.playClick();
         initGame(char.category, 'classic', 15);
     });
+}
+
+function handleRiteProgress(currentChar) {
+    state.actionCount++;
+    const stepEl = document.getElementById('worship-step-counter');
+    if (stepEl) {
+        stepEl.innerText = `⚡ ${state.actionCount}/3`;
+        stepEl.classList.add('glow-pulse');
+        setTimeout(() => stepEl.classList.remove('glow-pulse'), 500);
+    }
+
+    if (state.autoSwitchEnabled && state.actionCount >= 3) {
+        state.actionCount = 0;
+        const characters = state.worshipData?.characters || [];
+        const candidateChars = characters.filter(c => c.id !== currentChar.id);
+
+        if (candidateChars.length > 0) {
+            const nextChar = candidateChars[Math.floor(Math.random() * candidateChars.length)];
+            setTimeout(() => {
+                sound.playWin();
+                showToast(`👑 تم إتمام الطقوس الثلاثية! يتم الآن استدعاء السلطانة ${nextChar.name}...`, "success");
+                state.selectedCharId = nextChar.id;
+                loadWorshipData();
+            }, 650);
+        }
+    }
 }
 
 function triggerPraiseEffect() {
