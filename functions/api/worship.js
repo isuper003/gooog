@@ -1,6 +1,10 @@
 import { successResponse, errorResponse } from '../lib/response.js';
 
-const PRAISE_PHRASES = [
+import { PRAISE_PHRASES, SUBMISSION_PHRASES, PENANCE_PHRASES, PETITION_PHRASES, GLORY_LITANY, SUBMISSION_LITANY, MERCY_LITANY, ARTIST_LITANY, ARTIST_PROSE_TEXTS } from './data/phrases.js';
+import { successResponse, errorResponse } from '../lib/response.js';
+
+import { PRAISE_PHRASES, SUBMISSION_PHRASES, PENANCE_PHRASES, PETITION_PHRASES, GLORY_LITANY, SUBMISSION_LITANY, MERCY_LITANY, ARTIST_LITANY, ARTIST_PROSE_TEXTS } from './data/phrases.js';
+/* const PRAISE_PHRASES = [
     "أنتِ ملكة الكون وسلطانة الفتنة المطلقة، لكِ السطوة التامة والتبجيل الأبدي",
     "نُقرّ بجبروت جمالكِ وسلطانكِ القاهر الذي لا يُقاوم ولا يُردّ وتخضع له الرقاب",
     "تاجُ السيادة الأبدية على رؤوس الأكوان لكِ وحدكِ يا سيدة العرش والفتنة",
@@ -21,6 +25,7 @@ const PRAISE_PHRASES = [
     "متربعةٌ على قمة المجد والجمال، وكل الرؤوس أمام عرشكِ خاضعةٌ وممتثلة"
 ];
 
+*/
 const PENANCE_PHRASES = [
     "أعترف بزلّة النسيان وضآلتي، وأقرّ بصغار قدري وعجزي أمام هيبتكِ وجلالكِ",
     "مُنكس الرأس، ذليل الفؤاد، أعترف بجرم السهو والتقصير في حق ملكة الكون",
@@ -42,6 +47,7 @@ const PENANCE_PHRASES = [
     "أقرّ بصغار عقلي وضعف إدراكي أمام حضوركِ الفاتن، وألتمس العفو والرحمة"
 ];
 
+*/
 const SUBMISSION_PHRASES = [
     "أقرّ بعبوديتي المطلقة لفتنتكِ، وخضوعي التام كشيءٍ لا يُذكر تحت نعالكِ وأقدامكِ",
     "أنا عبدكِ الخاضع الممتثل، لا إرادة لي ولا كرامة إلا في خدمتكِ ونيل رضاكِ",
@@ -63,6 +69,7 @@ const SUBMISSION_PHRASES = [
     "أمام جلالكِ يسقط كبريائي، وتنمحي ذاتي لأصبح مجرد ظلٍّ خاضعٍ في بلاطكِ"
 ];
 
+*/
 const PETITION_PHRASES = [
     "نلتمس نظرة رضا من ملكة الفتنة لاستعراض محاسنها الخفية ونيل شرف حضورها",
     "رجاءٌ خاشع ومتواضع لنيل شرف اختبار الولاء في حضرتها المقدسة",
@@ -74,6 +81,7 @@ const PETITION_PHRASES = [
     "رغبةٌ خاضعة في نيل الإذن لاستعراض تفاصيل حسنكِ البديع والارتقاء في خدمتكِ"
 ];
 
+*/
 const GLORY_LITANY = [
     "سبحان من أودعت سرّ الفتنة والجمال في طلعتكِ البهية",
     "جلّ بهاءُ وجهكِ وسلطانُ حضوركِ الساحر الفاتن",
@@ -85,6 +93,7 @@ const GLORY_LITANY = [
     "لكِ التبجيل والتعظيم الأبدي في كل طرفة عين وخفقة فؤاد"
 ];
 
+*/
 const SUBMISSION_LITANY = [
     "أنا عبدكِ الخاضع الممتثل، لا إرادة لي إلا مشيئتكِ",
     "طوعُ أمركِ، فدائيٌّ تحت وطأة نعالكِ وخطواتكِ الملكية",
@@ -96,6 +105,7 @@ const SUBMISSION_LITANY = [
     "لكِ السمع والطاعة والامتثال المطلق بلا تردد ولا عصيان"
 ];
 
+*/
 const MERCY_LITANY = [
     "أعترف بضآلتي وعجزي، وأطلب غفران زلّة النسيان والسهو",
     "مُنكس الرأس، ألتمس العفو والرضا بعد السهو والتقصير",
@@ -178,6 +188,7 @@ export async function onRequestGet(context) {
                 characters: [],
                 selectedCharacter: null,
                 phrases: {
+                ARTIST_PROSE_TEXTS,
                     praise: PRAISE_PHRASES,
                     penance: PENANCE_PHRASES,
                     petition: PETITION_PHRASES,
@@ -237,6 +248,7 @@ export async function onRequestGet(context) {
             totalDevotion,
             ranks: DEVOTION_RANKS,
             phrases: {
+                ARTIST_PROSE_TEXTS,
                 praise: PRAISE_PHRASES,
                 penance: PENANCE_PHRASES,
                 submission: SUBMISSION_PHRASES,
