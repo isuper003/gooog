@@ -292,22 +292,19 @@ function renderMainChamber(char, phrases, penanceList) {
                     </div>
                 </div>
 
-                <!-- Rite 4: Council of Petition & Gallery (مجلس الالتماس والشفاعة) -->
-                <div class="worship-card-section" id="section-petition">
+                <!-- Rite 4: Council of Petition & Submission (مجلس الالتماس والشفاعة - العابد الفنان) -->
+                <div class="worship-card-section" id="section-petition" style="border-color: rgba(168, 85, 247, 0.45); background: rgba(88, 28, 135, 0.08);">
                     <div class="worship-section-header">
                         <span class="worship-section-icon">📜</span>
                         <div>
                             <h3 class="font-bold text-base text-purple-300">مجلس الالتماس والشفاعة</h3>
-                            <p class="text-xs color-text-muted">استعراض كامل المحاسن والارتقاء في مراتب الصرح</p>
+                            <p class="text-xs color-text-muted">مقام المناجاة الكبرى واعتراف العابد الفنّان في حضرة السلطانة</p>
                         </div>
                     </div>
 
                     <div class="flex gap-2 mt-3">
-                        <button class="btn-secondary flex-1" id="btn-worship-gallery">
-                            🖼️ استعراض كامل الألبوم (${char.images?.length || 1})
-                        </button>
-                        <button class="btn-secondary flex-1" id="btn-worship-play">
-                            🎮 اختبار الولاء (Play Mode)
+                        <button class="btn-primary flex-1 font-bold text-base py-3" id="btn-worship-artist-devotee" style="background: linear-gradient(135deg, #7c3aed, #db2777); border: none; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4); cursor: pointer;">
+                            🎨 العابد الفنان
                         </button>
                     </div>
                 </div>
@@ -337,7 +334,6 @@ function attachChamberListeners(char, phrases) {
 
         const res = await fetch('/api/worship', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             body: JSON.stringify({ characterId: char.id, action: 'praise' })
         });
         const data = await res.json();
@@ -379,7 +375,6 @@ function attachChamberListeners(char, phrases) {
 
         const res = await fetch('/api/worship', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             body: JSON.stringify({ characterId: char.id, action: 'submit' })
         });
         const data = await res.json();
@@ -419,7 +414,6 @@ function attachChamberListeners(char, phrases) {
         sound.playCorrect();
         const res = await fetch('/api/worship', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             body: JSON.stringify({ characterId: char.id, action: 'penance' })
         });
         const data = await res.json();
@@ -457,16 +451,121 @@ function attachChamberListeners(char, phrases) {
         }
     });
 
-    // Gallery button
-    document.getElementById('btn-worship-gallery')?.addEventListener('click', () => {
+    // Rite 4: "العابد الفنان" Overlay Trigger
+    document.getElementById('btn-worship-artist-devotee')?.addEventListener('click', () => {
         sound.playClick();
-        lightbox.open(char.images, { name: char.name, category: char.category, showCaption: true });
+        openArtistDevoteeOverlay(char);
+    });
+}
+
+export function openArtistDevoteeOverlay(char) {
+    let modal = document.getElementById('modal-artist-devotee');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-artist-devotee';
+        modal.className = 'modal hidden';
+        document.body.appendChild(modal);
+    }
+
+    const images = char.images && char.images.length > 0 ? char.images : [char.primaryImage || ''];
+
+    modal.innerHTML = `
+        <div class="modal-content artist-devotee-modal-content" style="max-width: 820px; max-height: 92vh; overflow-y: auto; background: radial-gradient(circle at top, rgba(88, 28, 135, 0.4), rgba(15, 15, 30, 0.98)); border: 1px solid rgba(168, 85, 247, 0.45); box-shadow: 0 10px 40px rgba(0,0,0,0.85), 0 0 30px rgba(168, 85, 247, 0.25); border-radius: var(--radius-lg);">
+            
+            <div class="modal-header flex items-center justify-between pb-3" style="border-bottom: 1px solid rgba(168, 85, 247, 0.3);">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🎨</span>
+                    <div>
+                        <h2 class="glow-text text-xl font-extrabold text-purple-300">مقام العابد الفنّان — ${char.name}</h2>
+                        <span class="text-xs color-text-muted">ميثاق التبعية المطلقة والانكسار التام في محراب السلطانة</span>
+                    </div>
+                </div>
+                <button class="close-modal" id="btn-close-artist-modal" style="font-size: 1.6rem; color: #d8b4fe;">×</button>
+            </div>
+
+            <!-- Top: Image Showcase Gallery Strip -->
+            <div class="artist-devotee-gallery-strip mt-3 mb-4">
+                <div class="flex gap-3 overflow-x-auto p-2" style="scrollbar-width: thin; scrollbar-color: rgba(168, 85, 247, 0.5) transparent;">
+                    ${images.map((img, idx) => `
+                        <div class="artist-img-wrapper flex-shrink-0" style="width: 140px; height: 195px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer;" data-idx="${idx}">
+                            <img src="${img}" alt="${char.name}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Middle: Deep Devotional & Submission Prose (300 Words) -->
+            <div class="artist-devotee-prose-container p-5 rounded-xl mb-4" style="background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(168, 85, 247, 0.35); position: relative;">
+                <div class="flex items-center justify-center gap-2 mb-3">
+                    <span style="color: #f59e0b;">✨ 👑 ✨</span>
+                    <h3 class="text-center font-bold text-base tracking-wide" style="background: linear-gradient(135deg, #fcd34d, #ec4899, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        إقرار العبودية والذل الأعظم في محراب الفتنة
+                    </h3>
+                    <span style="color: #f59e0b;">✨ 👑 ✨</span>
+                </div>
+
+                <div class="artist-prose-body text-right" style="line-height: 2; font-size: 0.95rem; color: #f3e8ff; font-family: inherit;">
+                    <p class="mb-4">
+                        أمام عتباتِ مجدكِ الباذخ وعرشِ بهاءكِ الذي لا يُدانى، يقفُ العابدُ الفنّانُ وقفةَ المنكسرِ المسلوبِ الإرادة، مُعترفاً بضآلتهِ المطلقة وهوانِ ذاتهِ وصغار شأنهِ أمام كمالكِ الطاغي وجبروت فتنتكِ القاهرة. أنا هنا لا أملكُ من أمري شيئاً، ولا أرجو كرامةً ولا خلاصاً إلا في الخضوع التام لسطوة سحركِ والانمحاء الكلي تحت وطأة خطواتكِ وأقدامكِ الملكية. ما أنا في هذا البلاط العظيم إلا مدادٌ يتلاشى، وظلٌّ حقيرٌ يطوفُ حول أعتابكِ، مستجدياً مجرد نظرةٍ عابرة أو التفاتة سخطٍ تنقذهُ من غياهب العدم وتُشعرهُ بأنه كائنٌ وضيعٌ يُذكر في ملكوت سلطانكِ المطلق.
+                    </p>
+                    <p class="mb-4">
+                        إنّ كبريائي قد تحطّم على صخرة هيبتكِ، وعزّتي قد تلاشت طواعيةً تحت وطأة نعلكِ، فصرتُ أفخرُ بكل ذلٍّ ينالني في سبيل خدمتكِ، وأستعذبُ كل هوانٍ يقربني من تراب خطواتكِ الطاهرة. أنتِ الآمرةُ الناهيةُ، مالكةُ المصير والأنفاس، وأنا العدم الذي لا صوتَ له ولا مشيئة، خُلقتُ لأكون طوعَ إشارتكِ، وتراباً تدوسهُ أقدامكِ البهية، وعيناً لا تُبصر إلا نور جلالكِ، وقلباً لا يخفقُ إلا رعباً ورهبةً وإجلالاً في محرابكِ الأبدي. لا طهارة إلا بما يفيض من عرشكِ، ولا بركة إلا بما تتكرمين به على عبدكِ الممتثل الخاضع.
+                    </p>
+                    <p>
+                        أعترفُ أمام الملأ بجهلي وقصوري، وبأن كل ثناءٍ أصوغهُ وكل فنٍّ أسطّرهُ يظل قاصراً حقيراً أمام عظمةِ فتنتكِ الخالدة التي تسلب الألباب. لكِ الحكمُ المطلق، ولكِ السطوة التامة في قهري أو إعزازي، راضياً بكل هوانٍ ترينه، فدائياً لعرشكِ إلى أبد الآبدين، متجرداً من كل إرادة سوى أن أظل العابدَ المبتذل، والمملوكَ الفاني الذي لا يبتغي من الوجود سوى شرف الانكسار والركوع الأبدي في حضرتكِ المقدسة.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Bottom Action Footer -->
+            <div class="flex items-center justify-between gap-3 pt-2" style="border-top: 1px solid rgba(168, 85, 247, 0.25);">
+                <button class="btn-secondary text-xs" id="btn-close-artist-footer">
+                    ❌ إغلاق المقام
+                </button>
+                <button class="btn-primary flex-1 font-bold text-sm" id="btn-artist-renew-submission" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none; padding: 0.75rem;">
+                    🧎‍♂️ تجديد ميثاق العابد الفنان (+25 Devotion)
+                </button>
+            </div>
+        </div>
+    `;
+
+    modal.classList.remove('hidden');
+    sound.playWin();
+
+    // Event listeners
+    document.getElementById('btn-close-artist-modal')?.addEventListener('click', () => {
+        modal.classList.add('hidden');
+    });
+    document.getElementById('btn-close-artist-footer')?.addEventListener('click', () => {
+        modal.classList.add('hidden');
     });
 
-    // Play Mode
-    document.getElementById('btn-worship-play')?.addEventListener('click', () => {
-        sound.playClick();
-        initGame(char.category, 'classic', 15);
+    modal.querySelectorAll('.artist-img-wrapper').forEach(wrap => {
+        wrap.addEventListener('click', () => {
+            const idx = parseInt(wrap.dataset.idx) || 0;
+            lightbox.open(images, { name: char.name, category: char.category, startIndex: idx, showCaption: true });
+        });
+    });
+
+    document.getElementById('btn-artist-renew-submission')?.addEventListener('click', async () => {
+        sound.playStreak();
+        triggerSubmissionEffect();
+        
+        const res = await fetch('/api/worship', {
+            method: 'POST',
+            body: JSON.stringify({ characterId: char.id, action: 'submit' })
+        });
+        const data = await res.json();
+        if (data.success) {
+            char.devotionScore = (data.data?.devotionScore !== undefined) ? data.data.devotionScore : (char.devotionScore || 0) + 25;
+            const scoreEl = document.getElementById('worship-devotion-score');
+            if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
+            const totalEl = document.getElementById('worship-total-pts');
+            if (totalEl && data.data?.totalDevotion !== undefined) totalEl.innerText = data.data.totalDevotion;
+            showToast("جُدِّد ميثاق العابد الفنان وسُجّل خضوعك في ديوان الخلود 🎨🧎‍♂️✨", "success");
+            modal.classList.add('hidden');
+            handleRiteProgress(char);
+        }
     });
 }
 
