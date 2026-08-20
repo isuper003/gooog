@@ -119,10 +119,21 @@ async function runRouletteAnimation() {
 
     try {
         if (!cachedCharacters || cachedCharacters.length === 0) {
-            const res = await fetch('/api/characters?limit=2000');
-            const data = await res.json();
-            if (data.success && data.data?.characters) {
-                cachedCharacters = data.data.characters.filter(c => c.images && c.images.length > 0);
+            try {
+                const res = await fetch(`/api/characters?limit=300&status=approved&_t=${Date.now()}`, {
+                    cache: 'no-store'
+                });
+                const data = await res.json();
+                if (data.success && data.data?.characters) {
+                    cachedCharacters = data.data.characters.filter(c => c.images && c.images.length > 0);
+                }
+            } catch (fetchErr) {
+                console.warn("Primary fetch error, trying fallback", fetchErr);
+                const res2 = await fetch('/api/characters?limit=100');
+                const data2 = await res2.json();
+                if (data2.success && data2.data?.characters) {
+                    cachedCharacters = data2.data.characters.filter(c => c.images && c.images.length > 0);
+                }
             }
         }
 
@@ -130,6 +141,7 @@ async function runRouletteAnimation() {
             showToast("No approved characters found in library", "error");
             isSpinning = false;
             if (spinBtn) spinBtn.disabled = false;
+            if (statusEl) statusEl.innerText = "⚠️ No characters available";
             return;
         }
 
