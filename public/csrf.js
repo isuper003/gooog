@@ -6,6 +6,7 @@ export function setCsrfToken(token) {
         memoryCsrfToken = token;
         try {
             sessionStorage.setItem('csrf_token', token);
+            localStorage.setItem('csrf_token', token);
         } catch (e) {}
     }
 }

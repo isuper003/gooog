@@ -23,6 +23,9 @@ async function checkAuth() {
         if (res.ok) {
             const data = await res.json();
             state.user = data.data.user;
+            if (data.data?.csrfToken) {
+                setCsrfToken(data.data.csrfToken);
+            }
             return true;
         }
     } catch (e) {
