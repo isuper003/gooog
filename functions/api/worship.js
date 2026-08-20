@@ -138,11 +138,21 @@ export async function onRequestGet(context) {
         
         // List characters needing penance (wrong > 0)
         const penanceList = characters.filter(c => c.times_wrong > 0).slice(0, 8);
+
+        // Compute total devotion across all characters
+        const totalDevotionStmt = db.prepare(`
+            SELECT COALESCE(SUM(times_correct * 10 - times_wrong * 5), 0) as total_devotion
+            FROM user_character_progress
+            WHERE user_id = ?
+        `).bind(data.user.id);
+        const totalDevotionRow = await totalDevotionStmt.first();
+        const totalDevotion = Math.max(0, totalDevotionRow?.total_devotion || 0);
         
         return successResponse({
             characters,
             selectedCharacter: targetChar,
             penanceList,
+            totalDevotion,
             phrases: {
                 praise: PRAISE_PHRASES,
                 penance: PENANCE_PHRASES,
@@ -175,44 +185,73 @@ export async function onRequestPost(context) {
     
     try {
         if (action === 'praise') {
-            // Reward praise tribute
+            // Reward praise tribute (+10 pts)
             await db.prepare(`
                 INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
                 VALUES (?, ?, 1, (unixepoch() * 1000))
                 ON CONFLICT(user_id, character_id) DO UPDATE SET
                   times_correct = times_correct + 1
             `).bind(data.user.id, characterId).run();
-            
-            const randomPhrase = PRAISE_PHRASES[Math.floor(Math.random() * PRAISE_PHRASES.length)];
-            return successResponse({ message: "Tribute accepted", phrase: randomPhrase });
-        }
-
-        if (action === 'submit') {
-            // Kneel & Bow Submission Rite
+        } else if (action === 'submit') {
+            // Kneel & Bow Submission Rite (+20 pts)
             await db.prepare(`
                 INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
                 VALUES (?, ?, 2, (unixepoch() * 1000))
                 ON CONFLICT(user_id, character_id) DO UPDATE SET
                   times_correct = times_correct + 2
             `).bind(data.user.id, characterId).run();
-            
-            const randomPhrase = SUBMISSION_PHRASES[Math.floor(Math.random() * SUBMISSION_PHRASES.length)];
-            return successResponse({ message: "Submission accepted", phrase: randomPhrase });
-        }
-        
-        if (action === 'penance') {
+        } else if (action === 'penance') {
             // Acknowledge error and reduce times_wrong penalty
             await db.prepare(`
-                UPDATE user_character_progress
-                SET times_wrong = MAX(0, times_wrong - 1), times_correct = times_correct + 1
-                WHERE user_id = ? AND character_id = ?
+                INSERT INTO user_character_progress (user_id, character_id, times_correct, times_wrong, due_at_ms)
+                VALUES (?, ?, 1, 0, (unixepoch() * 1000))
+                ON CONFLICT(user_id, character_id) DO UPDATE SET
+                  times_wrong = MAX(0, times_wrong - 1),
+                  times_correct = times_correct + 1
             `).bind(data.user.id, characterId).run();
-            
-            const randomPhrase = PENANCE_PHRASES[Math.floor(Math.random() * PENANCE_PHRASES.length)];
-            return successResponse({ message: "Penance accepted", phrase: randomPhrase });
         }
+
+        // Fetch freshly updated progress for this character
+        const progressStmt = db.prepare(`
+            SELECT times_correct, times_wrong, mastery_level 
+            FROM user_character_progress 
+            WHERE user_id = ? AND character_id = ?
+        `).bind(data.user.id, characterId);
+        const progress = await progressStmt.first() || { times_correct: 0, times_wrong: 0, mastery_level: 0 };
         
-        return successResponse({ message: "Action recorded" });
+        const score = Math.max(0, (progress.times_correct * 10) - (progress.times_wrong * 5));
+        let rankTitle = "خاضعٌ ذليل (Humble Subject)";
+        if (score >= 120 || progress.mastery_level >= 5) {
+            rankTitle = "المملوك الأبدي للسلطانة (Eternal Slave of the Goddess)";
+        } else if (score >= 60 || progress.mastery_level >= 3) {
+            rankTitle = "فدائي العرش والنعال (Footstool of the Throne)";
+        } else if (score >= 20 || progress.mastery_level >= 1) {
+            rankTitle = "عبدُ الأعتاب الخاضع (Submissive Servant)";
+        }
+
+        // Fetch updated total user devotion across all characters
+        const totalDevotionStmt = db.prepare(`
+            SELECT COALESCE(SUM(times_correct * 10 - times_wrong * 5), 0) as total_devotion
+            FROM user_character_progress
+            WHERE user_id = ?
+        `).bind(data.user.id);
+        const totalDevotionRow = await totalDevotionStmt.first();
+        const totalDevotion = Math.max(0, totalDevotionRow?.total_devotion || 0);
+
+        let phrase = "";
+        if (action === 'praise') phrase = PRAISE_PHRASES[Math.floor(Math.random() * PRAISE_PHRASES.length)];
+        else if (action === 'submit') phrase = SUBMISSION_PHRASES[Math.floor(Math.random() * SUBMISSION_PHRASES.length)];
+        else if (action === 'penance') phrase = PENANCE_PHRASES[Math.floor(Math.random() * PENANCE_PHRASES.length)];
+
+        return successResponse({
+            message: "Tribute recorded",
+            phrase,
+            devotionScore: score,
+            times_correct: progress.times_correct,
+            times_wrong: progress.times_wrong,
+            rankTitle,
+            totalDevotion
+        });
     } catch (e) {
         console.error("Worship POST error", e);
         return errorResponse("Failed to record tribute", 500);

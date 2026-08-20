@@ -22,6 +22,9 @@ export async function initWorship() {
             <div class="worship-header text-center mb-4">
                 <div class="inline-flex items-center gap-2 mb-2">
                     <span class="auth-badge" style="margin: 0; font-size: 0.8rem; letter-spacing: 1px;">👑 صرح الولاء وديوان التبجيل</span>
+                    <span class="badge" id="worship-global-devotion" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.4); color: #fcd34d; font-size: 0.8rem; font-weight: bold;">
+                        👑 رصيد الولاء الإجمالي: <span id="worship-total-pts">0</span> Devotion Pts
+                    </span>
                 </div>
                 <h1 class="glow-text text-3xl font-extrabold" style="background: linear-gradient(135deg, #fcd34d, #ec4899, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                     THE ROYAL DEVOTION SHRINE
@@ -137,6 +140,13 @@ async function loadWorshipData() {
         }
 
         state.worshipData = data.data;
+        
+        // Update global devotion points in header
+        const totalPtsEl = document.getElementById('worship-total-pts');
+        if (totalPtsEl && data.data.totalDevotion !== undefined) {
+            totalPtsEl.innerText = data.data.totalDevotion;
+        }
+
         renderStarsStrip(data.data.characters, data.data.selectedCharacter?.id);
         renderMainChamber(data.data.selectedCharacter, data.data.phrases, data.data.penanceList);
 
@@ -202,7 +212,7 @@ function renderMainChamber(char, phrases, penanceList) {
                                 <span class="badge text-xs font-bold" id="worship-step-counter" style="background: rgba(236, 72, 153, 0.2); border-color: rgba(236, 72, 153, 0.4); color: #f472b6;">
                                     ⚡ ${state.actionCount}/3
                                 </span>
-                                <span class="text-xs text-amber-300 font-bold" id="worship-devotion-score">✨ ${char.devotionScore || 0} Pts</span>
+                                <span class="text-xs text-amber-300 font-bold" id="worship-devotion-score">✨ ${char.devotionScore || 0} Devotion Pts</span>
                             </div>
                         </div>
                         <h2 class="worship-star-title glow-text">${char.name}</h2>
@@ -267,8 +277,8 @@ function renderMainChamber(char, phrases, penanceList) {
                     </div>
 
                     <div class="worship-penance-stats mt-2 text-xs flex justify-between p-2 rounded" style="background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.25);">
-                        <span>مرات السهو والخطأ: <strong class="text-rose-400 font-bold" id="worship-penance-wrong">${char.times_wrong}</strong></span>
-                        <span>مرات الإصابة: <strong class="text-emerald-400 font-bold">${char.times_correct}</strong></span>
+                        <span>مرات السهو والخطأ: <strong class="text-rose-400 font-bold" id="worship-penance-wrong">${char.times_wrong || 0}</strong></span>
+                        <span>مرات الإصابة والثناء: <strong class="text-emerald-400 font-bold" id="worship-penance-correct">${char.times_correct || 0}</strong></span>
                     </div>
 
                     <div class="worship-phrase-bubble mt-2 text-rose-200" id="worship-penance-display" style="border-color: rgba(244, 63, 94, 0.3);">
@@ -338,10 +348,26 @@ function attachChamberListeners(char, phrases) {
                 displayEl.classList.add('glow-pulse');
                 setTimeout(() => displayEl.classList.remove('glow-pulse'), 600);
             }
-            char.devotionScore = (char.devotionScore || 0) + 10;
+            if (data.data?.devotionScore !== undefined) {
+                char.devotionScore = data.data.devotionScore;
+            }
+            if (data.data?.rankTitle) {
+                char.rankTitle = data.data.rankTitle;
+                const rankEl = document.getElementById('worship-char-rank');
+                if (rankEl) rankEl.innerText = `👑 ${char.rankTitle}`;
+            }
+            if (data.data?.times_correct !== undefined) {
+                char.times_correct = data.data.times_correct;
+                const correctEl = document.getElementById('worship-penance-correct');
+                if (correctEl) correctEl.innerText = char.times_correct;
+            }
+            if (data.data?.totalDevotion !== undefined) {
+                const totalEl = document.getElementById('worship-total-pts');
+                if (totalEl) totalEl.innerText = data.data.totalDevotion;
+            }
             const scoreEl = document.getElementById('worship-devotion-score');
             if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
-            showToast("تم إيقاد سِراج التبجيل وقبول الثناء ✨", "success");
+            showToast("تم إيقاد سِراج التبجيل وقبول الثناء ✨ (+10 Devotion)", "success");
             handleRiteProgress(char);
         }
     });
@@ -364,10 +390,26 @@ function attachChamberListeners(char, phrases) {
                 displayEl.classList.add('glow-pulse');
                 setTimeout(() => displayEl.classList.remove('glow-pulse'), 600);
             }
-            char.devotionScore = (char.devotionScore || 0) + 20;
+            if (data.data?.devotionScore !== undefined) {
+                char.devotionScore = data.data.devotionScore;
+            }
+            if (data.data?.rankTitle) {
+                char.rankTitle = data.data.rankTitle;
+                const rankEl = document.getElementById('worship-char-rank');
+                if (rankEl) rankEl.innerText = `👑 ${char.rankTitle}`;
+            }
+            if (data.data?.times_correct !== undefined) {
+                char.times_correct = data.data.times_correct;
+                const correctEl = document.getElementById('worship-penance-correct');
+                if (correctEl) correctEl.innerText = char.times_correct;
+            }
+            if (data.data?.totalDevotion !== undefined) {
+                const totalEl = document.getElementById('worship-total-pts');
+                if (totalEl) totalEl.innerText = data.data.totalDevotion;
+            }
             const scoreEl = document.getElementById('worship-devotion-score');
             if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
-            showToast("قُبِل فرض الخضوع وسُجِّلت عبوديتك في ديوان السلطانة 🧎‍♂️✨", "success");
+            showToast("قُبِل فرض الخضوع وسُجِّلت عبوديتك في ديوان السلطانة 🧎‍♂️✨ (+20 Devotion)", "success");
             handleRiteProgress(char);
         }
     });
@@ -386,9 +428,30 @@ function attachChamberListeners(char, phrases) {
             if (displayEl && data.data?.phrase) {
                 displayEl.innerText = `"${data.data.phrase}"`;
             }
-            char.times_wrong = Math.max(0, (char.times_wrong || 0) - 1);
-            const wrongEl = document.getElementById('worship-penance-wrong');
-            if (wrongEl) wrongEl.innerText = char.times_wrong;
+            if (data.data?.devotionScore !== undefined) {
+                char.devotionScore = data.data.devotionScore;
+            }
+            if (data.data?.times_wrong !== undefined) {
+                char.times_wrong = data.data.times_wrong;
+                const wrongEl = document.getElementById('worship-penance-wrong');
+                if (wrongEl) wrongEl.innerText = char.times_wrong;
+            }
+            if (data.data?.times_correct !== undefined) {
+                char.times_correct = data.data.times_correct;
+                const correctEl = document.getElementById('worship-penance-correct');
+                if (correctEl) correctEl.innerText = char.times_correct;
+            }
+            if (data.data?.rankTitle) {
+                char.rankTitle = data.data.rankTitle;
+                const rankEl = document.getElementById('worship-char-rank');
+                if (rankEl) rankEl.innerText = `👑 ${char.rankTitle}`;
+            }
+            if (data.data?.totalDevotion !== undefined) {
+                const totalEl = document.getElementById('worship-total-pts');
+                if (totalEl) totalEl.innerText = data.data.totalDevotion;
+            }
+            const scoreEl = document.getElementById('worship-devotion-score');
+            if (scoreEl) scoreEl.innerText = `✨ ${char.devotionScore} Devotion Pts`;
             showToast("قُبِل الاعتراف ورُفِع عنك التقصير 🙇‍♂️", "info");
             handleRiteProgress(char);
         }
