@@ -149,7 +149,12 @@ export async function initLeaderboard() {
                 imgEl.style.cursor = 'pointer';
                 imgEl.addEventListener('click', () => {
                     sound.playClick();
-                    lightbox.open([star.image], 0, star.name, star.label || star.category);
+                    lightbox.open([star.image], {
+                        initialIndex: 0,
+                        name: star.name,
+                        category: star.category,
+                        showCaption: true
+                    });
                 });
             }
 

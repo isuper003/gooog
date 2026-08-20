@@ -43,10 +43,23 @@ export class UniversalLightbox {
         });
     }
 
-    open(imagesInput, options = {}) {
+    open(imagesInput, options = {}, nameArg = '', categoryArg = '') {
         if (!this.lightboxEl || !this.imgEl) return;
 
-        this.meta = options;
+        if (typeof options === 'number') {
+            this.meta = {
+                initialIndex: options,
+                name: nameArg,
+                category: categoryArg,
+                showCaption: Boolean(nameArg)
+            };
+        } else {
+            this.meta = options || {};
+            if (this.meta.name && this.meta.showCaption === undefined) {
+                this.meta.showCaption = true;
+            }
+        }
+
         if (Array.isArray(imagesInput)) {
             this.images = imagesInput.filter(u => u && u.trim().length > 0);
         } else if (typeof imagesInput === 'string') {
@@ -55,7 +68,7 @@ export class UniversalLightbox {
             this.images = [];
         }
 
-        this.currentIndex = options.initialIndex || 0;
+        this.currentIndex = this.meta.initialIndex || 0;
         if (this.currentIndex >= this.images.length) this.currentIndex = 0;
 
         this.renderImage();
