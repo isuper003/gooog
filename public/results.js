@@ -26,7 +26,7 @@ export function renderResults(resultsData, onRestart, onHome) {
     function renderStage1() {
         container.innerHTML = `
             <div class="results-stage text-center">
-                <h1 class="glow-text text-2xl mb-4">🏆 Round Complete!</h1>
+                <h1 class="glow-text text-2xl mb-4">${resultsData.mode === 'sudden_death' ? '💀 Sudden Death Over!' : '🏆 Round Complete!'}</h1>
                 
                 <div class="score-circular-container">
                     <svg class="score-circular-svg" width="180" height="180" viewBox="0 0 160 160">

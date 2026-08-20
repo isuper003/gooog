@@ -143,6 +143,8 @@ function runGameEngine(sessionData, selectedCategory) {
 
         if (mode === 'hot_or_not') {
             renderHotOrNotQuestion(q);
+        } else if (mode === 'sudden_death') {
+            renderSuddenDeathQuestion(q);
         } else {
             renderClassicQuestion(q);
         }
@@ -152,6 +154,54 @@ function runGameEngine(sessionData, selectedCategory) {
                 handleAnswerSubmission(null, 'none', true);
             });
         }
+    }
+
+    function renderSuddenDeathQuestion(q) {
+        container.innerHTML = `
+            <div class="game-header">
+                <div class="progress-bar-container">
+                    <div class="progress-fill" style="width: ${Math.min(100, ((currentIdx + 1) / questions.length) * 100)}%; background: linear-gradient(90deg, #f43f5e, #fb923c);"></div>
+                </div>
+                <div class="round-counter font-bold" style="color: #fb7185;">
+                    💀 Sudden Death • 🔥 ${currentStreak} Streak
+                </div>
+                <div class="timer-badge" id="game-timer-badge">
+                    ⏱️ <span id="game-timer-text">${timerTotalSeconds}s</span>
+                </div>
+                <button id="btn-quit-game" class="btn-icon" aria-label="Quit game" title="Finish and see results">✕</button>
+            </div>
+
+            <div class="game-timer-container">
+                <div id="game-timer-fill" class="game-timer-fill"></div>
+            </div>
+
+            <div class="game-content-split mt-2">
+                <div class="game-image-card">
+                    <img id="game-target-img" src="${q.imageUrl || ''}" alt="Guess Who" loading="eager">
+                    <button class="zoom-trigger-btn" id="btn-zoom-game" aria-label="Zoom image">🔍</button>
+                </div>
+
+                <div class="game-options-grid" id="game-options-container">
+                    ${q.options.map(opt => `
+                        <button class="btn-option" data-id="${opt.id}">
+                            <span>${opt.name}</span>
+                            <span class="option-indicator"></span>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="game-lifelines">
+                <button class="btn-lifeline" id="btn-5050" ${lifelines.fiftyFifty <= 0 ? 'disabled' : ''}>
+                    ✂️ 50/50 (${lifelines.fiftyFifty})
+                </button>
+                <button class="btn-lifeline" id="btn-skip" ${lifelines.skip <= 0 ? 'disabled' : ''}>
+                    ⏭️ Skip (${lifelines.skip})
+                </button>
+            </div>
+        `;
+
+        attachGameListeners(q);
     }
 
     function renderClassicQuestion(q) {
@@ -432,8 +482,10 @@ function runGameEngine(sessionData, selectedCategory) {
 
     function finishGame() {
         stopTimer();
+        const totalPlayed = mode === 'sudden_death' ? Math.max(1, correctCount + wrongAnswers.length) : questions.length;
         renderResults({
-            totalQuestions: mode === 'sudden_death' ? currentIdx : questions.length,
+            mode,
+            totalQuestions: totalPlayed,
             correctCount,
             maxStreak,
             totalTimeMs,
