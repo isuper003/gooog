@@ -17,11 +17,8 @@ export async function openRandomPicker() {
 
     modal.innerHTML = `
         <div class="modal-content random-picker-modal-content">
-            <div class="modal-header" style="margin-bottom: 0.75rem;">
-                <div class="flex items-center gap-2">
-                    <span class="auth-badge" style="margin: 0; font-size: 0.75rem;">🎲 RANDOM CELEBRITY</span>
-                </div>
-                <button class="close-modal" id="btn-close-roulette" aria-label="Close">×</button>
+            <div class="modal-header" style="margin-bottom: 0.5rem; justify-content: flex-end; padding: 0;">
+                <button class="close-modal" id="btn-close-roulette" aria-label="Close" style="margin-left: auto;">×</button>
             </div>
 
             <!-- Character Card Stage -->
