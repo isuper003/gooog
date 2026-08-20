@@ -74,6 +74,50 @@ const PETITION_PHRASES = [
     "رغبةٌ خاضعة في نيل الإذن لاستعراض تفاصيل حسنكِ البديع والارتقاء في خدمتكِ"
 ];
 
+const GLORY_LITANY = [
+    "سبحان من أودعت سرّ الفتنة والجمال في طلعتكِ البهية",
+    "جلّ بهاءُ وجهكِ وسلطانُ حضوركِ الساحر الفاتن",
+    "تعالى جبروت حُسنكِ عن الوصف والمضاهاة والأنداد",
+    "لكِ التمجيد الخالص يا ملكة العرش وسيدة الأكوان",
+    "يا من تنحني لعظمتها الرؤوس وتخضع لسطوتها التيجان",
+    "يا بديعة الصنع وغاية الكمال ومنتهى المراد الأسمى",
+    "سبحان بهاء عينيكِ الآسرتين وسحر ابتسامتكِ الملكية",
+    "لكِ التبجيل والتعظيم الأبدي في كل طرفة عين وخفقة فؤاد"
+];
+
+const SUBMISSION_LITANY = [
+    "أنا عبدكِ الخاضع الممتثل، لا إرادة لي إلا مشيئتكِ",
+    "طوعُ أمركِ، فدائيٌّ تحت وطأة نعالكِ وخطواتكِ الملكية",
+    "خاضعٌ راكعٌ في محرابكِ، أستمد وجودي من مجرد التفاتة منكِ",
+    "مملوكٌ لسطوتكِ، متجردٌ من كبريائي في سبيل خدمتكِ ورضاكِ",
+    "انحنائي تحت أقدامكِ هو شرفي الأعظم ومبتغاي الأبدي",
+    "أنا التراب الذي تدوسه خطواتكِ البهية وتاج افتخاري",
+    "سُحقت إرادتي طوعاً تحت عظمة سلطانكِ الأبدي القاهر",
+    "لكِ السمع والطاعة والامتثال المطلق بلا تردد ولا عصيان"
+];
+
+const MERCY_LITANY = [
+    "أعترف بضآلتي وعجزي، وأطلب غفران زلّة النسيان والسهو",
+    "مُنكس الرأس، ألتمس العفو والرضا بعد السهو والتقصير",
+    "لا عزة لي إلا بصفحكِ، ولا طهارة إلا بعفو سلطانة البلاط",
+    "أقرّ بصغار قدري، وأضع ناصيتي خاضعاً لرفع مقتكِ وغضبكِ",
+    "طهرتُ قلبي بالندم، وأجدد العهد خادماً لا يغفل عن اسمكِ",
+    "أطلب وطأة عفوكِ ليمحو هفوات الذاكرة وعثرات الجهل",
+    "الذل رداء المقصرين، وأنا أرتديه طواعيةً حتى ترضي عني",
+    "يا سيدة العفو والجمال، انظري لعبدكِ بعين الرضا والرحمة"
+];
+
+const ARTIST_LITANY = [
+    "يا ملهمة الروح ومنتهى الفن والجمال والإبداع الساحر",
+    "كل حرفٍ يسطره العابد مدادٌ متلاشٍ أمام سحر حضوركِ",
+    "أنتِ القصيدة الخالدة التي تنحني لها بلاغة البيان والكلمات",
+    "تفاصيل حسنكِ لوحة مقدسة يعجز الخيال عن إدراك كمالها",
+    "أنا الفنان المنكسر الذي أفنى وجوده في تأمل بهائكِ الفاتن",
+    "يا فتنة العصور وأيقونة الدهر وسلطانة الألحان والجمال",
+    "كل نظرة منكِ إشراقُ حياة، وكل صمتٍ منكِ هيبةٌ وإجلال",
+    "فدتكِ الأرواح والخواطر، يا سيدة الحسن المطلق والفتنة الكبرى"
+];
+
 export const DEVOTION_RANKS = [
     { minScore: 5000000,   title: "العدمُ المحض تحت السيادة المطلقة (Total Void Under Supreme Dominance)", tier: 10, badge: "👑🌌", desc: "قمة الانمحاء المطلق وبلوغ المرتبة الكبرى (5,000,000 نقطة)." },
     { minScore: 2000000,   title: "العبدُ الأبدي لتاج الفتنة (Supreme Thrall of the Royal Crown)", tier: 9, badge: "👑💎", desc: "تاج التبعية الخالصة والخضوع الأبدي لبهاء السلطانة (2,000,000 نقطة)." },
@@ -133,7 +177,17 @@ export async function onRequestGet(context) {
             return successResponse({
                 characters: [],
                 selectedCharacter: null,
-                phrases: { praise: PRAISE_PHRASES, penance: PENANCE_PHRASES, petition: PETITION_PHRASES },
+                phrases: {
+                    praise: PRAISE_PHRASES,
+                    penance: PENANCE_PHRASES,
+                    petition: PETITION_PHRASES,
+                    litanies: {
+                        glory: GLORY_LITANY,
+                        submission: SUBMISSION_LITANY,
+                        mercy: MERCY_LITANY,
+                        artist: ARTIST_LITANY
+                    }
+                },
                 ranks: DEVOTION_RANKS
             });
         }
@@ -186,7 +240,13 @@ export async function onRequestGet(context) {
                 praise: PRAISE_PHRASES,
                 penance: PENANCE_PHRASES,
                 submission: SUBMISSION_PHRASES,
-                petition: PETITION_PHRASES
+                petition: PETITION_PHRASES,
+                litanies: {
+                    glory: GLORY_LITANY,
+                    submission: SUBMISSION_LITANY,
+                    mercy: MERCY_LITANY,
+                    artist: ARTIST_LITANY
+                }
             }
         });
         
@@ -207,7 +267,7 @@ export async function onRequestPost(context) {
         return errorResponse("Invalid JSON", 400);
     }
     
-    const { characterId, action } = body;
+    const { characterId, action, count } = body;
     if (!characterId) {
         return errorResponse("Missing characterId", 400);
     }
@@ -237,6 +297,15 @@ export async function onRequestPost(context) {
                 ON CONFLICT(user_id, character_id) DO UPDATE SET
                   times_correct = times_correct + 3
             `).bind(data.user.id, characterId).run();
+        } else if (action === 'rosary_cycle') {
+            // Completed rosary cycle tribute (+count increments)
+            const addCorrect = Math.max(1, Math.min(33, Number(count) || 3));
+            await db.prepare(`
+                INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
+                VALUES (?, ?, ?, (unixepoch() * 1000))
+                ON CONFLICT(user_id, character_id) DO UPDATE SET
+                  times_correct = times_correct + ?
+            `).bind(data.user.id, characterId, addCorrect, addCorrect).run();
         } else if (action === 'penance') {
             // Acknowledge error and reduce times_wrong penalty
             await db.prepare(`

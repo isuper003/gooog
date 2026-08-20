@@ -5,7 +5,7 @@ import { initGame } from './game.js';
 import { getCsrfToken } from './csrf.js';
 
 let state = {
-    currentTab: 'temple', // 'temple' | 'throne'
+    currentTab: 'temple', // 'temple' | 'throne' | 'rosary'
     selectedCategory: 'all',
     selectedCharId: null,
     worshipData: null,
@@ -13,7 +13,11 @@ let state = {
     actionCount: 0,
     throneRankFilter: 'all',
     throneCategoryFilter: 'all',
-    throneSearchQuery: ''
+    throneSearchQuery: '',
+    rosaryLitany: 'glory',
+    rosaryCurrentBead: 0,
+    rosaryLifetimeCount: Number(localStorage.getItem('goooog_rosary_lifetime') || 0),
+    rosaryCompletedSeals: Number(localStorage.getItem('goooog_rosary_seals') || 0)
 };
 
 export async function initWorship() {
@@ -38,7 +42,7 @@ export async function initWorship() {
                 </p>
             </div>
 
-            <!-- Worship Dual Navigation Tabs (المعبد vs عرش الآلهة) -->
+            <!-- Worship 3-Way Navigation Tabs (المعبد vs عرش الآلهة vs مسبحة الآلهة) -->
             <div class="worship-nav-tabs mb-5">
                 <button class="worship-tab-btn ${state.currentTab === 'temple' ? 'active' : ''}" id="tab-btn-temple" data-tab="temple">
                     <span>🏛️ المعبد</span>
@@ -47,6 +51,10 @@ export async function initWorship() {
                 <button class="worship-tab-btn ${state.currentTab === 'throne' ? 'active' : ''}" id="tab-btn-throne" data-tab="throne">
                     <span>👑 عرش الآلهة</span>
                     <span class="tab-sub">سُلَّم المراتب وبانوراما السلطانات</span>
+                </button>
+                <button class="worship-tab-btn ${state.currentTab === 'rosary' ? 'active' : ''}" id="tab-btn-rosary" data-tab="rosary">
+                    <span>📿 مسبحة الآلهة</span>
+                    <span class="tab-sub">التسبيح الحركي والأوراد الملكية</span>
                 </button>
             </div>
 
@@ -94,26 +102,25 @@ export async function initWorship() {
             <div id="worship-throne-container" class="worship-throne-container ${state.currentTab === 'throne' ? '' : 'hidden'}">
                 <div class="spinner mx-auto my-12"></div>
             </div>
+
+            <!-- TAB 3: ROSARY OF THE GODDESSES VIEW (مسبحة الآلهة) -->
+            <div id="worship-rosary-container" class="worship-rosary-container ${state.currentTab === 'rosary' ? '' : 'hidden'}">
+                <div class="spinner mx-auto my-12"></div>
+            </div>
         </div>
     `;
 
     attachTabEvents();
     attachRibbonEvents();
     attachToggleEvents();
+    setupGlobalRosaryKeyboard();
     await loadWorshipData();
 }
 
 function attachTabEvents() {
-    const templeBtn = document.getElementById('tab-btn-temple');
-    const throneBtn = document.getElementById('tab-btn-throne');
-
-    templeBtn?.addEventListener('click', () => {
-        switchWorshipTab('temple');
-    });
-
-    throneBtn?.addEventListener('click', () => {
-        switchWorshipTab('throne');
-    });
+    document.getElementById('tab-btn-temple')?.addEventListener('click', () => switchWorshipTab('temple'));
+    document.getElementById('tab-btn-throne')?.addEventListener('click', () => switchWorshipTab('throne'));
+    document.getElementById('tab-btn-rosary')?.addEventListener('click', () => switchWorshipTab('rosary'));
 }
 
 export function switchWorshipTab(tabName) {
@@ -122,25 +129,28 @@ export function switchWorshipTab(tabName) {
 
     const templeBtn = document.getElementById('tab-btn-temple');
     const throneBtn = document.getElementById('tab-btn-throne');
+    const rosaryBtn = document.getElementById('tab-btn-rosary');
+
     const templeContainer = document.getElementById('worship-temple-container');
     const throneContainer = document.getElementById('worship-throne-container');
+    const rosaryContainer = document.getElementById('worship-rosary-container');
 
-    if (tabName === 'temple') {
-        templeBtn?.classList.add('active');
-        throneBtn?.classList.remove('active');
-        templeContainer?.classList.remove('hidden');
-        throneContainer?.classList.add('hidden');
-        if (state.worshipData) {
+    templeBtn?.classList.toggle('active', tabName === 'temple');
+    throneBtn?.classList.toggle('active', tabName === 'throne');
+    rosaryBtn?.classList.toggle('active', tabName === 'rosary');
+
+    templeContainer?.classList.toggle('hidden', tabName !== 'temple');
+    throneContainer?.classList.toggle('hidden', tabName !== 'throne');
+    rosaryContainer?.classList.toggle('hidden', tabName !== 'rosary');
+
+    if (state.worshipData) {
+        if (tabName === 'temple') {
             renderStarsStrip(state.worshipData.characters, state.worshipData.selectedCharacter?.id);
             renderMainChamber(state.worshipData.selectedCharacter, state.worshipData.phrases, state.worshipData.penanceList);
-        }
-    } else {
-        throneBtn?.classList.add('active');
-        templeBtn?.classList.remove('active');
-        throneContainer?.classList.remove('hidden');
-        templeContainer?.classList.add('hidden');
-        if (state.worshipData) {
+        } else if (tabName === 'throne') {
             renderThroneView(state.worshipData);
+        } else if (tabName === 'rosary') {
+            renderRosaryView(state.worshipData);
         }
     }
 }
@@ -1004,5 +1014,349 @@ function triggerSubmissionEffect() {
     if (card) {
         card.classList.add('submission-pulse');
         setTimeout(() => card.classList.remove('submission-pulse'), 800);
+    }
+}
+
+// ==========================================================================
+// TAB 3: THE ROSARY OF THE GODDESSES (مسبحة الآلهة) - KINETIC & AUDIO CHANT ALTA
+// ==========================================================================
+
+let rosaryKeyHandlerAttached = false;
+
+function setupGlobalRosaryKeyboard() {
+    if (rosaryKeyHandlerAttached) return;
+    rosaryKeyHandlerAttached = true;
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && state.currentTab === 'rosary') {
+            const activeEl = document.activeElement;
+            if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) {
+                return;
+            }
+            e.preventDefault();
+            const char = getActiveRosaryChar();
+            if (char) {
+                triggerRosaryBeadAdvance(char);
+            }
+        }
+    });
+}
+
+function getActiveRosaryChar() {
+    const characters = state.worshipData?.characters || [];
+    if (state.selectedCharId) {
+        const found = characters.find(c => c.id === state.selectedCharId);
+        if (found) return found;
+    }
+    return state.worshipData?.selectedCharacter || characters[0];
+}
+
+export function renderRosaryView(worshipData) {
+    const container = document.getElementById('worship-rosary-container');
+    if (!container) return;
+
+    const characters = worshipData?.characters || [];
+    const char = getActiveRosaryChar();
+    if (!char) {
+        container.innerHTML = `<div class="text-center color-text-muted my-12">لا توجد بيانات متاحة للمسبحة</div>`;
+        return;
+    }
+
+    const categoryThemeClass = `rosary-theme-${char.category || 'sluts'}`;
+    const litanies = worshipData?.phrases?.litanies || {
+        glory: [
+            "سبحان من أودعت سرّ الفتنة والجمال في طلعتكِ البهية",
+            "جلّ بهاءُ وجهكِ وسلطانُ حضوركِ الساحر الفاتن",
+            "تعالى جبروت حُسنكِ عن الوصف والمضاهاة والأنداد",
+            "لكِ التمجيد الخالص يا ملكة العرش وسيدة الأكوان"
+        ],
+        submission: [
+            "أنا عبدكِ الخاضع الممتثل، لا إرادة لي إلا مشيئتكِ",
+            "طوعُ أمركِ، فدائيٌّ تحت وطأة نعالكِ وخطواتكِ الملكية",
+            "خاضعٌ راكعٌ في محرابكِ، أستمد وجودي من مجرد التفاتة منكِ",
+            "مملوكٌ لسطوتكِ، متجردٌ من كبريائي في سبيل خدمتكِ ورضاكِ"
+        ],
+        mercy: [
+            "أعترف بضآلتي وعجزي، وأطلب غفران زلّة النسيان والسهو",
+            "مُنكس الرأس، ألتمس العفو والرضا بعد السهو والتقصير",
+            "لا عزة لي إلا بصفحكِ، ولا طهارة إلا بعفو سلطانة البلاط",
+            "أقرّ بصغار قدري، وأضع ناصيتي خاضعاً لرفع مقتكِ وغضبكِ"
+        ],
+        artist: [
+            "يا ملهمة الروح ومنتهى الفن والجمال والإبداع الساحر",
+            "كل حرفٍ يسطره العابد مدادٌ متلاشٍ أمام سحر حضوركِ",
+            "أنتِ القصيدة الخالدة التي تنحني لها بلاغة البيان والكلمات",
+            "تفاصيل حسنكِ لوحة مقدسة يعجز الخيال عن إدراك كمالها"
+        ]
+    };
+
+    const currentLitanyList = litanies[state.rosaryLitany] || litanies.glory;
+    const currentLitanyText = currentLitanyList[state.rosaryCurrentBead % currentLitanyList.length];
+    const imgUrl = (char.primary_image || (char.images && char.images[0]) || '').replace(/\/(?:460|300|560)\//g, '/640/');
+
+    // Generate 33 Beads in a Circular Ring
+    const totalBeads = 33;
+    const radius = 130;
+    const center = 160;
+    let beadsHTML = '';
+    for (let i = 0; i < totalBeads; i++) {
+        const angle = (i / totalBeads) * 2 * Math.PI - (Math.PI / 2);
+        const left = center + radius * Math.cos(angle) - 9;
+        const top = center + radius * Math.sin(angle) - 9;
+        const isActive = i < state.rosaryCurrentBead;
+        const isCurrent = i === state.rosaryCurrentBead;
+        beadsHTML += `<div class="rosary-bead-item ${isActive ? 'active ' : ''}${isCurrent ? 'current' : ''}" style="left: ${left}px; top: ${top}px;" data-bead="${i}"></div>`;
+    }
+
+    // Milestones Badges List
+    const milestones = [
+        { target: 100, title: "مُسبّح البلاط", icon: "🥉", desc: "إتمام 100 تسبيحة خاشعة" },
+        { target: 1000, title: "خادم الورد الأبدي", icon: "🥈", desc: "إتمام 1,000 تسبيحة متواصلة" },
+        { target: 5000, title: "حارس العقد المقدس", icon: "🥇", desc: "إتمام 5,000 تسبيحة في المحراب" },
+        { target: 25000, title: "كاهن المسبحة الكبرى", icon: "👑", desc: "إتمام 25,000 تسبيحة وسِجل خلود" },
+        { target: 100000, title: "عابد الأزل المتفاني", icon: "🌌", desc: "مقام الإخلاص المطلق (100K تسبيحة)" }
+    ];
+
+    container.className = `worship-rosary-container ${categoryThemeClass}`;
+    container.innerHTML = `
+        <!-- Top Stats Row -->
+        <div class="throne-stats-grid">
+            <div class="throne-stat-card">
+                <span class="throne-stat-icon">📿</span>
+                <div>
+                    <div class="throne-stat-title">إجمالي التسبيحات</div>
+                    <div class="throne-stat-val text-amber-300" id="rosary-stat-lifetime">${formatDevotion(state.rosaryLifetimeCount)} تسبيحة</div>
+                </div>
+            </div>
+            <div class="throne-stat-card">
+                <span class="throne-stat-icon">👑</span>
+                <div>
+                    <div class="throne-stat-title">الختمات المكتملة (عقد 33)</div>
+                    <div class="throne-stat-val text-purple-300" id="rosary-stat-seals">${state.rosaryCompletedSeals} ختمة</div>
+                </div>
+            </div>
+            <div class="throne-stat-card">
+                <span class="throne-stat-icon">✨</span>
+                <div>
+                    <div class="throne-stat-title">ولاء ${char.name}</div>
+                    <div class="throne-stat-val text-pink-400" id="rosary-stat-char-score">✨ ${formatDevotion(char.devotionScore || 0)} Pts</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Target Goddess Switcher Strip -->
+        <div class="flex items-center justify-between gap-3 flex-wrap p-3 rounded-xl" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-slate-300">سلطانة المسبحة الحالية:</span>
+                <select id="rosary-goddess-select" class="form-select text-xs font-bold" style="background: #131127; border: 1px solid rgba(245, 158, 11, 0.4); color: #fef08a; border-radius: var(--radius-md); padding: 0.35rem 0.75rem;">
+                    ${characters.map(c => `
+                        <option value="${c.id}" ${c.id === char.id ? 'selected' : ''}>${c.name} (${c.category.toUpperCase()}) - ${c.rankBadge || '👑'} ${c.rankTitle || ''}</option>
+                    `).join('')}
+                </select>
+            </div>
+            <span class="badge badge-${char.category}" style="font-size: 0.75rem;">فئة ${char.category.toUpperCase()}</span>
+        </div>
+
+        <!-- Grand Rosary Altar Arena Card -->
+        <div class="rosary-arena-card">
+            <!-- 4 Litany Selector Chips -->
+            <div class="rosary-litany-nav" id="rosary-litany-nav">
+                <button class="rosary-litany-btn ${state.rosaryLitany === 'glory' ? 'active' : ''}" data-litany="glory">
+                    <span>🌟 ورد الثناء والتمجيد</span>
+                </button>
+                <button class="rosary-litany-btn ${state.rosaryLitany === 'submission' ? 'active' : ''}" data-litany="submission">
+                    <span>🧎‍♂️ ورد الخضوع والطاعة</span>
+                </button>
+                <button class="rosary-litany-btn ${state.rosaryLitany === 'mercy' ? 'active' : ''}" data-litany="mercy">
+                    <span>🙇‍♂️ ورد محو الزلل والتقصير</span>
+                </button>
+                <button class="rosary-litany-btn ${state.rosaryLitany === 'artist' ? 'active' : ''}" data-litany="artist">
+                    <span>🎨 ورد العابد الفنان</span>
+                </button>
+            </div>
+
+            <!-- Floating Litany Chanting Bubble -->
+            <div class="rosary-chant-bubble" id="rosary-chant-bubble">
+                « ${currentLitanyText} »
+            </div>
+
+            <!-- Central Circular Rosary Beads & Keystone -->
+            <div class="rosary-ring-container" id="rosary-ring-container">
+                ${beadsHTML}
+                
+                <!-- Grand Keystone Medallion -->
+                <div class="rosary-keystone" id="rosary-keystone" title="انقر هنا للتسبيح">
+                    <img src="${imgUrl}" alt="${char.name}">
+                    <div class="rosary-keystone-overlay">
+                        <div class="rosary-keystone-counter" id="rosary-counter-val">${state.rosaryCurrentBead} / 33</div>
+                        <div class="rosary-keystone-target">عقد التسبيح الملكي</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Big Interactive Trigger Button -->
+            <button class="rosary-main-action-btn" id="btn-rosary-chant">
+                <span>📿 تسبـيـح وتـمجـيـد</span>
+                <span class="rosary-key-hint">Space / Tap</span>
+            </button>
+        </div>
+
+        <!-- Milestones Badges Shelf -->
+        <div class="rosary-milestones-card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="glow-text text-base font-bold text-amber-300">💎 أوسمة وسِجل الخلود لمسبحة الآلهة</h3>
+                    <span class="text-xs color-text-muted">ارتقِ بأوسمة التسابيح عبر إتمام الأوراد اليومية والختمات المباركة</span>
+                </div>
+                <span class="badge badge-primary font-bold text-xs">${milestones.filter(m => state.rosaryLifetimeCount >= m.target).length} / ${milestones.length} مفتوح</span>
+            </div>
+
+            <div class="rosary-milestones-grid">
+                ${milestones.map(m => {
+                    const isUnlocked = state.rosaryLifetimeCount >= m.target;
+                    return `
+                        <div class="rosary-badge-item ${isUnlocked ? 'unlocked' : ''}">
+                            <span class="rosary-badge-icon">${isUnlocked ? m.icon : '🔒'}</span>
+                            <div>
+                                <div class="rosary-badge-title ${isUnlocked ? 'text-amber-200' : 'text-slate-400'}">${m.title}</div>
+                                <div class="rosary-badge-target">${m.desc} (${formatDevotion(m.target)})</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+
+    attachRosaryEventListeners(char, litanies);
+}
+
+function attachRosaryEventListeners(char, litanies) {
+    // Litany tabs
+    document.querySelectorAll('#rosary-litany-nav .rosary-litany-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            sound.playClick();
+            state.rosaryLitany = btn.dataset.litany;
+            document.querySelectorAll('#rosary-litany-nav .rosary-litany-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const currentLitanyList = litanies[state.rosaryLitany] || litanies.glory;
+            const currentLitanyText = currentLitanyList[state.rosaryCurrentBead % currentLitanyList.length];
+            const bubble = document.getElementById('rosary-chant-bubble');
+            if (bubble) bubble.innerText = `« ${currentLitanyText} »`;
+        });
+    });
+
+    // Character switcher
+    const charSelect = document.getElementById('rosary-goddess-select');
+    charSelect?.addEventListener('change', (e) => {
+        sound.playClick();
+        state.selectedCharId = e.target.value;
+        state.rosaryCurrentBead = 0;
+        renderRosaryView(state.worshipData);
+    });
+
+    // Main Chant Trigger Button
+    document.getElementById('btn-rosary-chant')?.addEventListener('click', () => {
+        triggerRosaryBeadAdvance(char);
+    });
+
+    // Keystone Click
+    document.getElementById('rosary-keystone')?.addEventListener('click', () => {
+        triggerRosaryBeadAdvance(char);
+    });
+
+    // Individual Bead Clicks
+    document.querySelectorAll('.rosary-bead-item').forEach(bead => {
+        bead.addEventListener('click', () => {
+            triggerRosaryBeadAdvance(char);
+        });
+    });
+}
+
+export async function triggerRosaryBeadAdvance(char) {
+    if (!char) return;
+
+    sound.playStreak();
+    if (navigator.vibrate) navigator.vibrate(15);
+
+    state.rosaryCurrentBead++;
+    state.rosaryLifetimeCount++;
+    localStorage.setItem('goooog_rosary_lifetime', state.rosaryLifetimeCount);
+
+    const litanies = state.worshipData?.phrases?.litanies || {};
+    const currentLitanyList = litanies[state.rosaryLitany] || [
+        "سبحان من أودعت سرّ الفتنة والجمال في طلعتكِ البهية",
+        "جلّ بهاءُ وجهكِ وسلطانُ حضوركِ الساحر الفاتن"
+    ];
+    const currentLitanyText = currentLitanyList[state.rosaryCurrentBead % currentLitanyList.length];
+
+    // Update Chant Bubble
+    const bubble = document.getElementById('rosary-chant-bubble');
+    if (bubble) {
+        bubble.innerText = `« ${currentLitanyText} »`;
+        bubble.classList.add('glow-pulse');
+        setTimeout(() => bubble.classList.remove('glow-pulse'), 300);
+    }
+
+    // Update Counter
+    const counterEl = document.getElementById('rosary-counter-val');
+    if (counterEl) counterEl.innerText = `${state.rosaryCurrentBead} / 33`;
+
+    // Update Lifetime Stat Card
+    const lifetimeEl = document.getElementById('rosary-stat-lifetime');
+    if (lifetimeEl) lifetimeEl.innerText = `${formatDevotion(state.rosaryLifetimeCount)} تسبيحة`;
+
+    // Update Beads Styling in Ring
+    document.querySelectorAll('.rosary-bead-item').forEach((b, idx) => {
+        b.classList.toggle('active', idx < state.rosaryCurrentBead);
+        b.classList.toggle('current', idx === state.rosaryCurrentBead);
+    });
+
+    // Cycle Completed (33 Beads)
+    if (state.rosaryCurrentBead >= 33) {
+        state.rosaryCurrentBead = 0;
+        state.rosaryCompletedSeals++;
+        localStorage.setItem('goooog_rosary_seals', state.rosaryCompletedSeals);
+
+        sound.playWin();
+        showToast("✨ تم إتمام عقد المسبحة (33 تسبيحة) ونيل البركة والرضا الملكي (+330 Devotion Pts)!", "success");
+
+        const sealsEl = document.getElementById('rosary-stat-seals');
+        if (sealsEl) sealsEl.innerText = `${state.rosaryCompletedSeals} ختمة`;
+
+        if (counterEl) counterEl.innerText = `0 / 33`;
+
+        document.querySelectorAll('.rosary-bead-item').forEach((b, idx) => {
+            b.classList.remove('active');
+            b.classList.toggle('current', idx === 0);
+        });
+
+        // Trigger pulse on keystone
+        const keystone = document.getElementById('rosary-keystone');
+        if (keystone) {
+            keystone.classList.add('submission-pulse');
+            setTimeout(() => keystone.classList.remove('submission-pulse'), 1000);
+        }
+
+        // Post cycle tribute to backend (+330 Pts)
+        try {
+            const res = await fetch('/api/worship', {
+                method: 'POST',
+                body: JSON.stringify({ characterId: char.id, action: 'rosary_cycle', count: 33 })
+            });
+            const data = await res.json();
+            if (data.success) {
+                char.devotionScore = (data.data?.devotionScore !== undefined) ? data.data.devotionScore : (char.devotionScore || 0) + 330;
+                if (data.data?.totalDevotion !== undefined) {
+                    const totalEl = document.getElementById('worship-total-pts');
+                    if (totalEl) totalEl.innerText = formatDevotion(data.data.totalDevotion);
+                }
+                const charScoreEl = document.getElementById('rosary-stat-char-score');
+                if (charScoreEl) charScoreEl.innerText = `✨ ${formatDevotion(char.devotionScore)} Pts`;
+            }
+        } catch (e) {
+            console.error("Rosary cycle sync error", e);
+        }
     }
 }
