@@ -27,6 +27,64 @@ export function parseCookies(cookieHeader) {
     return cookies;
 }
 
+export async function generateCsrfTokenForSession(tokenOrHash) {
+    if (!tokenOrHash) return '';
+    return await hashToken(tokenOrHash + "_goooog_csrf_v1");
+}
+
+export async function validateCsrfProtection(request, session, sessionToken) {
+    const method = request.method.toUpperCase();
+    if (['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        return { valid: true };
+    }
+
+    // 1. Custom Header Authentication (Bearer token or X-Session-Token) is immune to CSRF
+    const authHeader = request.headers.get('Authorization');
+    const hasBearer = authHeader?.startsWith('Bearer ') && authHeader.slice(7).trim().length > 0;
+    const hasHeaderToken = !!request.headers.get('X-Session-Token');
+    if (hasBearer || hasHeaderToken) {
+        return { valid: true };
+    }
+
+    // 2. Same-Origin & Sec-Fetch-Site verification
+    const secFetchSite = request.headers.get('Sec-Fetch-Site');
+    if (secFetchSite === 'same-origin' || secFetchSite === 'same-site') {
+        return { valid: true };
+    }
+
+    const origin = request.headers.get('Origin');
+    if (origin) {
+        try {
+            const requestUrl = new URL(request.url);
+            const originUrl = new URL(origin);
+            if (originUrl.origin === requestUrl.origin || originUrl.host === requestUrl.host) {
+                return { valid: true };
+            }
+        } catch (e) {}
+    }
+
+    // 3. X-Requested-With Header check (blocks simple cross-site HTML form submissions)
+    const requestedWith = request.headers.get('X-Requested-With');
+    if (requestedWith === 'XMLHttpRequest') {
+        return { valid: true };
+    }
+
+    // 4. Token validation (Deterministic session CSRF or Database hash)
+    const csrfToken = request.headers.get('X-CSRF-Token');
+    if (csrfToken) {
+        const expectedDeterministicToken = await generateCsrfTokenForSession(tokenHash || sessionToken);
+        if (csrfToken === expectedDeterministicToken) {
+            return { valid: true };
+        }
+        const providedCsrfHash = await hashToken(csrfToken);
+        if (session.csrf_token_hash && (providedCsrfHash === session.csrf_token_hash || csrfToken === session.csrf_token_hash)) {
+            return { valid: true };
+        }
+    }
+
+    return { valid: false, error: "Cross-site request forgery protection check failed", status: 403 };
+}
+
 export async function authenticateUser(request, db) {
     const cookieHeader = request.headers.get('Cookie');
     const cookies = parseCookies(cookieHeader);
@@ -56,14 +114,10 @@ export async function authenticateUser(request, db) {
     if (session.revoked_at_ms) return { error: 'Session revoked', status: 401 };
     if (session.expires_at_ms < now) return { error: 'Session expired', status: 401 };
     
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method.toUpperCase())) {
-        const csrfToken = request.headers.get('X-CSRF-Token');
-        if (!csrfToken) return { error: "CSRF token missing", status: 403 };
-        
-        const providedCsrfHash = await hashToken(csrfToken);
-        if (providedCsrfHash !== session.csrf_token_hash) {
-             return { error: "CSRF token invalid", status: 403 };
-        }
+    // Multi-layer CSRF validation
+    const csrfCheck = await validateCsrfProtection(request, session, sessionToken);
+    if (!csrfCheck.valid) {
+        return { error: csrfCheck.error, status: csrfCheck.status };
     }
     
     return {
@@ -75,6 +129,7 @@ export async function authenticateUser(request, db) {
         },
         sessionId: session.session_id,
         sessionCsrfTokenHash: session.csrf_token_hash,
+        sessionToken: sessionToken,
         tokenHash: tokenHash
     };
 }

@@ -21,10 +21,11 @@ export async function onRequest(context) {
         return errorResponse(authResult.error, authResult.status);
     }
     
-    // Attach user to context for downstream handlers
+    // Attach user and session to context for downstream handlers
     context.data = context.data || {};
     context.data.user = authResult.user;
     context.data.sessionId = authResult.sessionId;
+    context.data.sessionToken = authResult.sessionToken;
     context.data.tokenHash = authResult.tokenHash;
     
     return context.next();

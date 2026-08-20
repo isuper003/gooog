@@ -1,12 +1,13 @@
 import { successResponse, errorResponse } from '../../lib/response.js';
-import { authenticateUser } from '../../lib/auth.js';
-import { generateRandomString, hashToken } from '../../lib/crypto.js';
+import { authenticateUser, generateCsrfTokenForSession } from '../../lib/auth.js';
 
 export async function onRequestGet(context) {
     const { request, env, data } = context;
     
     let user = data?.user;
     let sessionId = data?.sessionId;
+    let sessionToken = data?.sessionToken;
+    let tokenHash = data?.tokenHash;
     
     if (!user || !sessionId) {
         const authResult = await authenticateUser(request, env.DB);
@@ -15,19 +16,12 @@ export async function onRequestGet(context) {
         }
         user = authResult.user;
         sessionId = authResult.sessionId;
+        sessionToken = authResult.sessionToken;
+        tokenHash = authResult.tokenHash;
     }
     
-    // Generate fresh CSRF token and bind to session in DB
-    const csrfToken = generateRandomString(32);
-    const csrfTokenHash = await hashToken(csrfToken);
-    
-    try {
-        await env.DB.prepare("UPDATE sessions SET csrf_token_hash = ?, last_seen_at_ms = ? WHERE id = ?")
-            .bind(csrfTokenHash, Date.now(), sessionId)
-            .run();
-    } catch (e) {
-        console.error("Failed to update session csrf token", e);
-    }
+    // Deterministic CSRF token based on session tokenHash
+    const csrfToken = await generateCsrfTokenForSession(tokenHash || sessionToken);
     
     return successResponse({
         user,

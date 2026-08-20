@@ -1,6 +1,6 @@
 import { successResponse, errorResponse } from '../../lib/response.js';
 import { generateUUID, hashPassword, generateRandomString, hashToken } from '../../lib/crypto.js';
-import { createCookieHeader } from '../../lib/auth.js';
+import { createCookieHeader, generateCsrfTokenForSession } from '../../lib/auth.js';
 
 export async function onRequestPost(context) {
     const { request, env } = context;
@@ -46,9 +46,8 @@ export async function onRequestPost(context) {
         
         const sessionId = generateUUID();
         const sessionToken = generateRandomString(64); 
-        const csrfToken = generateRandomString(32); 
-        
         const tokenHash = await hashToken(sessionToken);
+        const csrfToken = await generateCsrfTokenForSession(tokenHash);
         const csrfTokenHash = await hashToken(csrfToken);
         
         const isRememberMe = rememberMe === true;

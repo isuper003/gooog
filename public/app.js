@@ -21,6 +21,9 @@ window.fetch = function(url, options = {}) {
         if (token && !headers.has('Authorization')) {
             headers.set('Authorization', `Bearer ${token}`);
         }
+        if (!headers.has('X-Requested-With')) {
+            headers.set('X-Requested-With', 'XMLHttpRequest');
+        }
         if (csrf && !headers.has('X-CSRF-Token') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes((options.method || 'GET').toUpperCase())) {
             headers.set('X-CSRF-Token', csrf);
         }
