@@ -3267,3 +3267,163 @@ input:focus, select:focus, textarea:focus {
     }
 }
 
+/* ==========================================================================
+   Random Star Roulette Modal & Overlay Animation
+   ========================================================================== */
+.roulette-modal-content {
+    max-width: 420px;
+    width: 90%;
+    padding: 1.25rem;
+    background: rgba(13, 13, 26, 0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 45px rgba(139, 92, 246, 0.2);
+    animation: zoomInModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes zoomInModal {
+    from { opacity: 0; transform: scale(0.92) translateY(12px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.roulette-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.roulette-card-box {
+    position: relative;
+    width: 100%;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: #080812;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.roulette-img-container {
+    position: relative;
+    width: 100%;
+    height: 380px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, #1a1a2e 0%, #080811 100%);
+}
+
+.roulette-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    display: block;
+    transition: filter 0.15s ease, transform 0.25s ease;
+}
+
+/* Spinning Motion Blur State */
+.roulette-img-container.roulette-spinning {
+    animation: roulettePulse 0.4s infinite alternate ease-in-out;
+}
+
+.roulette-img-container.roulette-spinning img {
+    filter: blur(7px) brightness(1.25) saturate(1.3);
+    transform: scale(1.06);
+}
+
+.roulette-scanline {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(180deg, transparent, rgba(139, 92, 246, 0.9), transparent);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.8);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.roulette-img-container.roulette-spinning .roulette-scanline {
+    display: block;
+    animation: scanlineMove 0.35s infinite linear;
+}
+
+@keyframes scanlineMove {
+    0% { top: -10%; opacity: 0; }
+    50% { opacity: 1; }
+    100% { top: 110%; opacity: 0; }
+}
+
+@keyframes roulettePulse {
+    0% { border-color: rgba(139, 92, 246, 0.4); box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+    100% { border-color: rgba(236, 72, 153, 0.7); box-shadow: 0 0 35px rgba(236, 72, 153, 0.5); }
+}
+
+/* Revealed Finale State */
+.roulette-img-container.roulette-revealed img {
+    filter: blur(0px) brightness(1) saturate(1);
+    animation: revealWinnerPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes revealWinnerPop {
+    0% { transform: scale(0.94); filter: brightness(1.4); }
+    50% { transform: scale(1.03); filter: brightness(1.15); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+.roulette-details-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 2.25rem 1rem 1rem;
+    background: linear-gradient(0deg, rgba(7, 7, 15, 0.96) 0%, rgba(7, 7, 15, 0.75) 65%, transparent 100%);
+    text-align: center;
+    z-index: 6;
+}
+
+.roulette-status-text {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    animation: blinkGlow 0.6s infinite alternate;
+}
+
+@keyframes blinkGlow {
+    from { opacity: 0.7; }
+    to { opacity: 1; text-shadow: 0 0 12px var(--accent-cyan); }
+}
+
+.roulette-char-name {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: 0.5px;
+    animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#btn-random-pick {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2));
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    font-size: 1.15rem;
+    transition: var(--transition);
+}
+
+#btn-random-pick:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(236, 72, 153, 0.4));
+    border-color: rgba(236, 72, 153, 0.7);
+    transform: scale(1.1) rotate(15deg);
+    box-shadow: 0 0 15px rgba(236, 72, 153, 0.5);
+}
+

@@ -5,6 +5,7 @@ import { initCharStats } from './char-stats.js';
 import { initLeaderboard } from './leaderboard.js';
 import { initCrawler } from './crawler.js';
 import { initSettingsModal } from './settings.js';
+import { openRandomPicker } from './random-picker.js';
 import { sound } from './sound.js';
 import { showToast } from './toast.js';
 import { getCsrfToken, clearCsrfToken } from './csrf.js';
@@ -275,6 +276,12 @@ function setupGlobalEvents() {
             initGame(state.selectedCategory, mode, rounds);
         });
     }
+
+    // Random Celebrity Roulette Button
+    document.getElementById('btn-random-pick')?.addEventListener('click', () => {
+        sound.playClick();
+        openRandomPicker();
+    });
 
     // Profile / Settings Button
     document.getElementById('btn-profile')?.addEventListener('click', () => {
