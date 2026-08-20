@@ -109,9 +109,34 @@ export async function onRequestPost(context) {
     const nowMs = Date.now();
     
     try {
-        const check = await db.prepare("SELECT id FROM characters WHERE normalized_name = ? AND deleted_at_ms IS NULL").bind(normalizedName).first();
+        const check = await db.prepare("SELECT id, deleted_at_ms FROM characters WHERE normalized_name = ?").bind(normalizedName).first();
         if (check) {
-            return errorResponse("Character with this name already exists", 409);
+            if (check.deleted_at_ms === null) {
+                return errorResponse("Character with this name already exists", 409);
+            }
+            // If previously deleted, un-delete and update
+            const status = (data.user.role === 'admin' || data.user.role === 'moderator') ? 'approved' : 'pending';
+            await db.prepare(`
+                UPDATE characters 
+                SET name = ?, category = ?, label = ?, status = ?, submitted_by_user_id = ?, deleted_at_ms = NULL, created_at_ms = ?
+                WHERE id = ?
+            `).bind(name.trim(), category, label || null, status, data.user.id, nowMs, check.id).run();
+
+            // Clear old images and insert new ones
+            await db.prepare("DELETE FROM character_images WHERE character_id = ?").bind(check.id).run();
+            const imgStmts = [];
+            images.forEach((url, index) => {
+                if (url && url.trim().length > 0) {
+                    const hqUrl = url.trim().replace(/\/(?:460|300|560)\//g, '/1280/');
+                    const imageId = generateUUID();
+                    imgStmts.push(db.prepare(`
+                        INSERT INTO character_images (id, character_id, image_url, display_order, created_at_ms)
+                        VALUES (?, ?, ?, ?, ?)
+                    `).bind(imageId, check.id, hqUrl, index + 1, nowMs));
+                }
+            });
+            if (imgStmts.length > 0) await db.batch(imgStmts);
+            return successResponse({ message: "Character restored and updated successfully", status, id: check.id }, 201);
         }
         
         const characterId = generateUUID();
@@ -139,6 +164,9 @@ export async function onRequestPost(context) {
         
         return successResponse({ message: "Character added successfully", status, id: characterId }, 201);
     } catch (e) {
+        if (e.message && e.message.includes('UNIQUE constraint failed')) {
+            return errorResponse("Character with this name already exists", 409);
+        }
         console.error("Error adding character", e);
         return errorResponse("Database error", 500);
     }
