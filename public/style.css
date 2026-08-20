@@ -3498,6 +3498,23 @@ input:checked + .worship-slider:before {
     background: #fff;
 }
 
+.worship-selectors-wrapper {
+    transition: opacity 0.35s ease, transform 0.35s ease, max-height 0.35s ease;
+    max-height: 250px;
+    opacity: 1;
+    transform: translateY(0);
+    overflow: hidden;
+}
+
+.worship-selectors-wrapper.collapsed {
+    max-height: 0 !important;
+    opacity: 0 !important;
+    transform: translateY(-12px) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    pointer-events: none !important;
+}
+
 .worship-category-ribbon {
     display: flex;
     gap: 0.5rem;

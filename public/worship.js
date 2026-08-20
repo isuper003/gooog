@@ -47,17 +47,20 @@ export async function initWorship() {
                 </span>
             </div>
 
-            <!-- Category Ribbon -->
-            <div class="worship-category-ribbon mb-4">
-                <button class="worship-cat-pill ${state.selectedCategory === 'all' ? 'active' : ''}" data-cat="all">🌟 كافة السلطانات</button>
-                <button class="worship-cat-pill ${state.selectedCategory === 'sluts' ? 'active' : ''}" data-cat="sluts">♀️ Sluts</button>
-                <button class="worship-cat-pill ${state.selectedCategory === 'trans' ? 'active' : ''}" data-cat="trans">⚧️ Trans</button>
-                <button class="worship-cat-pill ${state.selectedCategory === 'twinks' ? 'active' : ''}" data-cat="twinks">♂️ Twinks</button>
-            </div>
+            <!-- Collapsible Selectors Wrapper (Categories & Character Avatars) -->
+            <div class="worship-selectors-wrapper ${state.autoSwitchEnabled ? 'collapsed hidden' : ''}" id="worship-selectors-wrapper">
+                <!-- Category Ribbon -->
+                <div class="worship-category-ribbon mb-4">
+                    <button class="worship-cat-pill ${state.selectedCategory === 'all' ? 'active' : ''}" data-cat="all">🌟 كافة السلطانات</button>
+                    <button class="worship-cat-pill ${state.selectedCategory === 'sluts' ? 'active' : ''}" data-cat="sluts">♀️ Sluts</button>
+                    <button class="worship-cat-pill ${state.selectedCategory === 'trans' ? 'active' : ''}" data-cat="trans">⚧️ Trans</button>
+                    <button class="worship-cat-pill ${state.selectedCategory === 'twinks' ? 'active' : ''}" data-cat="twinks">♂️ Twinks</button>
+                </div>
 
-            <!-- Characters Selector Strip -->
-            <div class="worship-stars-strip mb-6" id="worship-stars-strip">
-                <div class="spinner mx-auto my-4"></div>
+                <!-- Characters Selector Strip -->
+                <div class="worship-stars-strip mb-6" id="worship-stars-strip">
+                    <div class="spinner mx-auto my-4"></div>
+                </div>
             </div>
 
             <!-- Grand Altar & Interactive Chamber -->
@@ -75,6 +78,7 @@ export async function initWorship() {
 function attachToggleEvents() {
     const toggle = document.getElementById('toggle-supreme-goddess');
     const badge = document.getElementById('supreme-status-badge');
+    const wrapper = document.getElementById('worship-selectors-wrapper');
     if (!toggle) return;
 
     toggle.addEventListener('change', (e) => {
@@ -84,7 +88,20 @@ function attachToggleEvents() {
         if (badge) {
             badge.innerText = state.autoSwitchEnabled ? '🟢 مفعّل' : '⚪ معطّل';
         }
-        showToast(state.autoSwitchEnabled ? "تم تفعيل طور الآلهة المطلقة ⚡ (تبديل بعد 3 طقوس)" : "تم تعطيل طور التبديل التلقائي", "info");
+
+        if (wrapper) {
+            if (state.autoSwitchEnabled) {
+                wrapper.classList.add('collapsed');
+                setTimeout(() => {
+                    if (state.autoSwitchEnabled) wrapper.classList.add('hidden');
+                }, 300);
+            } else {
+                wrapper.classList.remove('hidden');
+                requestAnimationFrame(() => wrapper.classList.remove('collapsed'));
+            }
+        }
+
+        showToast(state.autoSwitchEnabled ? "تم تفعيل طور الآلهة المطلقة ⚡ وإخفاء الفئات للتنقل التلقائي" : "تم تعطيل طور التبديل التلقائي وإظهار الفئات", "info");
     });
 }
 
