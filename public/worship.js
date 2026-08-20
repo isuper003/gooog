@@ -5,11 +5,15 @@ import { initGame } from './game.js';
 import { getCsrfToken } from './csrf.js';
 
 let state = {
+    currentTab: 'temple', // 'temple' | 'throne'
     selectedCategory: 'all',
     selectedCharId: null,
     worshipData: null,
     autoSwitchEnabled: localStorage.getItem('worship_auto_switch') === 'true',
-    actionCount: 0
+    actionCount: 0,
+    throneRankFilter: 'all',
+    throneCategoryFilter: 'all',
+    throneSearchQuery: ''
 };
 
 export async function initWorship() {
@@ -20,7 +24,7 @@ export async function initWorship() {
         <div class="page-container worship-page-container">
             <!-- Header Banner -->
             <div class="worship-header text-center mb-4">
-                <div class="inline-flex items-center gap-2 mb-2">
+                <div class="inline-flex items-center gap-2 mb-2 flex-wrap justify-center">
                     <span class="auth-badge" style="margin: 0; font-size: 0.8rem; letter-spacing: 1px;">👑 صرح الولاء وديوان التبجيل</span>
                     <span class="badge" id="worship-global-devotion" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.4); color: #fcd34d; font-size: 0.8rem; font-weight: bold;">
                         👑 رصيد الولاء الإجمالي: <span id="worship-total-pts">0</span> Devotion Pts
@@ -34,48 +38,111 @@ export async function initWorship() {
                 </p>
             </div>
 
-            <!-- Supreme Goddess Auto-Switch Toggle Bar -->
-            <div class="worship-toggle-bar mb-4">
-                <label class="flex items-center gap-3 cursor-pointer select-none" for="toggle-supreme-goddess">
-                    <span class="text-xs font-bold text-amber-300 flex items-center gap-1">
-                        ⚡ الآلهة المطلقة (تبديل تلقائي بعد 3 طقوس)
-                    </span>
-                    <label class="worship-switch">
-                        <input type="checkbox" id="toggle-supreme-goddess" ${state.autoSwitchEnabled ? 'checked' : ''}>
-                        <span class="worship-slider"></span>
+            <!-- Worship Dual Navigation Tabs (المعبد vs عرش الآلهة) -->
+            <div class="worship-nav-tabs mb-5">
+                <button class="worship-tab-btn ${state.currentTab === 'temple' ? 'active' : ''}" id="tab-btn-temple" data-tab="temple">
+                    <span>🏛️ المعبد</span>
+                    <span class="tab-sub">المحراب والطقوس التفاعلية</span>
+                </button>
+                <button class="worship-tab-btn ${state.currentTab === 'throne' ? 'active' : ''}" id="tab-btn-throne" data-tab="throne">
+                    <span>👑 عرش الآلهة</span>
+                    <span class="tab-sub">سُلَّم المراتب وبانوراما السلطانات</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: TEMPLE VIEW (المعبد) -->
+            <div id="worship-temple-container" class="${state.currentTab === 'temple' ? '' : 'hidden'}">
+                <!-- Supreme Goddess Auto-Switch Toggle Bar -->
+                <div class="worship-toggle-bar mb-4">
+                    <label class="flex items-center gap-3 cursor-pointer select-none" for="toggle-supreme-goddess">
+                        <span class="text-xs font-bold text-amber-300 flex items-center gap-1">
+                            ⚡ الآلهة المطلقة (تبديل تلقائي بعد 3 طقوس)
+                        </span>
+                        <label class="worship-switch">
+                            <input type="checkbox" id="toggle-supreme-goddess" ${state.autoSwitchEnabled ? 'checked' : ''}>
+                            <span class="worship-slider"></span>
+                        </label>
                     </label>
-                </label>
-                <span class="badge text-xs" id="supreme-status-badge" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.4); color: #fcd34d;">
-                    ${state.autoSwitchEnabled ? '🟢 مفعّل' : '⚪ معطّل'}
-                </span>
-            </div>
-
-            <!-- Collapsible Selectors Wrapper (Categories & Character Avatars) -->
-            <div class="worship-selectors-wrapper ${state.autoSwitchEnabled ? 'collapsed hidden' : ''}" id="worship-selectors-wrapper">
-                <!-- Category Ribbon -->
-                <div class="worship-category-ribbon mb-4">
-                    <button class="worship-cat-pill ${state.selectedCategory === 'all' ? 'active' : ''}" data-cat="all">🌟 كافة السلطانات</button>
-                    <button class="worship-cat-pill ${state.selectedCategory === 'sluts' ? 'active' : ''}" data-cat="sluts">♀️ Sluts</button>
-                    <button class="worship-cat-pill ${state.selectedCategory === 'trans' ? 'active' : ''}" data-cat="trans">⚧️ Trans</button>
-                    <button class="worship-cat-pill ${state.selectedCategory === 'twinks' ? 'active' : ''}" data-cat="twinks">♂️ Twinks</button>
+                    <span class="badge text-xs" id="supreme-status-badge" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.4); color: #fcd34d;">
+                        ${state.autoSwitchEnabled ? '🟢 مفعّل' : '⚪ معطّل'}
+                    </span>
                 </div>
 
-                <!-- Characters Selector Strip -->
-                <div class="worship-stars-strip mb-6" id="worship-stars-strip">
-                    <div class="spinner mx-auto my-4"></div>
+                <!-- Collapsible Selectors Wrapper (Categories & Character Avatars) -->
+                <div class="worship-selectors-wrapper ${state.autoSwitchEnabled ? 'collapsed hidden' : ''}" id="worship-selectors-wrapper">
+                    <!-- Category Ribbon -->
+                    <div class="worship-category-ribbon mb-4">
+                        <button class="worship-cat-pill ${state.selectedCategory === 'all' ? 'active' : ''}" data-cat="all">🌟 كافة السلطانات</button>
+                        <button class="worship-cat-pill ${state.selectedCategory === 'sluts' ? 'active' : ''}" data-cat="sluts">♀️ Sluts</button>
+                        <button class="worship-cat-pill ${state.selectedCategory === 'trans' ? 'active' : ''}" data-cat="trans">⚧️ Trans</button>
+                        <button class="worship-cat-pill ${state.selectedCategory === 'twinks' ? 'active' : ''}" data-cat="twinks">♂️ Twinks</button>
+                    </div>
+
+                    <!-- Characters Selector Strip -->
+                    <div class="worship-stars-strip mb-6" id="worship-stars-strip">
+                        <div class="spinner mx-auto my-4"></div>
+                    </div>
+                </div>
+
+                <!-- Grand Altar & Interactive Chamber -->
+                <div id="worship-main-chamber" class="worship-main-chamber">
+                    <div class="spinner mx-auto my-12"></div>
                 </div>
             </div>
 
-            <!-- Grand Altar & Interactive Chamber -->
-            <div id="worship-main-chamber" class="worship-main-chamber">
+            <!-- TAB 2: THRONE OF THE GODDESSES VIEW (عرش الآلهة) -->
+            <div id="worship-throne-container" class="worship-throne-container ${state.currentTab === 'throne' ? '' : 'hidden'}">
                 <div class="spinner mx-auto my-12"></div>
             </div>
         </div>
     `;
 
+    attachTabEvents();
     attachRibbonEvents();
     attachToggleEvents();
     await loadWorshipData();
+}
+
+function attachTabEvents() {
+    const templeBtn = document.getElementById('tab-btn-temple');
+    const throneBtn = document.getElementById('tab-btn-throne');
+
+    templeBtn?.addEventListener('click', () => {
+        switchWorshipTab('temple');
+    });
+
+    throneBtn?.addEventListener('click', () => {
+        switchWorshipTab('throne');
+    });
+}
+
+export function switchWorshipTab(tabName) {
+    state.currentTab = tabName;
+    sound.playClick();
+
+    const templeBtn = document.getElementById('tab-btn-temple');
+    const throneBtn = document.getElementById('tab-btn-throne');
+    const templeContainer = document.getElementById('worship-temple-container');
+    const throneContainer = document.getElementById('worship-throne-container');
+
+    if (tabName === 'temple') {
+        templeBtn?.classList.add('active');
+        throneBtn?.classList.remove('active');
+        templeContainer?.classList.remove('hidden');
+        throneContainer?.classList.add('hidden');
+        if (state.worshipData) {
+            renderStarsStrip(state.worshipData.characters, state.worshipData.selectedCharacter?.id);
+            renderMainChamber(state.worshipData.selectedCharacter, state.worshipData.phrases, state.worshipData.penanceList);
+        }
+    } else {
+        throneBtn?.classList.add('active');
+        templeBtn?.classList.remove('active');
+        throneContainer?.classList.remove('hidden');
+        templeContainer?.classList.add('hidden');
+        if (state.worshipData) {
+            renderThroneView(state.worshipData);
+        }
+    }
 }
 
 function attachToggleEvents() {
@@ -484,6 +551,229 @@ function attachChamberListeners(char, phrases) {
     });
 }
 
+// ==========================================================================
+// TAB 2: THRONE OF THE GODDESSES (عرش الآلهة) - HIERARCHICAL 10 RANKS PANORAMA
+// ==========================================================================
+
+export function renderThroneView(worshipData) {
+    const throneContainer = document.getElementById('worship-throne-container');
+    if (!throneContainer) return;
+
+    const characters = worshipData?.characters || [];
+    const ranks = worshipData?.ranks || [];
+
+    // Calculate Summary Stats
+    const totalGoddesses = characters.length;
+    const activeGoddesses = characters.filter(c => (c.devotionScore || 0) > 0).length;
+    
+    // Find highest rank achieved
+    let highestTier = 1;
+    for (const c of characters) {
+        if (c.rankTier && c.rankTier > highestTier) {
+            highestTier = c.rankTier;
+        }
+    }
+    const highestRankObj = ranks.find(r => r.tier === highestTier) || ranks[ranks.length - 1];
+
+    throneContainer.innerHTML = `
+        <!-- Summary Stats Grid -->
+        <div class="throne-stats-grid">
+            <div class="throne-stat-card">
+                <span class="throne-stat-icon">👑</span>
+                <div>
+                    <div class="throne-stat-title">إجمالي سلطانات العرش</div>
+                    <div class="throne-stat-val">${totalGoddesses} سلطانة</div>
+                </div>
+            </div>
+            <div class="throne-stat-card">
+                <span class="throne-stat-icon">${highestRankObj?.badge || '👑'}</span>
+                <div>
+                    <div class="throne-stat-title">أعلى مقام تم بلوغه</div>
+                    <div class="throne-stat-val text-amber-300 text-sm" style="line-height: 1.3;">${highestRankObj?.title ? highestRankObj.title.split('(')[0].trim() : 'عديم الوجود'}</div>
+                </div>
+            </div>
+            <div class="throne-stat-card">
+                <span class="throne-stat-icon">✨</span>
+                <div>
+                    <div class="throne-stat-title">سلطانات نلن التبجيل</div>
+                    <div class="throne-stat-val text-pink-400">${activeGoddesses} / ${totalGoddesses}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Controls Bar -->
+        <div class="throne-controls-bar">
+            <!-- Category Filter Chips -->
+            <div class="throne-filter-chips" id="throne-cat-filters">
+                <button class="throne-chip ${state.throneCategoryFilter === 'all' ? 'active' : ''}" data-cat="all">🌟 الكل</button>
+                <button class="throne-chip ${state.throneCategoryFilter === 'sluts' ? 'active' : ''}" data-cat="sluts">♀️ Sluts</button>
+                <button class="throne-chip ${state.throneCategoryFilter === 'trans' ? 'active' : ''}" data-cat="trans">⚧️ Trans</button>
+                <button class="throne-chip ${state.throneCategoryFilter === 'twinks' ? 'active' : ''}" data-cat="twinks">♂️ Twinks</button>
+            </div>
+
+            <!-- Rank Tier Filter Chips -->
+            <div class="throne-filter-chips" id="throne-rank-filters">
+                <button class="throne-chip ${state.throneRankFilter === 'all' ? 'active' : ''}" data-tier="all">👑 كافة المراتب</button>
+                ${ranks.map(r => `
+                    <button class="throne-chip ${state.throneRankFilter == r.tier ? 'active' : ''}" data-tier="${r.tier}">
+                        ${r.badge} رتبة ${r.tier}
+                    </button>
+                `).join('')}
+            </div>
+
+            <!-- Search Input -->
+            <div class="throne-search-wrap">
+                <input type="text" id="throne-search-input" class="throne-search-input" placeholder="🔍 بحث عن سلطانة بالاسم..." value="${state.throneSearchQuery || ''}">
+            </div>
+        </div>
+
+        <!-- 10 Royal Tier Sections List (from Tier 10 down to Tier 1) -->
+        <div class="flex flex-col gap-6" id="throne-tiers-wrapper">
+            ${renderTierSectionsHTML(characters, ranks)}
+        </div>
+    `;
+
+    attachThroneControlsListeners(characters, ranks);
+}
+
+function renderTierSectionsHTML(characters, ranks) {
+    // Sort ranks in descending order (Tier 10 down to Tier 1)
+    const sortedRanks = [...ranks].sort((a, b) => b.tier - a.tier);
+
+    return sortedRanks.map(rank => {
+        // If rank filter is active and doesn't match, skip
+        if (state.throneRankFilter !== 'all' && parseInt(state.throneRankFilter) !== rank.tier) {
+            return '';
+        }
+
+        // Filter characters for this tier matching category and search query
+        let tierChars = characters.filter(c => (c.rankTier || 1) === rank.tier);
+
+        if (state.throneCategoryFilter !== 'all') {
+            tierChars = tierChars.filter(c => c.category === state.throneCategoryFilter);
+        }
+
+        if (state.throneSearchQuery && state.throneSearchQuery.trim()) {
+            const q = state.throneSearchQuery.trim().toLowerCase();
+            tierChars = tierChars.filter(c => c.name.toLowerCase().includes(q));
+        }
+
+        return `
+            <div class="throne-tier-section tier-${rank.tier}">
+                <!-- Tier Header -->
+                <div class="throne-tier-header">
+                    <div class="throne-tier-title-wrap">
+                        <span class="throne-tier-badge-icon">${rank.badge || '👑'}</span>
+                        <div>
+                            <h3 class="throne-tier-name">المرتبة ${rank.tier}: ${rank.title}</h3>
+                            <div class="throne-tier-desc">${rank.desc || 'مقام رفيع في سُلَّم العبودية والخضوع الملكي'}</div>
+                        </div>
+                    </div>
+                    <div class="throne-tier-meta">
+                        <span class="throne-tier-points-pill">✨ ${formatDevotion(rank.minScore)} Pts</span>
+                        <span class="throne-tier-count-pill">${tierChars.length} سلطانة</span>
+                    </div>
+                </div>
+
+                <!-- Characters Grid -->
+                ${tierChars.length > 0 ? `
+                    <div class="throne-cards-grid">
+                        ${tierChars.map(c => {
+                            const imgUrl = (c.primary_image || (c.images && c.images[0]) || '').replace(/\/(?:460|300|560)\//g, '/640/');
+                            return `
+                                <div class="throne-char-card" data-id="${c.id}">
+                                    <div class="throne-char-thumb-wrap">
+                                        <img src="${imgUrl}" alt="${c.name}" loading="lazy">
+                                        <span class="badge badge-${c.category} throne-char-category-badge">${c.category.toUpperCase()}</span>
+                                        <span class="throne-char-score-badge">✨ ${formatDevotion(c.devotionScore || 0)}</span>
+                                    </div>
+                                    <div class="throne-char-info">
+                                        <div class="throne-char-name" title="${c.name}">${c.name}</div>
+                                        <button class="throne-btn-enter btn-enter-shrine" data-id="${c.id}">
+                                            🧎‍♂️ المثول في المحراب
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : `
+                    <div class="throne-empty-chamber">
+                        <span class="throne-empty-chamber-icon">🔒</span>
+                        <div>لم يبلغ أي عابد هذا المقام السامي بعد مع أي سلطانة</div>
+                        <div class="text-xs color-text-muted mt-1">النقاط المطلوبة لبلوغ هذا العرش: <strong>${formatDevotion(rank.minScore)}</strong> Devotion Pts</div>
+                    </div>
+                `}
+            </div>
+        `;
+    }).join('');
+}
+
+function attachThroneControlsListeners(characters, ranks) {
+    // Category chips
+    document.querySelectorAll('#throne-cat-filters .throne-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+            sound.playClick();
+            state.throneCategoryFilter = btn.dataset.cat;
+            document.querySelectorAll('#throne-cat-filters .throne-chip').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateThroneTiersWrapper(characters, ranks);
+        });
+    });
+
+    // Rank chips
+    document.querySelectorAll('#throne-rank-filters .throne-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+            sound.playClick();
+            state.throneRankFilter = btn.dataset.tier;
+            document.querySelectorAll('#throne-rank-filters .throne-chip').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateThroneTiersWrapper(characters, ranks);
+        });
+    });
+
+    // Search input
+    const searchInput = document.getElementById('throne-search-input');
+    searchInput?.addEventListener('input', (e) => {
+        state.throneSearchQuery = e.target.value;
+        updateThroneTiersWrapper(characters, ranks);
+    });
+
+    // Enter shrine buttons on character cards
+    attachThroneCardButtons();
+}
+
+function updateThroneTiersWrapper(characters, ranks) {
+    const wrapper = document.getElementById('throne-tiers-wrapper');
+    if (wrapper) {
+        wrapper.innerHTML = renderTierSectionsHTML(characters, ranks);
+        attachThroneCardButtons();
+    }
+}
+
+function attachThroneCardButtons() {
+    document.querySelectorAll('.btn-enter-shrine').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const charId = btn.dataset.id;
+            if (!charId) return;
+
+            sound.playClick();
+            state.selectedCharId = charId;
+            state.actionCount = 0;
+            switchWorshipTab('temple');
+            loadWorshipData();
+            showToast("تم المثول في محراب السلطانة 🧎‍♂️✨", "info");
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+}
+
+// ==========================================================================
+// MODALS: 10-TIER RANKS GUIDE & ARTIST DEVOTEE PROSE OVERLAY
+// ==========================================================================
+
 export function openDevotionRanksModal(ranks, currentScore) {
     let modal = document.getElementById('modal-worship-ranks');
     if (!modal) {
@@ -494,16 +784,16 @@ export function openDevotionRanksModal(ranks, currentScore) {
     }
 
     const defaultRanks = [
-        { minScore: 2500000000, title: "العدمُ المحض تحت السيادة المطلقة (Total Void Under Supreme Dominance)", tier: 10, badge: "👑🌌", desc: "أعلى مراتب الانمحاء والعدمية التامة تحت السيادة المطلقة للسلطانات." },
-        { minScore: 1200000000, title: "العبدُ الأبدي لتاج الفتنة (Supreme Thrall of the Royal Crown)", tier: 9, badge: "👑💎", desc: "تاج التبعية الخالصة والخضوع الأبدي لبهاء السلطانة." },
-        { minScore: 600000000,  title: "كاهن المذلّة والتبجيل الخالص (Zealot of Absolute Humiliation)", tier: 8, badge: "🧎‍♂️🔥", desc: "حارس طقوس الهوان ومقدم القرابين بلا انقطاع." },
-        { minScore: 300000000,  title: "مملوك الجبروت مسلوب الإرادة (Will-Stripped Sovereign Chattel)", tier: 7, badge: "⛓️👑", desc: "مسلوب المشيئة والقرار، مملوك بالكامل تحت السطوة." },
-        { minScore: 150000000,  title: "ممسحة البلاط الخالدة (Eternal Court Foot-Wiper)", tier: 6, badge: "🧹✨", desc: "شرف التطهير والتذلل تحت وطأة النعال وخطوات القصر." },
-        { minScore: 75000000,   title: "فدائي العرش والأقدام (Sacrificial Throne & Feet Serf)", tier: 5, badge: "🛡️🧎‍♂️", desc: "فداءٌ دائم لتراب المسير وحرمة العرش المهيب." },
-        { minScore: 35000000,   title: "سِقاط التراب المبتذل (Dust Beneath the Soles)", tier: 4, badge: "👣🌪️", desc: "الانكسار كثائر الغبار تحت وطأة الأقدام البهية." },
-        { minScore: 15000000,   title: "عبدُ النعال الممتثل (Submissive Footstool Servant)", tier: 3, badge: "🧎‍♂️📜", desc: "الركوع الدائم تحت النعال وتقديم فروض السمع والطاعة." },
-        { minScore: 5000000,    title: "خاضعٌ ذليل تحت الأعتاب (Humble & Abased Subject)", tier: 2, badge: "🙇‍♂️🕯️", desc: "الوقوف الخاضع على عتبات البلاط مستجدياً الرضا." },
-        { minScore: 0,          title: "عديم الوجود والقيمة (Worthless Nonentity)", tier: 1, badge: "🌑", desc: "البداية في ظلمات العدم قبل اكتساب أي استحقاق في المحراب." }
+        { minScore: 5000000,   title: "العدمُ المحض تحت السيادة المطلقة (Total Void Under Supreme Dominance)", tier: 10, badge: "👑🌌", desc: "قمة الانمحاء المطلق وبلوغ المرتبة الكبرى (5,000,000 نقطة)." },
+        { minScore: 2000000,   title: "العبدُ الأبدي لتاج الفتنة (Supreme Thrall of the Royal Crown)", tier: 9, badge: "👑💎", desc: "تاج التبعية الخالصة والخضوع الأبدي لبهاء السلطانة (2,000,000 نقطة)." },
+        { minScore: 500000,    title: "كاهن المذلّة والتبجيل الخالص (Zealot of Absolute Humiliation)", tier: 8, badge: "🧎‍♂️🔥", desc: "حارس طقوس الهوان ومقدم القرابين بلا انقطاع (500,000 نقطة)." },
+        { minScore: 100000,    title: "مملوك الجبروت مسلوب الإرادة (Will-Stripped Sovereign Chattel)", tier: 7, badge: "⛓️👑", desc: "مسلوب المشيئة والقرار، مملوك بالكامل تحت السطوة (100,000 نقطة)." },
+        { minScore: 25000,     title: "ممسحة البلاط الخالدة (Eternal Court Foot-Wiper)", tier: 6, badge: "🧹✨", desc: "شرف التطهير والتذلل تحت وطأة النعال وخطوات القصر (25,000 نقطة)." },
+        { minScore: 5000,      title: "فدائي العرش والأقدام (Sacrificial Throne & Feet Serf)", tier: 5, badge: "🛡️🧎‍♂️", desc: "فداءٌ دائم لتراب المسير وحرمة العرش المهيب (5,000 نقطة)." },
+        { minScore: 1000,      title: "سِقاط التراب المبتذل (Dust Beneath the Soles)", tier: 4, badge: "👣🌪️", desc: "الانكسار كثائر الغبار تحت وطأة الأقدام البهية (1,000 نقطة)." },
+        { minScore: 250,       title: "عبدُ النعال الممتثل (Submissive Footstool Servant)", tier: 3, badge: "🧎‍♂️📜", desc: "الركوع الدائم تحت النعال وتقديم فروض السمع والطاعة (250 نقطة)." },
+        { minScore: 50,        title: "خاضعٌ ذليل تحت الأعتاب (Humble & Abased Subject)", tier: 2, badge: "🙇‍♂️🕯️", desc: "الوقوف الخاضع على عتبات البلاط مستجدياً الرضا (50 نقطة)." },
+        { minScore: 0,         title: "عديم الوجود والقيمة (Worthless Nonentity)", tier: 1, badge: "🌑", desc: "البداية في ظلمات العدم قبل اكتساب أي استحقاق في المحراب (0 نقطة)." }
     ];
 
     const rankList = (ranks && ranks.length > 0) ? ranks : defaultRanks;
@@ -567,7 +857,7 @@ export function openArtistDevoteeOverlay(char) {
         document.body.appendChild(modal);
     }
 
-    const images = char.images && char.images.length > 0 ? char.images : [char.primaryImage || ''];
+    const images = char.images && char.images.length > 0 ? char.images : [(char.primary_image || '')];
 
     modal.innerHTML = `
         <div class="modal-content artist-devotee-modal-content" style="max-width: 820px; max-height: 92vh; overflow-y: auto; background: radial-gradient(circle at top, rgba(88, 28, 135, 0.4), rgba(15, 15, 30, 0.98)); border: 1px solid rgba(168, 85, 247, 0.45); box-shadow: 0 10px 40px rgba(0,0,0,0.85), 0 0 30px rgba(168, 85, 247, 0.25); border-radius: var(--radius-lg);">
@@ -623,7 +913,7 @@ export function openArtistDevoteeOverlay(char) {
                     ❌ إغلاق المقام
                 </button>
                 <button class="btn-primary flex-1 font-bold text-sm" id="btn-artist-renew-submission" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none; padding: 0.75rem;">
-                    🧎‍♂️ تجديد ميثاق العابد الفنان (+2.5M Devotion)
+                    🧎‍♂️ تجديد ميثاق العابد الفنان (+25 Devotion)
                 </button>
             </div>
         </div>
@@ -657,7 +947,7 @@ export function openArtistDevoteeOverlay(char) {
         });
         const data = await res.json();
         if (data.success) {
-            char.devotionScore = (data.data?.devotionScore !== undefined) ? data.data.devotionScore : (char.devotionScore || 0) + 2500000;
+            char.devotionScore = (data.data?.devotionScore !== undefined) ? data.data.devotionScore : (char.devotionScore || 0) + 25;
             if (data.data?.rankTitle) {
                 char.rankTitle = data.data.rankTitle;
                 char.rankBadge = data.data.rankBadge;
@@ -668,7 +958,7 @@ export function openArtistDevoteeOverlay(char) {
             if (scoreEl) scoreEl.innerText = `✨ ${formatDevotion(char.devotionScore)} Pts`;
             const totalEl = document.getElementById('worship-total-pts');
             if (totalEl && data.data?.totalDevotion !== undefined) totalEl.innerText = formatDevotion(data.data.totalDevotion);
-            showToast("جُدِّد ميثاق العابد الفنان وسُجّل خضوعك في ديوان الخلود 🎨🧎‍♂️✨ (+2.5M)", "success");
+            showToast("جُدِّد ميثاق العابد الفنان وسُجّل خضوعك في ديوان الخلود 🎨🧎‍♂️✨ (+25 Devotion)", "success");
             modal.classList.add('hidden');
             handleRiteProgress(char);
         }

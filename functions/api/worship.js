@@ -109,12 +109,13 @@ export async function onRequestGet(context) {
     const category = url.searchParams.get('category');
     
     try {
-        // Fetch list of approved characters for the selector
+        // Fetch list of approved characters for the selector and pantheon throne
         let charQuery = `
             SELECT c.id, c.name, c.category,
                    COALESCE(p.times_correct, 0) as times_correct,
                    COALESCE(p.times_wrong, 0) as times_wrong,
-                   COALESCE(p.mastery_level, 0) as mastery_level
+                   COALESCE(p.mastery_level, 0) as mastery_level,
+                   (SELECT ci.image_url FROM character_images ci WHERE ci.character_id = c.id ORDER BY ci.display_order ASC LIMIT 1) as primary_image
             FROM characters c
             LEFT JOIN user_character_progress p ON c.id = p.character_id AND p.user_id = ?
             WHERE c.status = 'approved' AND c.deleted_at_ms IS NULL
@@ -124,7 +125,7 @@ export async function onRequestGet(context) {
             charQuery += " AND c.category = ?";
             params.push(category);
         }
-        charQuery += " ORDER BY times_correct DESC, c.name ASC LIMIT 100";
+        charQuery += " ORDER BY times_correct DESC, c.name ASC LIMIT 500";
         
         const { results: characters } = await db.prepare(charQuery).bind(...params).all();
         
@@ -135,6 +136,15 @@ export async function onRequestGet(context) {
                 phrases: { praise: PRAISE_PHRASES, penance: PENANCE_PHRASES, petition: PETITION_PHRASES },
                 ranks: DEVOTION_RANKS
             });
+        }
+
+        // Calculate devotion score and rank for every character
+        for (const c of characters) {
+            c.devotionScore = computeDevotionScore(c.times_correct, c.times_wrong);
+            const rankObj = getDevotionRank(c.devotionScore);
+            c.rankTitle = rankObj.title;
+            c.rankBadge = rankObj.badge;
+            c.rankTier = rankObj.tier;
         }
         
         // Pick target character (by requested ID or the top mastered/first character)
@@ -150,14 +160,9 @@ export async function onRequestGet(context) {
         `).bind(targetChar.id).all();
         
         targetChar.images = (images || []).map(img => img.image_url);
-        
-        // Determine devotion rank title & score
-        const score = computeDevotionScore(targetChar.times_correct, targetChar.times_wrong);
-        const rankObj = getDevotionRank(score);
-        targetChar.rankTitle = rankObj.title;
-        targetChar.rankBadge = rankObj.badge;
-        targetChar.rankTier = rankObj.tier;
-        targetChar.devotionScore = score;
+        if (targetChar.images.length === 0 && targetChar.primary_image) {
+            targetChar.images = [targetChar.primary_image];
+        }
         
         // List characters needing penance (wrong > 0)
         const penanceList = characters.filter(c => c.times_wrong > 0).slice(0, 8);
