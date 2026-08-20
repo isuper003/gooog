@@ -12,24 +12,30 @@ import { showToast } from './toast.js';
 import { getCsrfToken, clearCsrfToken } from './csrf.js';
 
 // Intercept all fetch requests to /api/ and automatically inject Authorization & CSRF headers
-const originalFetch = window.fetch;
+const nativeFetch = window.fetch.bind(window);
 window.fetch = function(url, options = {}) {
-    if (typeof url === 'string' && url.startsWith('/api/')) {
-        const token = localStorage.getItem('goooog_session_token') || sessionStorage.getItem('goooog_session_token');
-        const csrf = getCsrfToken();
-        const headers = new Headers(options.headers || {});
-        if (token && !headers.has('Authorization')) {
-            headers.set('Authorization', `Bearer ${token}`);
+    try {
+        const urlStr = typeof url === 'string' ? url : (url && url.url ? url.url : '');
+        if (urlStr.startsWith('/api/') || urlStr.includes('/api/')) {
+            const token = localStorage.getItem('goooog_session_token') || sessionStorage.getItem('goooog_session_token');
+            const csrf = getCsrfToken();
+            const headers = new Headers(options.headers || (url && url.headers ? url.headers : {}));
+            if (token && !headers.has('Authorization')) {
+                headers.set('Authorization', `Bearer ${token}`);
+            }
+            if (!headers.has('X-Requested-With')) {
+                headers.set('X-Requested-With', 'XMLHttpRequest');
+            }
+            const method = (options.method || (url && url.method) || 'GET').toUpperCase();
+            if (csrf && !headers.has('X-CSRF-Token') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+                headers.set('X-CSRF-Token', csrf);
+            }
+            options.headers = headers;
         }
-        if (!headers.has('X-Requested-With')) {
-            headers.set('X-Requested-With', 'XMLHttpRequest');
-        }
-        if (csrf && !headers.has('X-CSRF-Token') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes((options.method || 'GET').toUpperCase())) {
-            headers.set('X-CSRF-Token', csrf);
-        }
-        options.headers = headers;
+    } catch (e) {
+        console.error('Fetch interceptor error:', e);
     }
-    return originalFetch.call(this, url, options);
+    return nativeFetch(url, options);
 };
 
 const state = {
@@ -40,7 +46,9 @@ const state = {
 
 async function checkAuth() {
     try {
-        const res = await fetch('/api/auth/me');
+        const token = localStorage.getItem('goooog_session_token') || sessionStorage.getItem('goooog_session_token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await nativeFetch('/api/auth/me', { headers });
         if (res.ok) {
             const data = await res.json();
             if (data.success && data.data?.user) {
@@ -99,12 +107,7 @@ async function init() {
     if (token && cachedUser) {
         onLoginSuccess(cachedUser);
         // Verify in background and sync fresh state
-        checkAuth().then(isValid => {
-            if (!isValid) {
-                // If server explicitly revoked session, return to login
-                performClientLogout();
-            }
-        });
+        checkAuth();
     } else {
         const isAuthenticated = await checkAuth();
         if (!isAuthenticated) {
