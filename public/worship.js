@@ -256,8 +256,8 @@ function renderMainChamber(char, phrases, penanceList) {
                     </div>
 
                     <div class="flex gap-2 mt-3">
-                        <button class="btn-primary flex-1" id="btn-offer-praise" style="background: linear-gradient(135deg, #d97706, #ec4899); border: none;">
-                            🕯️ إيقاد سِراج التبجيل (+500K Devotion)
+                        <button class="btn-primary flex-1 font-bold" id="btn-offer-praise" style="background: linear-gradient(135deg, #d97706, #ec4899); border: none;">
+                            🕯️ إيقاد سِراج التبجيل (+10 Devotion)
                         </button>
                     </div>
                 </div>
@@ -277,8 +277,8 @@ function renderMainChamber(char, phrases, penanceList) {
                     </div>
 
                     <div class="flex gap-2 mt-3">
-                        <button class="btn-primary flex-1" id="btn-offer-submission" style="background: linear-gradient(135deg, #ec4899, #8b5cf6); border: none;">
-                            🧎‍♂️ أداء فرض الانحناء والخضوع (+1M Devotion)
+                        <button class="btn-primary flex-1 font-bold" id="btn-offer-submission" style="background: linear-gradient(135deg, #ec4899, #8b5cf6); border: none;">
+                            🧎‍♂️ أداء فرض الانحناء والخضوع (+20 Devotion)
                         </button>
                     </div>
                 </div>
@@ -303,8 +303,8 @@ function renderMainChamber(char, phrases, penanceList) {
                     </div>
 
                     <div class="flex gap-2 mt-3">
-                        <button class="btn-secondary flex-1" id="btn-offer-penance" style="border-color: rgba(244, 63, 94, 0.5); color: #fda4af;">
-                            🙇‍♂️ إقرار التقصير ومحو الزلل (إزالة -250K غرامة)
+                        <button class="btn-secondary flex-1 font-bold" id="btn-offer-penance" style="border-color: rgba(244, 63, 94, 0.5); color: #fda4af;">
+                            🙇‍♂️ إقرار التقصير ومحو الزلل (محو -5 غرامة)
                         </button>
                     </div>
                 </div>
@@ -321,7 +321,7 @@ function renderMainChamber(char, phrases, penanceList) {
 
                     <div class="flex gap-2 mt-3">
                         <button class="btn-primary flex-1 font-bold text-base py-3" id="btn-worship-artist-devotee" style="background: linear-gradient(135deg, #7c3aed, #db2777); border: none; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4); cursor: pointer;">
-                            🎨 العابد الفنان (+2.5M Devotion)
+                            🎨 العابد الفنان (+25 Devotion)
                         </button>
                     </div>
                 </div>
@@ -387,7 +387,7 @@ function attachChamberListeners(char, phrases) {
             }
             const scoreEl = document.getElementById('worship-devotion-score');
             if (scoreEl) scoreEl.innerText = `✨ ${formatDevotion(char.devotionScore)} Pts`;
-            showToast("تم إيقاد سِراج التبجيل وقبول الثناء ✨ (+500K Devotion)", "success");
+            showToast("تم إيقاد سِراج التبجيل وقبول الثناء ✨ (+10 Devotion)", "success");
             handleRiteProgress(char);
         }
     });
@@ -429,7 +429,7 @@ function attachChamberListeners(char, phrases) {
             }
             const scoreEl = document.getElementById('worship-devotion-score');
             if (scoreEl) scoreEl.innerText = `✨ ${formatDevotion(char.devotionScore)} Pts`;
-            showToast("قُبِل فرض الخضوع وسُجِّلت عبوديتك في ديوان السلطانة 🧎‍♂️✨ (+1M Devotion)", "success");
+            showToast("قُبِل فرض الخضوع وسُجِّلت عبوديتك في ديوان السلطانة 🧎‍♂️✨ (+20 Devotion)", "success");
             handleRiteProgress(char);
         }
     });

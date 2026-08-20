@@ -75,16 +75,16 @@ const PETITION_PHRASES = [
 ];
 
 export const DEVOTION_RANKS = [
-    { minScore: 2500000000, title: "العدمُ المحض تحت السيادة المطلقة (Total Void Under Supreme Dominance)", tier: 10, badge: "👑🌌" },
-    { minScore: 1200000000, title: "العبدُ الأبدي لتاج الفتنة (Supreme Thrall of the Royal Crown)", tier: 9, badge: "👑💎" },
-    { minScore: 600000000,  title: "كاهن المذلّة والتبجيل الخالص (Zealot of Absolute Humiliation)", tier: 8, badge: "🧎‍♂️🔥" },
-    { minScore: 300000000,  title: "مملوك الجبروت مسلوب الإرادة (Will-Stripped Sovereign Chattel)", tier: 7, badge: "⛓️👑" },
-    { minScore: 150000000,  title: "ممسحة البلاط الخالدة (Eternal Court Foot-Wiper)", tier: 6, badge: "🧹✨" },
-    { minScore: 75000000,   title: "فدائي العرش والأقدام (Sacrificial Throne & Feet Serf)", tier: 5, badge: "🛡️🧎‍♂️" },
-    { minScore: 35000000,   title: "سِقاط التراب المبتذل (Dust Beneath the Soles)", tier: 4, badge: "👣🌪️" },
-    { minScore: 15000000,   title: "عبدُ النعال الممتثل (Submissive Footstool Servant)", tier: 3, badge: "🧎‍♂️📜" },
-    { minScore: 5000000,    title: "خاضعٌ ذليل تحت الأعتاب (Humble & Abased Subject)", tier: 2, badge: "🙇‍♂️🕯️" },
-    { minScore: 0,          title: "عديم الوجود والقيمة (Worthless Nonentity)", tier: 1, badge: "🌑" }
+    { minScore: 5000000,   title: "العدمُ المحض تحت السيادة المطلقة (Total Void Under Supreme Dominance)", tier: 10, badge: "👑🌌", desc: "قمة الانمحاء المطلق وبلوغ المرتبة الكبرى (5,000,000 نقطة)." },
+    { minScore: 2000000,   title: "العبدُ الأبدي لتاج الفتنة (Supreme Thrall of the Royal Crown)", tier: 9, badge: "👑💎", desc: "تاج التبعية الخالصة والخضوع الأبدي لبهاء السلطانة (2,000,000 نقطة)." },
+    { minScore: 500000,    title: "كاهن المذلّة والتبجيل الخالص (Zealot of Absolute Humiliation)", tier: 8, badge: "🧎‍♂️🔥", desc: "حارس طقوس الهوان ومقدم القرابين بلا انقطاع (500,000 نقطة)." },
+    { minScore: 100000,    title: "مملوك الجبروت مسلوب الإرادة (Will-Stripped Sovereign Chattel)", tier: 7, badge: "⛓️👑", desc: "مسلوب المشيئة والقرار، مملوك بالكامل تحت السطوة (100,000 نقطة)." },
+    { minScore: 25000,     title: "ممسحة البلاط الخالدة (Eternal Court Foot-Wiper)", tier: 6, badge: "🧹✨", desc: "شرف التطهير والتذلل تحت وطأة النعال وخطوات القصر (25,000 نقطة)." },
+    { minScore: 5000,      title: "فدائي العرش والأقدام (Sacrificial Throne & Feet Serf)", tier: 5, badge: "🛡️🧎‍♂️", desc: "فداءٌ دائم لتراب المسير وحرمة العرش المهيب (5,000 نقطة)." },
+    { minScore: 1000,      title: "سِقاط التراب المبتذل (Dust Beneath the Soles)", tier: 4, badge: "👣🌪️", desc: "الانكسار كثائر الغبار تحت وطأة الأقدام البهية (1,000 نقطة)." },
+    { minScore: 250,       title: "عبدُ النعال الممتثل (Submissive Footstool Servant)", tier: 3, badge: "🧎‍♂️📜", desc: "الركوع الدائم تحت النعال وتقديم فروض السمع والطاعة (250 نقطة)." },
+    { minScore: 50,        title: "خاضعٌ ذليل تحت الأعتاب (Humble & Abased Subject)", tier: 2, badge: "🙇‍♂️🕯️", desc: "الوقوف الخاضع على عتبات البلاط مستجدياً الرضا (50 نقطة)." },
+    { minScore: 0,         title: "عديم الوجود والقيمة (Worthless Nonentity)", tier: 1, badge: "🌑", desc: "البداية في ظلمات العدم قبل اكتساب أي استحقاق في المحراب (0 نقطة)." }
 ];
 
 export function getDevotionRank(score) {
@@ -97,7 +97,7 @@ export function getDevotionRank(score) {
 }
 
 export function computeDevotionScore(timesCorrect, timesWrong) {
-    const score = ((timesCorrect || 0) * 500000) - ((timesWrong || 0) * 250000);
+    const score = ((timesCorrect || 0) * 10) - ((timesWrong || 0) * 5);
     return Math.max(0, score);
 }
 
@@ -164,7 +164,7 @@ export async function onRequestGet(context) {
 
         // Compute total devotion across all characters
         const totalDevotionStmt = db.prepare(`
-            SELECT COALESCE(SUM(times_correct * 500000 - times_wrong * 250000), 0) as total_devotion
+            SELECT COALESCE(SUM(times_correct * 10 - times_wrong * 5), 0) as total_devotion
             FROM user_character_progress
             WHERE user_id = ?
         `).bind(data.user.id);
@@ -209,7 +209,7 @@ export async function onRequestPost(context) {
     
     try {
         if (action === 'praise') {
-            // Reward praise tribute (+500,000 pts)
+            // Reward praise tribute (+10 pts)
             await db.prepare(`
                 INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
                 VALUES (?, ?, 1, (unixepoch() * 1000))
@@ -217,7 +217,7 @@ export async function onRequestPost(context) {
                   times_correct = times_correct + 1
             `).bind(data.user.id, characterId).run();
         } else if (action === 'submit') {
-            // Kneel & Bow Submission Rite (+1,000,000 pts / 2 steps)
+            // Kneel & Bow Submission Rite (+20 pts)
             await db.prepare(`
                 INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
                 VALUES (?, ?, 2, (unixepoch() * 1000))
@@ -225,12 +225,12 @@ export async function onRequestPost(context) {
                   times_correct = times_correct + 2
             `).bind(data.user.id, characterId).run();
         } else if (action === 'artist_devotee') {
-            // High tribute of the artist devotee (+2,500,000 pts / 5 steps)
+            // High tribute of the artist devotee (+25 pts / 3 steps)
             await db.prepare(`
                 INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
-                VALUES (?, ?, 5, (unixepoch() * 1000))
+                VALUES (?, ?, 3, (unixepoch() * 1000))
                 ON CONFLICT(user_id, character_id) DO UPDATE SET
-                  times_correct = times_correct + 5
+                  times_correct = times_correct + 3
             `).bind(data.user.id, characterId).run();
         } else if (action === 'penance') {
             // Acknowledge error and reduce times_wrong penalty
@@ -256,7 +256,7 @@ export async function onRequestPost(context) {
 
         // Fetch updated total user devotion across all characters
         const totalDevotionStmt = db.prepare(`
-            SELECT COALESCE(SUM(times_correct * 500000 - times_wrong * 250000), 0) as total_devotion
+            SELECT COALESCE(SUM(times_correct * 10 - times_wrong * 5), 0) as total_devotion
             FROM user_character_progress
             WHERE user_id = ?
         `).bind(data.user.id);
