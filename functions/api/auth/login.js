@@ -1,6 +1,6 @@
 import { successResponse, errorResponse } from '../../lib/response.js';
 import { generateUUID, hashPassword, generateRandomString, hashToken } from '../../lib/crypto.js';
-import { createCookieHeader } from '../../lib/auth.js';
+import { createCookieHeader, SESSION_COOKIE_NAME } from '../../lib/auth.js';
 
 export async function onRequestPost(context) {
     const { request, env } = context;
@@ -54,7 +54,7 @@ export async function onRequestPost(context) {
         
         await updateDailyStreak(db, user.id);
         
-        const cookieHeader = createCookieHeader('__Host-goooog_session', sessionToken, maxAge);
+        const cookieHeader = createCookieHeader(SESSION_COOKIE_NAME, sessionToken, maxAge);
         
         return successResponse({ 
             message: "Login successful",

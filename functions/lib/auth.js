@@ -1,13 +1,13 @@
 import { errorResponse } from './response.js';
 import { hashToken } from './crypto.js';
 
-export const SESSION_COOKIE_NAME = '__Host-goooog_session';
+export const SESSION_COOKIE_NAME = 'goooog_session';
 
 export function createCookieHeader(name, value, maxAge, isLogout = false) {
     if (isLogout) {
-        return `${name}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+        return `${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
     }
-    return `${name}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
+    return `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`;
 }
 
 export function parseCookies(cookieHeader) {
@@ -30,7 +30,7 @@ export async function authenticateUser(request, db) {
     if (!cookieHeader) return { error: "Unauthorized", status: 401 };
     
     const cookies = parseCookies(cookieHeader);
-    const sessionToken = cookies[SESSION_COOKIE_NAME];
+    const sessionToken = cookies[SESSION_COOKIE_NAME] || cookies['__Host-goooog_session'];
     
     if (!sessionToken) return { error: "Unauthorized", status: 401 };
     
