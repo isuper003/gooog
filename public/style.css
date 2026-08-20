@@ -3424,3 +3424,236 @@ input:focus, select:focus, textarea:focus {
     box-shadow: 0 0 15px rgba(236, 72, 153, 0.5);
 }
 
+/* ==========================================================================
+   Worship Page (The Royal Devotion Shrine)
+   ========================================================================== */
+.worship-page-container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 1rem 0 3rem;
+}
+
+.worship-category-ribbon {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.worship-cat-pill {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.45rem 1.15rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.worship-cat-pill:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.worship-cat-pill.active {
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.3), rgba(236, 72, 153, 0.3));
+    border-color: #f59e0b;
+    color: #fff;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.35);
+    font-weight: 700;
+}
+
+.worship-stars-strip {
+    display: flex;
+    gap: 0.6rem;
+    overflow-x: auto;
+    padding: 0.5rem 0.25rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.worship-stars-strip::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.worship-star-avatar-card {
+    flex: 0 0 auto;
+    background: rgba(15, 15, 28, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    padding: 0.4rem 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.worship-star-avatar-card:hover {
+    border-color: #f59e0b;
+    transform: translateY(-2px);
+}
+
+.worship-star-avatar-card.active {
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.3), rgba(139, 92, 246, 0.3));
+    border-color: #f59e0b;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.35);
+}
+
+.worship-star-avatar-badge {
+    font-size: 0.85rem;
+}
+
+.worship-star-name-tag {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.worship-grid-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+}
+
+.worship-altar-box {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.worship-portrait-card {
+    position: relative;
+    background: #070711;
+    border: 2px solid rgba(245, 158, 11, 0.45);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.85), 0 0 35px rgba(245, 158, 11, 0.2);
+    width: fit-content;
+    max-width: 100%;
+    height: auto;
+    max-height: 72vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 0 auto;
+}
+
+.worship-portrait-card img {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 72vh;
+    object-fit: contain;
+    display: block;
+    border-radius: var(--radius-xl);
+    transition: transform 0.25s ease;
+}
+
+.worship-portrait-card:hover img {
+    transform: scale(1.02);
+}
+
+.worship-portrait-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 2.5rem 1.25rem 1.25rem;
+    background: linear-gradient(0deg, rgba(6, 6, 12, 0.96) 0%, rgba(6, 6, 12, 0.7) 65%, transparent 100%);
+    pointer-events: none;
+}
+
+.worship-star-title {
+    font-size: 1.55rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: 0.5px;
+    color: #fff;
+}
+
+.worship-rank-badge {
+    display: inline-block;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fcd34d;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.82rem;
+}
+
+.worship-card-section {
+    background: rgba(15, 15, 30, 0.8);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    padding: 1.15rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    transition: var(--transition);
+}
+
+.worship-card-section:hover {
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+.worship-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.worship-section-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.worship-phrase-bubble {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.5;
+    color: #fef08a;
+    text-align: center;
+    font-style: italic;
+    transition: all 0.3s ease;
+}
+
+.glow-pulse {
+    animation: textGlowPulse 0.6s ease-out;
+}
+
+@keyframes textGlowPulse {
+    0% { transform: scale(0.97); color: #fff; text-shadow: 0 0 20px #f59e0b; }
+    50% { transform: scale(1.03); color: #fde047; text-shadow: 0 0 30px #f59e0b; }
+    100% { transform: scale(1); color: #fef08a; }
+}
+
+.praise-flash {
+    animation: praiseGlow 0.7s ease-out;
+}
+
+@keyframes praiseGlow {
+    0% { box-shadow: 0 0 50px rgba(245, 158, 11, 0.8), 0 0 80px rgba(236, 72, 153, 0.6); }
+    100% { box-shadow: 0 15px 50px rgba(0, 0, 0, 0.85), 0 0 35px rgba(245, 158, 11, 0.2); }
+}
+
+@media (max-width: 860px) {
+    .worship-grid-layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    .worship-portrait-card, .worship-portrait-card img {
+        max-height: 52vh;
+    }
+}
+

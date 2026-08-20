@@ -1,4 +1,4 @@
-const CACHE_NAME = 'goooog-cache-v3';
+const CACHE_NAME = 'goooog-cache-v4';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -10,6 +10,7 @@ const ASSETS_TO_CACHE = [
     '/results.js',
     '/char-stats.js',
     '/leaderboard.js',
+    '/worship.js',
     '/crawler.js',
     '/settings.js',
     '/random-picker.js',

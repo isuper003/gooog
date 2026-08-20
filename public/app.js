@@ -6,6 +6,7 @@ import { initLeaderboard } from './leaderboard.js';
 import { initCrawler } from './crawler.js';
 import { initSettingsModal } from './settings.js';
 import { openRandomPicker } from './random-picker.js';
+import { initWorship } from './worship.js';
 import { sound } from './sound.js';
 import { showToast } from './toast.js';
 import { getCsrfToken, clearCsrfToken } from './csrf.js';
@@ -57,7 +58,7 @@ function registerServiceWorker() {
 }
 
 function initRouter() {
-    const pages = ['home', 'gallery', 'stats', 'leaderboard', 'admin'];
+    const pages = ['home', 'gallery', 'stats', 'leaderboard', 'worship', 'admin'];
     
     const navigate = (page) => {
         if (!pages.includes(page)) page = 'home';
@@ -82,6 +83,7 @@ function initRouter() {
         if (page === 'gallery') initGallery(state.user);
         if (page === 'stats') initCharStats();
         if (page === 'leaderboard') initLeaderboard();
+        if (page === 'worship') initWorship();
         if (page === 'admin') initCrawler(state.user);
     };
 
