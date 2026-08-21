@@ -105,7 +105,7 @@ function getProfileImageUrl(slug) {
 function parsePornpicsHtml(html) {
     const results = [];
     const seenSlugs = new Set();
-    const reservedSlugs = new Set(['list', 'shemale', 'gay', 'categories', 'channels', 'tags', 'pornstars', 'top', 'popular', 'new', 'search', 'models', 'all']);
+    const reservedSlugs = new Set(['list', 'shemale', 'gay', 'female', 'male', 'teen', 'mature', 'milf', 'categories', 'channels', 'tags', 'pornstars', 'top', 'popular', 'new', 'search', 'models', 'all', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
 
     const regex = /<a[^>]+href=['"]\/pornstars\/([a-z0-9_-]+)\/['"][^>]*title=['"]([^'"]+)['"]/gi;
     let match;
@@ -148,11 +148,11 @@ export async function onRequestGet(context) {
 
     let targetUrl = '';
     if (category === 'trans') {
-        targetUrl = page === 1 ? 'https://www.pornpics.com/pornstars/shemale/' : `https://www.pornpics.com/pornstars/shemale/?page=${page}`;
+        targetUrl = page === 1 ? 'https://www.pornpics.com/pornstars/shemale/' : `https://www.pornpics.com/pornstars/shemale/${page}/`;
     } else if (category === 'twinks') {
-        targetUrl = page === 1 ? 'https://www.pornpics.com/pornstars/gay/' : `https://www.pornpics.com/pornstars/gay/?page=${page}`;
+        targetUrl = page === 1 ? 'https://www.pornpics.com/pornstars/gay/' : `https://www.pornpics.com/pornstars/gay/${page}/`;
     } else {
-        targetUrl = page === 1 ? 'https://www.pornpics.com/pornstars/' : `https://www.pornpics.com/pornstars/?page=${page}`;
+        targetUrl = page === 1 ? 'https://www.pornpics.com/pornstars/female/' : `https://www.pornpics.com/pornstars/female/${page}/`;
     }
 
     let scrapedCharacters = [];
