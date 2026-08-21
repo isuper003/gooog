@@ -498,7 +498,7 @@ export function initCrawler(currentUser) {
                 if (e.target.checked) {
                     if (char.selectedImages.length === 0 && char.allImages.length > 0) {
                         char.selectedImages = char.allImages.slice(0, Math.min(4, char.allImages.length));
-                        updateRowCardState(char);
+                        updateThumbnailSelectionInPlace(rowCard, char);
                     }
                     selectedCharIds.add(char.id);
                 } else {
@@ -570,10 +570,39 @@ export function initCrawler(currentUser) {
                 }
 
                 sound.playClick();
-                updateRowCardState(char);
+                updateThumbnailSelectionInPlace(rowCard, char);
                 updateStatsAndFooter();
             });
         });
+    }
+
+    // Surgical in-place DOM updater (preserves scroll position and prevents black flicker/reloading)
+    function updateThumbnailSelectionInPlace(rowCard, char) {
+        if (!rowCard) return;
+
+        const countEl = rowCard.querySelector(`#count-imgs-${char.id}`);
+        if (countEl) countEl.innerText = char.selectedImages.length;
+
+        rowCard.querySelectorAll('.img-strip-thumb').forEach(thumb => {
+            const imgUrl = thumb.dataset.imgUrl;
+            const isSelected = char.selectedImages.includes(imgUrl);
+            const checkEl = thumb.querySelector('.thumb-check');
+
+            if (isSelected) {
+                thumb.classList.add('selected');
+                const selOrder = char.selectedImages.indexOf(imgUrl) + 1;
+                if (checkEl) checkEl.innerText = selOrder;
+            } else {
+                thumb.classList.remove('selected');
+                if (checkEl) checkEl.innerText = '+';
+            }
+        });
+
+        const cb = rowCard.querySelector('.crawler-checkbox');
+        if (char.selectedImages.length === 0) {
+            selectedCharIds.delete(char.id);
+            if (cb) cb.checked = false;
+        }
     }
 
     function updateRowCardState(char) {
