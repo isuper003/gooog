@@ -264,8 +264,7 @@ body.modal-open {
     padding: 0 1.75rem;
     background: rgba(10, 10, 20, 0.84);
     backdrop-filter: blur(20px) saturate(160%);
-    position: sticky;
-    top: 0.75rem;
+    position: static;
     margin: 0.75rem 1rem 0;
     border-radius: var(--radius-xl);
     z-index: 100;
@@ -2515,10 +2514,9 @@ input:focus, select:focus, textarea:focus {
     }
 }
 
-/* Smart Import Top Fixed Controls Bar */
+/* Smart Import Top Controls Bar */
 .crawler-top-toolbar {
-    position: sticky;
-    top: calc(var(--header-height) - 1px);
+    position: static;
     z-index: 75;
     background: rgba(10, 10, 20, 0.92);
     backdrop-filter: blur(20px) saturate(180%);
