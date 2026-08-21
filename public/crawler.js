@@ -353,22 +353,30 @@ export function initCrawler(currentUser) {
                 return;
             }
 
-            const existingNames = new Set((existingData.data?.characters || []).map(c => c.name.toLowerCase().trim()));
+            const existingMap = new Map();
+            (existingData.data?.characters || []).forEach(c => {
+                if (c.name) existingMap.set(c.name.toLowerCase().trim(), c);
+            });
             const fetched = crawlerData.data?.characters || [];
 
             crawledCharacters = fetched.map((item, idx) => {
-                const isDup = existingNames.has(item.name.toLowerCase().trim());
-                const defaultAvatar = item.profileImage || '';
+                const existingChar = existingMap.get(item.name.toLowerCase().trim());
+                const isDup = !!existingChar;
+                const existingPhotos = isDup && existingChar.images && existingChar.images.length > 0 
+                    ? existingChar.images 
+                    : (isDup && existingChar.primary_image ? [existingChar.primary_image] : []);
+                const defaultAvatar = isDup && existingPhotos.length > 0 ? existingPhotos[0] : (item.profileImage || '');
+
                 return {
                     id: `crawl_${activePage}_${idx}`,
                     name: item.name,
                     slug: item.slug,
                     category: category,
                     profileImage: defaultAvatar,
-                    allImages: [], // Will be populated with scraped gallery photos only
-                    selectedImages: [],
+                    allImages: isDup ? [...existingPhotos] : [], // Populate with current library photos if duplicate!
+                    selectedImages: isDup ? [...existingPhotos] : [],
                     isDuplicate: isDup,
-                    isFullGalleryLoaded: false
+                    isFullGalleryLoaded: isDup // Marked as loaded so background scraping skips it completely!
                 };
             });
 
@@ -383,7 +391,7 @@ export function initCrawler(currentUser) {
             sound.playWin();
             showToast(`Loaded ${crawledCharacters.length} candidates from Page ${activePage}!`, 'success');
 
-            // Preload gallery photos automatically in batches of 4
+            // Preload gallery photos automatically for new candidates only
             preloadCardGalleries();
         } catch (err) {
             console.error("Crawler fetch error", err);
@@ -393,7 +401,7 @@ export function initCrawler(currentUser) {
     });
 
     async function preloadCardGalleries() {
-        const queue = [...crawledCharacters.filter(c => !c.isFullGalleryLoaded)];
+        const queue = [...crawledCharacters.filter(c => !c.isDuplicate && !c.isFullGalleryLoaded)];
         const batchSize = 4;
 
         for (let i = 0; i < queue.length; i += batchSize) {
@@ -450,7 +458,7 @@ export function initCrawler(currentUser) {
                         <div class="row-title-bar">
                             <span class="row-name" title="${char.name}">${char.name}</span>
                             <span class="badge" style="background: var(--bg-surface-elevated); font-size: 0.75rem;">Page ${activePage}</span>
-                            ${char.isDuplicate ? `<span class="badge" style="background: var(--accent-red); font-size: 0.75rem;">ALREADY IN LIBRARY</span>` : ''}
+                            ${char.isDuplicate ? `<span class="badge" style="background: var(--accent-red); font-size: 0.75rem;">ALREADY IN LIBRARY (${char.allImages.length} Photos)</span>` : ''}
                         </div>
 
                         <div class="row-meta-bar">
@@ -472,8 +480,10 @@ export function initCrawler(currentUser) {
                 <!-- Bottom Row inside Card: Full Horizontal Scroll Photo Strip -->
                 <div class="row-photos-strip-container">
                     <div class="text-xs color-text-muted mb-1 flex justify-between items-center">
-                        <span>Gallery Photos (${char.allImages.length} available) — Click photo to select 1..4:</span>
-                        <span class="color-text-muted font-bold" style="color: var(--accent-purple);">1280px Ultra-HD (Scroll ➔)</span>
+                        <span>${char.isDuplicate ? `📸 Current Library Photos (${char.allImages.length} saved):` : `Gallery Photos (${char.allImages.length} available) — Click photo to select 1..4:`}</span>
+                        <span class="color-text-muted font-bold" style="color: ${char.isDuplicate ? 'var(--accent-cyan)' : 'var(--accent-purple)'};">
+                            ${char.isDuplicate ? 'Saved in DB' : '1280px Ultra-HD (Scroll ➔)'}
+                        </span>
                     </div>
                     <div class="row-photos-strip" id="strip-${char.id}">
                         ${renderThumbnailsHtml(char)}
