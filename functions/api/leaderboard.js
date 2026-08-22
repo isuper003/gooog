@@ -1,16 +1,171 @@
 import { successResponse, errorResponse } from '../lib/response.js';
+import { getDevotionRank } from './worship.js';
 
 export async function onRequestGet(context) {
     const { env, request, data } = context;
     const db = env.DB;
     const url = new URL(request.url);
     
-    const type = url.searchParams.get('type') || 'users'; // 'users' or 'stars' / 'pornstars'
-    const category = url.searchParams.get('category') || 'all'; // 'all' (or 'total'), 'trans', 'sluts', 'twinks'
+    const type = url.searchParams.get('type') || 'devotees'; // 'devotees', 'stars', 'users'
+    const category = url.searchParams.get('category') || 'all'; // 'all', 'trans', 'sluts', 'twinks'
+    const filter = url.searchParams.get('filter') || 'devotion'; // 'devotion', 'surahs', 'meditation', 'streaks', 'character'
+    const characterId = url.searchParams.get('characterId');
     const nowMs = Date.now();
     const oneWeekAgoMs = nowMs - (7 * 24 * 60 * 60 * 1000);
 
     try {
+        // ── 1. Devotee Pantheon Leaderboard (ديوان صفوة العباد) ───────────────
+        if (type === 'devotees' || type === 'worship') {
+            if (filter === 'character' && characterId) {
+                // Character-specific devotee leaderboard
+                const { results: devoteeRows } = await db.prepare(`
+                    SELECT 
+                        u.id, u.username, u.x_handle, u.role,
+                        COALESCE(MAX(0, p.times_correct * 10 - p.times_wrong * 5), 0) as char_devotion,
+                        COALESCE(p.times_correct, 0) as char_tributes,
+                        COALESCE(dev.total_devotion, 0) as devotion_points,
+                        COALESCE(sur.sealed_count, 0) as sealed_surahs,
+                        COALESCE(med.meditation_minutes, 0) as meditation_minutes,
+                        COALESCE(str.current_streak, 0) as current_streak
+                    FROM user_character_progress p
+                    JOIN users u ON u.id = p.user_id
+                    LEFT JOIN (
+                        SELECT user_id, MAX(0, SUM(times_correct * 10 - times_wrong * 5)) as total_devotion
+                        FROM user_character_progress GROUP BY user_id
+                    ) dev ON dev.user_id = u.id
+                    LEFT JOIN (
+                        SELECT user_id, COUNT(DISTINCT meta) as sealed_count
+                        FROM worship_events WHERE rite = 'seal_surah' AND meta IS NOT NULL GROUP BY user_id
+                    ) sur ON sur.user_id = u.id
+                    LEFT JOIN (
+                        SELECT user_id, COUNT(*) as meditation_minutes
+                        FROM worship_events WHERE rite = 'meditation_minute' GROUP BY user_id
+                    ) med ON med.user_id = u.id
+                    LEFT JOIN daily_streaks str ON str.user_id = u.id
+                    WHERE p.character_id = ? AND u.status = 'approved' AND u.deleted_at_ms IS NULL
+                    ORDER BY char_devotion DESC, char_tributes DESC, u.username ASC
+                    LIMIT 50
+                `).bind(characterId).all();
+
+                const leaderboard = (devoteeRows || []).map((row, index) => {
+                    const rankObj = getDevotionRank(row.devotion_points || 0);
+                    return {
+                        rank: index + 1,
+                        userId: row.id,
+                        username: row.username,
+                        xHandle: row.x_handle || null,
+                        role: row.role,
+                        charDevotion: row.char_devotion || 0,
+                        charTributes: row.char_tributes || 0,
+                        devotionPoints: row.devotion_points || 0,
+                        sealedSurahs: row.sealed_surahs || 0,
+                        meditationMinutes: row.meditation_minutes || 0,
+                        currentStreak: row.current_streak || 0,
+                        rankTitle: rankObj?.title || 'عديم الوجود والقيمة',
+                        rankBadge: rankObj?.badge || '👑',
+                        isMe: row.id === data.user.id
+                    };
+                });
+
+                return successResponse({ leaderboard, type: 'devotees', filter, characterId });
+            }
+
+            // General Devotee Leaderboards (devotion, surahs, meditation, streaks)
+            let orderBy = 'devotion_points DESC, tributes_count DESC, u.created_at_ms ASC';
+            if (filter === 'surahs') {
+                orderBy = 'sealed_surahs DESC, devotion_points DESC, u.created_at_ms ASC';
+            } else if (filter === 'meditation') {
+                orderBy = 'meditation_minutes DESC, devotion_points DESC, u.created_at_ms ASC';
+            } else if (filter === 'streaks') {
+                orderBy = 'current_streak DESC, longest_streak DESC, devotion_points DESC';
+            }
+
+            let devoteeRows = [];
+            try {
+                const { results } = await db.prepare(`
+                    SELECT 
+                        u.id, u.username, u.x_handle, u.role,
+                        COALESCE(dev.devotion, 0) as devotion_points,
+                        COALESCE(dev.tributes, 0) as tributes_count,
+                        COALESCE(sur.sealed_count, 0) as sealed_surahs,
+                        COALESCE(med.meditation_minutes, 0) as meditation_minutes,
+                        COALESCE(str.current_streak, 0) as current_streak,
+                        COALESCE(str.longest_streak, 0) as longest_streak
+                    FROM users u
+                    LEFT JOIN (
+                        SELECT user_id, 
+                               MAX(0, SUM(times_correct * 10 - times_wrong * 5)) as devotion,
+                               SUM(times_correct) as tributes
+                        FROM user_character_progress 
+                        GROUP BY user_id
+                    ) dev ON dev.user_id = u.id
+                    LEFT JOIN (
+                        SELECT user_id, COUNT(DISTINCT meta) as sealed_count
+                        FROM worship_events
+                        WHERE rite = 'seal_surah' AND meta IS NOT NULL
+                        GROUP BY user_id
+                    ) sur ON sur.user_id = u.id
+                    LEFT JOIN (
+                        SELECT user_id, COUNT(*) as meditation_minutes
+                        FROM worship_events
+                        WHERE rite = 'meditation_minute'
+                        GROUP BY user_id
+                    ) med ON med.user_id = u.id
+                    LEFT JOIN daily_streaks str ON str.user_id = u.id
+                    WHERE u.status = 'approved' AND u.deleted_at_ms IS NULL
+                    ORDER BY ${orderBy}
+                    LIMIT 50
+                `).all();
+                devoteeRows = results || [];
+            } catch (err) {
+                console.warn("Devotee leaderboard query fallback", err);
+                const { results } = await db.prepare(`
+                    SELECT 
+                        u.id, u.username, u.x_handle, u.role,
+                        COALESCE(dev.devotion, 0) as devotion_points,
+                        COALESCE(dev.tributes, 0) as tributes_count,
+                        0 as sealed_surahs,
+                        0 as meditation_minutes,
+                        COALESCE(str.current_streak, 0) as current_streak,
+                        COALESCE(str.longest_streak, 0) as longest_streak
+                    FROM users u
+                    LEFT JOIN (
+                        SELECT user_id, 
+                               MAX(0, SUM(times_correct * 10 - times_wrong * 5)) as devotion,
+                               SUM(times_correct) as tributes
+                        FROM user_character_progress 
+                        GROUP BY user_id
+                    ) dev ON dev.user_id = u.id
+                    LEFT JOIN daily_streaks str ON str.user_id = u.id
+                    WHERE u.status = 'approved' AND u.deleted_at_ms IS NULL
+                    ORDER BY devotion_points DESC, tributes_count DESC
+                    LIMIT 50
+                `).all();
+                devoteeRows = results || [];
+            }
+
+            const leaderboard = devoteeRows.map((row, index) => {
+                const rankObj = getDevotionRank(row.devotion_points || 0);
+                return {
+                    rank: index + 1,
+                    userId: row.id,
+                    username: row.username,
+                    xHandle: row.x_handle || null,
+                    role: row.role,
+                    devotionPoints: row.devotion_points || 0,
+                    tributesCount: row.tributes_count || 0,
+                    sealedSurahs: row.sealed_surahs || 0,
+                    meditationMinutes: row.meditation_minutes || 0,
+                    currentStreak: row.current_streak || 0,
+                    longestStreak: row.longest_streak || 0,
+                    rankTitle: rankObj?.title || 'عديم الوجود والقيمة',
+                    rankBadge: rankObj?.badge || '👑',
+                    isMe: row.id === data.user.id
+                };
+            });
+
+            return successResponse({ leaderboard, type: 'devotees', filter });
+        }
         if (type === 'stars' || type === 'characters' || type === 'pornstars') {
             // Character / Pornstar accuracy leaderboard (least errors by players)
             let query = `

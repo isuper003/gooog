@@ -1,67 +1,174 @@
 import { sound } from './sound.js';
 import { lightbox } from './lightbox.js';
+import { esc } from './esc.js';
 
 export async function initLeaderboard() {
     const container = document.getElementById('page-leaderboard');
     if (!container) return;
 
-    let currentType = 'stars'; // default to 'stars' or 'users'
-    let currentCategory = 'all'; // 'all', 'sluts', 'trans', 'twinks'
+    let currentType = 'devotees'; // default to 'devotees', 'stars', 'users'
+    let currentFilter = 'devotion'; // for devotees: 'devotion', 'surahs', 'meditation', 'streaks', 'character'
+    let currentCategory = 'all'; // for stars/users: 'all', 'sluts', 'trans', 'twinks'
+    let selectedCharacterId = null;
+    let charactersListCache = null;
 
     container.innerHTML = `
         <div class="leaderboard-header-section mb-6">
             <div class="flex justify-between items-center flex-wrap gap-3">
                 <div>
-                    <h1 class="glow-text text-2xl mb-1">🏆 Hall of Fame & Leaderboards</h1>
-                    <p class="color-text-muted text-sm" id="leaderboard-subtitle">Most recognized celebrities with the lowest player error rate</p>
+                    <h1 class="glow-text text-2xl mb-1" id="leaderboard-title">👑 دِيوَانُ صَفْوَةِ العُبَّادِ والمَقَامِ المَلَكِيّ</h1>
+                    <p class="color-text-muted text-sm" id="leaderboard-subtitle">أعظمُ الممتثلين الخاضعين لسطوة وبهاء السلطانات ورصيد البركات والطقوس</p>
                 </div>
 
-                <!-- Primary Type Switch: Stars vs Users -->
+                <!-- Primary Type Switch: Devotees vs Stars vs Users -->
                 <div class="pill-group leaderboard-type-switch" id="leaderboard-type-switch">
-                    <button class="pill active" data-type="stars">🌟 Top Stars (Accuracy)</button>
-                    <button class="pill" data-type="users">👑 Top Contributors</button>
+                    <button class="pill active" data-type="devotees">👑 ديوان صفوة العباد</button>
+                    <button class="pill" data-type="stars">🌟 دقة النجوم (Stars)</button>
+                    <button class="pill" data-type="users">📦 كبار المساهمين</button>
                 </div>
             </div>
         </div>
 
-        <!-- Secondary Filter: Categories -->
-        <div class="leaderboard-controls-ribbon mb-5">
-            <div class="leaderboard-tabs" id="leaderboard-category-tabs">
-                <button class="leaderboard-tab active" data-cat="all">✨ All Categories</button>
-                <button class="leaderboard-tab" data-cat="sluts">♀️ Sluts</button>
-                <button class="leaderboard-tab" data-cat="trans">⚧️ Trans</button>
-                <button class="leaderboard-tab" data-cat="twinks">♂️ Twinks</button>
+        <!-- Secondary Filter Ribbon -->
+        <div class="leaderboard-controls-ribbon mb-5" id="leaderboard-controls-ribbon">
+            <div class="leaderboard-tabs" id="leaderboard-sub-tabs">
+                <!-- Dynamically populated based on active type -->
             </div>
+            <div id="leaderboard-extra-control"></div>
             <div class="text-xs color-text-muted hidden sm:block" id="leaderboard-counter-label">
-                Showing Top 50 Ranked
+                صفوة الـ 50 الأوائل
             </div>
         </div>
 
         <!-- Leaderboard List Container -->
         <div id="leaderboard-list-container" class="leaderboard-list">
-            <div class="leaderboard-row skeleton" style="height: 72px;"></div>
-            <div class="leaderboard-row skeleton" style="height: 72px;"></div>
-            <div class="leaderboard-row skeleton" style="height: 72px;"></div>
-            <div class="leaderboard-row skeleton" style="height: 72px;"></div>
+            <div class="leaderboard-row skeleton" style="height: 76px;"></div>
+            <div class="leaderboard-row skeleton" style="height: 76px;"></div>
+            <div class="leaderboard-row skeleton" style="height: 76px;"></div>
+            <div class="leaderboard-row skeleton" style="height: 76px;"></div>
         </div>
     `;
+
+    function renderSubTabs() {
+        const tabsEl = document.getElementById('leaderboard-sub-tabs');
+        const extraEl = document.getElementById('leaderboard-extra-control');
+        const counterLabel = document.getElementById('leaderboard-counter-label');
+        if (!tabsEl) return;
+
+        if (currentType === 'devotees') {
+            if (counterLabel) counterLabel.innerText = 'صفوة الـ 50 الأوائل';
+            tabsEl.innerHTML = `
+                <button class="leaderboard-tab ${currentFilter === 'devotion' ? 'active' : ''}" data-filter="devotion">✨ نقاط الولاء الشاملة</button>
+                <button class="leaderboard-tab ${currentFilter === 'surahs' ? 'active' : ''}" data-filter="surahs">📜 خَتَمَةُ السور (28)</button>
+                <button class="leaderboard-tab ${currentFilter === 'meditation' ? 'active' : ''}" data-filter="meditation">🧘 ملوك الاعتكاف</button>
+                <button class="leaderboard-tab ${currentFilter === 'streaks' ? 'active' : ''}" data-filter="streaks">🔥 سلاسل الحضور</button>
+                <button class="leaderboard-tab ${currentFilter === 'character' ? 'active' : ''}" data-filter="character">💎 خادم السلطانة الأخلص</button>
+            `;
+
+            if (currentFilter === 'character') {
+                extraEl.innerHTML = `
+                    <select id="leaderboard-char-select" class="text-xs font-bold py-1.5 px-3"
+                            style="background: rgba(15,14,30,.95); border:1px solid rgba(234,179,8,0.5); color:#fef08a; border-radius:8px; cursor:pointer;">
+                        <option value="">-- اختر السلطانة --</option>
+                    </select>
+                `;
+                populateCharactersDropdown();
+            } else {
+                extraEl.innerHTML = '';
+            }
+
+            tabsEl.querySelectorAll('.leaderboard-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    sound.playClick();
+                    tabsEl.querySelectorAll('.leaderboard-tab').forEach(t => t.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+                    currentFilter = e.currentTarget.dataset.filter;
+                    renderSubTabs();
+                    loadLeaderboard();
+                });
+            });
+        } else {
+            if (counterLabel) counterLabel.innerText = 'Showing Top 50 Ranked';
+            if (extraEl) extraEl.innerHTML = '';
+            tabsEl.innerHTML = `
+                <button class="leaderboard-tab ${currentCategory === 'all' ? 'active' : ''}" data-cat="all">✨ All Categories</button>
+                <button class="leaderboard-tab ${currentCategory === 'sluts' ? 'active' : ''}" data-cat="sluts">♀️ Sluts</button>
+                <button class="leaderboard-tab ${currentCategory === 'trans' ? 'active' : ''}" data-cat="trans">⚧️ Trans</button>
+                <button class="leaderboard-tab ${currentCategory === 'twinks' ? 'active' : ''}" data-cat="twinks">♂️ Twinks</button>
+            `;
+
+            tabsEl.querySelectorAll('.leaderboard-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    sound.playClick();
+                    tabsEl.querySelectorAll('.leaderboard-tab').forEach(t => t.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+                    currentCategory = e.currentTarget.dataset.cat;
+                    loadLeaderboard();
+                });
+            });
+        }
+    }
+
+    async function populateCharactersDropdown() {
+        const select = document.getElementById('leaderboard-char-select');
+        if (!select) return;
+
+        try {
+            if (!charactersListCache) {
+                const res = await fetch('/api/characters');
+                const data = await res.json();
+                charactersListCache = data.data?.characters || [];
+            }
+
+            select.innerHTML = '<option value="">-- اختر السلطانة لعرض خادمها الأخلص --</option>' +
+                charactersListCache.map(c => `
+                    <option value="${esc(c.id)}" ${selectedCharacterId === c.id ? 'selected' : ''}>
+                        👑 ${esc(c.name)} (${esc(c.category)})
+                    </option>
+                `).join('');
+
+            if (!selectedCharacterId && charactersListCache.length > 0) {
+                selectedCharacterId = charactersListCache[0].id;
+                select.value = selectedCharacterId;
+            }
+
+            select.addEventListener('change', (e) => {
+                selectedCharacterId = e.target.value;
+                loadLeaderboard();
+            });
+        } catch (e) {
+            console.error("Failed to load characters for dropdown", e);
+        }
+    }
 
     async function loadLeaderboard() {
         const listEl = document.getElementById('leaderboard-list-container');
         if (!listEl) return;
 
         listEl.innerHTML = `
-            <div class="leaderboard-row skeleton" style="height: 72px;"></div>
-            <div class="leaderboard-row skeleton" style="height: 72px;"></div>
-            <div class="leaderboard-row skeleton" style="height: 72px;"></div>
+            <div class="leaderboard-row skeleton" style="height: 76px;"></div>
+            <div class="leaderboard-row skeleton" style="height: 76px;"></div>
+            <div class="leaderboard-row skeleton" style="height: 76px;"></div>
         `;
 
         try {
-            const res = await fetch(`/api/leaderboard?type=${currentType}&category=${currentCategory}`);
+            let url = `/api/leaderboard?type=${currentType}`;
+            if (currentType === 'devotees') {
+                url += `&filter=${currentFilter}`;
+                if (currentFilter === 'character' && selectedCharacterId) {
+                    url += `&characterId=${encodeURIComponent(selectedCharacterId)}`;
+                }
+            } else {
+                url += `&category=${currentCategory}`;
+            }
+
+            const res = await fetch(url);
             const data = await res.json();
 
             if (data.success) {
-                if (currentType === 'stars') {
+                if (currentType === 'devotees') {
+                    renderDevoteesList(data.data.leaderboard || [], currentFilter);
+                } else if (currentType === 'stars') {
                     renderStarsList(data.data.leaderboard || []);
                 } else {
                     renderUsersList(data.data.leaderboard || [], currentCategory);
@@ -71,10 +178,93 @@ export async function initLeaderboard() {
             console.error("Failed to load leaderboard", e);
             listEl.innerHTML = `
                 <div class="result-stat-box text-center py-8">
-                    <p class="color-text-muted">Error loading leaderboard. Please try again.</p>
+                    <p class="color-text-muted">حدث خطأ أثناء تحميل لوحة المتصدرين. يُرجى إعادة المحاولة.</p>
                 </div>
             `;
         }
+    }
+
+    function renderDevoteesList(devotees, activeFilter) {
+        const listEl = document.getElementById('leaderboard-list-container');
+        if (!listEl) return;
+
+        if (devotees.length === 0) {
+            listEl.innerHTML = `
+                <div class="result-stat-box text-center py-12" style="background: rgba(15, 14, 30, 0.6); border: 1px dashed rgba(234,179,8,0.3); border-radius: 12px;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏛️</div>
+                    <p style="color: #fef08a; font-family: 'Amiri Quran', serif; font-size: 1.1rem;">
+                        لم يُسجَّل أي عابد في هذا المحراب بعد. بادر بالاعتكاف والتسبيح لتتصدر ديوان المعبد!
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        listEl.innerHTML = '';
+        devotees.forEach(user => {
+            const rankMedal = user.rank === 1 ? '🥇' : (user.rank === 2 ? '🥈' : (user.rank === 3 ? '🥉' : `#${user.rank}`));
+            const initial = (user.username || 'U')[0].toUpperCase();
+            const isTop3 = user.rank <= 3;
+
+            const row = document.createElement('div');
+            row.className = `leaderboard-row ${user.isMe ? 'me' : ''} ${isTop3 ? `rank-${user.rank}` : ''}`;
+            row.style.direction = 'rtl';
+            row.style.background = isTop3 
+                ? 'linear-gradient(90deg, rgba(234, 179, 8, 0.12), rgba(15, 14, 30, 0.8))'
+                : 'rgba(15, 14, 30, 0.7)';
+            row.style.border = isTop3 ? '1px solid rgba(234, 179, 8, 0.45)' : '1px solid rgba(255,255,255,0.06)';
+            row.style.borderRadius = '10px';
+            row.style.padding = '0.75rem 1rem';
+            row.style.marginBottom = '0.5rem';
+
+            row.innerHTML = `
+                <div class="flex items-center justify-between flex-wrap gap-3 w-full">
+                    <!-- القسم الأيمن: الترتيب + الهوية + المرتبة الكاملة -->
+                    <div class="flex items-center gap-3">
+                        <div class="rank-badge" style="font-size: 1.25rem; min-width: 38px; text-align: center; font-weight: 800; color: ${isTop3 ? '#fde047' : '#fff'};">
+                            ${rankMedal}
+                        </div>
+                        <div class="user-avatar-circle" style="background: linear-gradient(135deg, #7c3aed, #db2777); font-weight: 800; font-size: 1.1rem; width: 44px; height: 44px; border-radius: 50%; display:flex; align-items:center; justify-content:center; color:#fff; border: 2px solid rgba(234,179,8,0.5);">
+                            ${initial}
+                        </div>
+                        <div>
+                            <div class="font-bold flex items-center gap-2" style="font-size: 1rem;">
+                                <span style="color: #fff;">@${esc(user.username)}</span>
+                                ${user.isMe ? '<span class="badge" style="background:#8b5cf6; color:#fff; font-size:0.65rem; padding: 2px 6px;">أَنْتَ 👑</span>' : ''}
+                                ${user.role === 'admin' ? '<span class="badge" style="background:#ea580c; color:#fff; font-size:0.65rem; padding: 2px 6px;">سَادِن المَعْبَد</span>' : ''}
+                            </div>
+                            <!-- مرتبة العبودية بالاسم الكامل -->
+                            <div style="color: #fef08a; font-family: 'Amiri Quran', serif; font-size: 0.88rem; line-height: 1.4; margin-top: 2px; text-shadow: 0 0 10px rgba(250, 204, 21, 0.35);">
+                                ${esc(user.rankBadge || '👑')} ${esc(user.rankTitle || 'عديم الوجود والقيمة')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- القسم الأيسر: شريط الإنجازات المتكامل -->
+                    <div class="flex items-center gap-3 flex-wrap">
+                        ${activeFilter === 'character' ? `
+                            <div class="badge" style="background: rgba(234,179,8,0.2); border:1px solid rgba(234,179,8,0.5); color:#fef08a; font-weight:800; font-size:0.85rem; padding: 0.4rem 0.75rem;">
+                                👑 ولاء السلطانة: ${user.charDevotion?.toLocaleString('ar-EG') || user.charDevotion || 0} نقطة
+                            </div>
+                        ` : `
+                            <div class="badge" style="background: rgba(234,179,8,0.18); border:1px solid rgba(234,179,8,0.45); color:#fde047; font-weight:800; font-size:0.85rem; padding: 0.4rem 0.75rem;">
+                                ✨ ${user.devotionPoints?.toLocaleString('ar-EG') || user.devotionPoints || 0} نقطة
+                            </div>
+                        `}
+
+                        <div class="flex items-center gap-2 text-xs color-text-muted" style="font-size: 0.74rem;">
+                            <span title="السور المختومة">📜 ${user.sealedSurahs || 0}/28</span>
+                            <span>•</span>
+                            <span title="دقائق الاعتكاف">🧘 ${user.meditationMinutes || 0} د</span>
+                            <span>•</span>
+                            <span title="سلسلة الحضور">🔥 ${user.currentStreak || 0} يوم</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            listEl.appendChild(row);
+        });
     }
 
     function renderStarsList(stars) {
@@ -94,7 +284,6 @@ export async function initLeaderboard() {
         stars.forEach(star => {
             const rankMedal = star.rank === 1 ? '🥇' : (star.rank === 2 ? '🥈' : (star.rank === 3 ? '🥉' : `#${star.rank}`));
             
-            // Trend Indicator Arrow
             let trendIcon = '<span class="trend-indicator trend-same" title="Stable in rank">▬</span>';
             if (star.trend === 'up') {
                 trendIcon = '<span class="trend-indicator trend-up" title="Rank rising">▲</span>';
@@ -106,8 +295,8 @@ export async function initLeaderboard() {
 
             const row = document.createElement('div');
             row.className = `leaderboard-row star-rank-row rank-${star.rank <= 3 ? star.rank : 'default'}`;
+            row.style.direction = 'ltr';
             row.innerHTML = `
-                <!-- Left: Rank & Movement & Star Avatar + Name -->
                 <div class="flex items-center gap-3 star-main-col">
                     <div class="rank-box">
                         <span class="rank-badge">${rankMedal}</span>
@@ -131,7 +320,6 @@ export async function initLeaderboard() {
                     </div>
                 </div>
 
-                <!-- Right: Accuracy & Wrong/Correct Counts -->
                 <div class="star-stats-col">
                     <div class="accuracy-badge ${star.accuracy >= 90 ? 'accuracy-high' : (star.accuracy >= 70 ? 'accuracy-med' : 'accuracy-low')}">
                         🎯 ${star.accuracy}% Accuracy
@@ -143,7 +331,6 @@ export async function initLeaderboard() {
                 </div>
             `;
 
-            // Click avatar to open lightbox
             const imgEl = row.querySelector('.star-avatar-img');
             if (imgEl && star.image) {
                 imgEl.style.cursor = 'pointer';
@@ -187,6 +374,7 @@ export async function initLeaderboard() {
 
             const row = document.createElement('div');
             row.className = `leaderboard-row ${user.isMe ? 'me' : ''}`;
+            row.style.direction = 'ltr';
             row.innerHTML = `
                 <div class="flex items-center gap-3">
                     <div class="rank-badge">${rankMedal}</div>
@@ -212,7 +400,7 @@ export async function initLeaderboard() {
         });
     }
 
-    // Type Switch Listener (Stars vs Users)
+    // Type Switch Listener (Devotees vs Stars vs Users)
     document.querySelectorAll('#leaderboard-type-switch button').forEach(btn => {
         btn.addEventListener('click', (e) => {
             sound.playClick();
@@ -221,28 +409,26 @@ export async function initLeaderboard() {
             target.classList.add('active');
             currentType = target.dataset.type;
 
+            const titleEl = document.getElementById('leaderboard-title');
             const subtitleEl = document.getElementById('leaderboard-subtitle');
-            if (subtitleEl) {
-                subtitleEl.innerText = currentType === 'stars' 
-                    ? 'Most recognized celebrities with the lowest player error rate'
-                    : 'Top contributors helping enrich the shared character library';
+            
+            if (currentType === 'devotees') {
+                if (titleEl) titleEl.innerText = '👑 دِيوَانُ صَفْوَةِ العُبَّادِ والمَقَامِ المَلَكِيّ';
+                if (subtitleEl) subtitleEl.innerText = 'أعظمُ الممتثلين الخاضعين لسطوة وبهاء السلطانات ورصيد البركات والطقوس';
+            } else if (currentType === 'stars') {
+                if (titleEl) titleEl.innerText = '🌟 Top Stars & Accuracy';
+                if (subtitleEl) subtitleEl.innerText = 'Most recognized celebrities with the lowest player error rate';
+            } else {
+                if (titleEl) titleEl.innerText = '📦 Hall of Top Contributors';
+                if (subtitleEl) subtitleEl.innerText = 'Top contributors helping enrich the shared character library';
             }
 
+            renderSubTabs();
             loadLeaderboard();
         });
     });
 
-    // Category Tabs Listener
-    document.querySelectorAll('#leaderboard-category-tabs .leaderboard-tab').forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            sound.playClick();
-            document.querySelectorAll('#leaderboard-category-tabs .leaderboard-tab').forEach(t => t.classList.remove('active'));
-            e.currentTarget.classList.add('active');
-            currentCategory = e.currentTarget.dataset.cat;
-            loadLeaderboard();
-        });
-    });
-
+    renderSubTabs();
     loadLeaderboard();
 }
 
