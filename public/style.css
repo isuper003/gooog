@@ -4841,10 +4841,12 @@ select.form-select::-webkit-scrollbar {
 .meditation-split-layout,
 .oracle-split-layout {
     display: grid;
-    grid-template-columns: 340px 1fr;
+    grid-template-columns: 320px 1fr;
     gap: 1.5rem;
     align-items: center;
     direction: ltr; /* Ensure 1st column is physically on the LEFT and 2nd on the RIGHT */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .meditation-split-left,
@@ -4854,6 +4856,10 @@ select.form-select::-webkit-scrollbar {
     align-items: center;
     justify-content: center;
     width: 100%;
+    max-width: 320px;
+    min-width: 0; /* Prevents grid item from expanding to natural image width */
+    min-height: 0;
+    box-sizing: border-box;
 }
 
 .meditation-split-right,
@@ -4864,14 +4870,18 @@ select.form-select::-webkit-scrollbar {
     text-align: right;
     direction: rtl; /* Content inside reads right-to-left in Arabic */
     width: 100%;
+    min-width: 0; /* Prevents text overflow */
+    box-sizing: border-box;
 }
 
-/* Full Uncropped Image Frame */
+/* Full Uncropped Image Frame with Strict Bounds */
 .meditation-full-image-frame,
 .oracle-full-image-frame {
     width: 100%;
-    max-width: 340px;
+    max-width: 320px;
     height: 380px;
+    min-width: 0;
+    min-height: 0;
     background: radial-gradient(circle at center, rgba(35, 18, 55, 0.75), rgba(8, 6, 18, 0.98));
     border: 2px solid rgba(168, 85, 247, 0.45);
     box-shadow: 0 10px 30px rgba(0,0,0,0.85), inset 0 0 25px rgba(0,0,0,0.8);
@@ -4889,24 +4899,28 @@ select.form-select::-webkit-scrollbar {
 .image-inner-wrapper {
     width: 100%;
     height: 320px;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    position: relative;
 }
 
 .meditation-full-img,
 .oracle-full-img {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
     object-fit: contain !important;
     border-radius: var(--radius-md);
     cursor: pointer;
     box-shadow: 0 6px 20px rgba(0,0,0,0.9);
     border: 1px solid rgba(255, 255, 255, 0.25);
     transition: transform 0.25s ease, filter 0.25s ease;
+    display: block;
 }
 
 .meditation-full-img:hover,
