@@ -77,7 +77,7 @@ export async function onRequestGet(context) {
             } else if (filter === 'meditation') {
                 orderBy = 'meditation_minutes DESC, devotion_points DESC, u.created_at_ms ASC';
             } else if (filter === 'streaks') {
-                orderBy = 'current_streak DESC, longest_streak DESC, devotion_points DESC';
+                orderBy = 'current_streak DESC, longest_streak DESC, devotion_points DESC, u.created_at_ms ASC';
             }
 
             let devoteeRows = [];
@@ -169,18 +169,25 @@ export async function onRequestGet(context) {
 
         // ── 2. Supreme Deity Leaderboard (عَرْشُ الإِلَهِ الأَكْبَر) ─────────────
         if (type === 'goddesses' || type === 'supreme' || type === 'deity') {
+            // Community aggregates count APPROVED members only — consistent
+            // with the topDevotee gate below (a banned whale must not crown a
+            // goddess while being barred from her champion card).
+            // NOTE: MAX(0, expr) is SQLite's two-argument SCALAR max here;
+            // do not collapse it to single-arg MAX inside SUM or the query
+            // becomes an illegal nested aggregate.
             let query = `
-                SELECT 
-                    c.id, 
-                    c.name, 
-                    c.category, 
-                    c.label, 
+                SELECT
+                    c.id,
+                    c.name,
+                    c.category,
+                    c.label,
                     c.created_at_ms,
-                    COALESCE(SUM(MAX(0, p.times_correct * 10 - p.times_wrong * 5)), 0) as total_community_devotion,
-                    COALESCE(SUM(p.times_correct), 0) as total_community_tributes,
-                    COUNT(DISTINCT CASE WHEN (p.times_correct > 0 OR p.times_wrong > 0) THEN p.user_id ELSE NULL END) as total_devotees_count
+                    COALESCE(SUM(CASE WHEN pu.id IS NOT NULL THEN MAX(0, p.times_correct * 10 - p.times_wrong * 5) ELSE 0 END), 0) as total_community_devotion,
+                    COALESCE(SUM(CASE WHEN pu.id IS NOT NULL THEN p.times_correct ELSE 0 END), 0) as total_community_tributes,
+                    COUNT(DISTINCT CASE WHEN pu.id IS NOT NULL AND (p.times_correct > 0 OR p.times_wrong > 0) THEN p.user_id ELSE NULL END) as total_devotees_count
                 FROM characters c
                 LEFT JOIN user_character_progress p ON c.id = p.character_id
+                LEFT JOIN users pu ON pu.id = p.user_id AND pu.status = 'approved' AND pu.deleted_at_ms IS NULL
                 WHERE c.status = 'approved' AND c.deleted_at_ms IS NULL
             `;
             const params = [];
@@ -228,7 +235,7 @@ export async function onRequestGet(context) {
                         JOIN users u ON u.id = p.user_id
                         WHERE p.character_id IN (${placeholders}) 
                           AND u.status = 'approved' AND (p.times_correct > 0 OR p.times_wrong > 0)
-                        ORDER BY p.character_id, devotion DESC, p.times_correct DESC
+                        ORDER BY p.character_id, devotion DESC, p.times_correct DESC, u.username ASC
                     `).bind(...chunk).all();
 
                     (topDevoteesChunk || []).forEach(dev => {

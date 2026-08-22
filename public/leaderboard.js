@@ -1,6 +1,7 @@
 import { sound } from './sound.js';
 import { lightbox } from './lightbox.js';
 import { esc } from './esc.js';
+import { showToast } from './toast.js';
 
 export async function initLeaderboard() {
     const container = document.getElementById('page-leaderboard');
@@ -11,6 +12,10 @@ export async function initLeaderboard() {
     let currentCategory = 'all'; // for goddesses/stars/users: 'all', 'sluts', 'trans', 'twinks'
     let selectedCharacterId = null;
     let charactersListCache = null;
+    let charactersCacheAt = 0;
+    // Out-of-order guard: rapid tab/filter switching fires parallel requests;
+    // only the response of the LATEST generation may paint the board.
+    let requestGeneration = 0;
 
     container.innerHTML = `
         <div class="leaderboard-header-section mb-6">
@@ -132,10 +137,13 @@ export async function initLeaderboard() {
         if (!select) return;
 
         try {
-            if (!charactersListCache) {
-                const res = await fetch('/api/characters');
+            // 5-minute TTL: keeps the dropdown fresh when new goddesses are
+            // added mid-session without refetching on every tab click.
+            if (!charactersListCache || (Date.now() - charactersCacheAt) > 5 * 60 * 1000) {
+                const res = await fetch('/api/characters?limit=2000');
                 const data = await res.json();
                 charactersListCache = data.data?.characters || [];
+                charactersCacheAt = Date.now();
             }
 
             select.innerHTML = '<option value="">-- اختر السلطانة لعرض خادمها الأخلص --</option>' +
@@ -156,6 +164,7 @@ export async function initLeaderboard() {
             });
         } catch (e) {
             console.error("Failed to load characters for dropdown", e);
+            showToast('تعذر تحميل قائمة السلطانات — أعد فتح التبويب للمحاولة', 'error');
         }
     }
 
@@ -163,6 +172,7 @@ export async function initLeaderboard() {
         const listEl = document.getElementById('leaderboard-list-container');
         if (!listEl) return;
 
+        const gen = ++requestGeneration;
         listEl.innerHTML = `
             <div class="leaderboard-row skeleton" style="height: 76px;"></div>
             <div class="leaderboard-row skeleton" style="height: 76px;"></div>
@@ -183,24 +193,32 @@ export async function initLeaderboard() {
             const res = await fetch(url);
             const data = await res.json();
 
-            if (data.success) {
-                if (currentType === 'devotees') {
-                    renderDevoteesList(data.data.leaderboard || [], currentFilter);
-                } else if (currentType === 'goddesses') {
-                    renderGoddessesList(data.data.leaderboard || []);
-                } else if (currentType === 'stars') {
-                    renderStarsList(data.data.leaderboard || []);
-                } else {
-                    renderUsersList(data.data.leaderboard || [], currentCategory);
-                }
+            // A newer tab/filter click superseded this request — drop it.
+            if (gen !== requestGeneration) return;
+
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load leaderboard');
+            }
+
+            if (currentType === 'devotees') {
+                renderDevoteesList(data.data.leaderboard || [], currentFilter);
+            } else if (currentType === 'goddesses') {
+                renderGoddessesList(data.data.leaderboard || []);
+            } else if (currentType === 'stars') {
+                renderStarsList(data.data.leaderboard || []);
+            } else {
+                renderUsersList(data.data.leaderboard || [], currentCategory);
             }
         } catch (e) {
+            if (gen !== requestGeneration) return;
             console.error("Failed to load leaderboard", e);
             listEl.innerHTML = `
                 <div class="result-stat-box text-center py-8">
-                    <p class="color-text-muted">حدث خطأ أثناء تحميل لوحة المتصدرين. يُرجى إعادة المحاولة.</p>
+                    <p class="color-text-muted mb-3">حدث خطأ أثناء تحميل لوحة المتصدرين.</p>
+                    <button id="leaderboard-retry" class="btn-secondary text-xs font-bold py-2 px-4">🔄 إعادة المحاولة</button>
                 </div>
             `;
+            document.getElementById('leaderboard-retry')?.addEventListener('click', () => loadLeaderboard());
         }
     }
 
@@ -245,13 +263,14 @@ export async function initLeaderboard() {
                             ${rankMedal}
                         </div>
                         <div class="user-avatar-circle" style="background: linear-gradient(135deg, #7c3aed, #db2777); font-weight: 800; font-size: 1.1rem; width: 44px; height: 44px; border-radius: 50%; display:flex; align-items:center; justify-content:center; color:#fff; border: 2px solid rgba(234,179,8,0.5);">
-                            ${initial}
+                            ${esc(initial)}
                         </div>
                         <div>
                             <div class="font-bold flex items-center gap-2" style="font-size: 1rem;">
                                 <span style="color: #fff;">@${esc(user.username)}</span>
                                 ${user.isMe ? '<span class="badge" style="background:#8b5cf6; color:#fff; font-size:0.65rem; padding: 2px 6px;">أَنْتَ 👑</span>' : ''}
                                 ${user.role === 'admin' ? '<span class="badge" style="background:#ea580c; color:#fff; font-size:0.65rem; padding: 2px 6px;">سَادِن المَعْبَد</span>' : ''}
+                                ${user.role === 'moderator' ? '<span class="badge" style="background:#2563eb; color:#fff; font-size:0.65rem; padding: 2px 6px;">حَارِس المَعْبَد</span>' : ''}
                             </div>
                             <!-- مرتبة العبودية بالاسم الكامل -->
                             <div style="color: #fef08a; font-family: 'Amiri Quran', serif; font-size: 0.88rem; line-height: 1.4; margin-top: 2px; text-shadow: 0 0 10px rgba(250, 204, 21, 0.35);">
@@ -419,12 +438,12 @@ export async function initLeaderboard() {
                     </div>
 
                     <div class="star-avatar-box" title="View portrait">
-                        <img src="${avatarSrc}" alt="${star.name}" loading="lazy" referrerpolicy="no-referrer" class="star-avatar-img">
+                        <img src="${avatarSrc}" alt="${esc(star.name)}" loading="lazy" referrerpolicy="no-referrer" class="star-avatar-img">
                     </div>
 
                     <div class="star-info-box">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-bold star-name-text">${star.name}</span>
+                            <span class="font-bold star-name-text">${esc(star.name)}</span>
                             <span class="badge badge-${star.category}" style="font-size: 0.65rem; padding: 2px 6px;">${star.category.toUpperCase()}</span>
                         </div>
                         <div class="text-xs color-text-muted flex items-center gap-2 mt-0.5">
@@ -493,12 +512,13 @@ export async function initLeaderboard() {
             row.innerHTML = `
                 <div class="flex items-center gap-3">
                     <div class="rank-badge">${rankMedal}</div>
-                    <div class="user-avatar-circle">${initial}</div>
+                    <div class="user-avatar-circle">${esc(initial)}</div>
                     <div>
                         <div class="font-bold flex items-center gap-2">
-                            <span>@${user.username}</span>
+                            <span>@${esc(user.username)}</span>
                             ${user.isMe ? '<span class="badge badge-mix">YOU</span>' : ''}
                             ${user.role === 'admin' ? '<span class="badge badge-sluts">ADMIN</span>' : ''}
+                            ${user.role === 'moderator' ? '<span class="badge badge-trans">MOD</span>' : ''}
                         </div>
                         <div class="text-xs color-text-muted">
                             Trans: ${user.transCount} • Sluts: ${user.slutsCount} • Twinks: ${user.twinksCount}
