@@ -5,7 +5,7 @@ import { initGame } from './game.js';
 import { getCsrfToken } from './csrf.js';
 
 let state = {
-    currentTab: 'temple', // 'temple' | 'throne' | 'rosary'
+    currentTab: 'temple', // 'temple' | 'throne' | 'rosary' | 'contemplation'
     selectedCategory: 'all',
     selectedCharId: null,
     worshipData: null,
@@ -18,7 +18,13 @@ let state = {
     rosaryLitany: 'glory',
     rosaryCurrentBead: 0,
     rosaryLifetimeCount: Number(localStorage.getItem('goooog_rosary_lifetime') || 0),
-    rosaryCompletedSeals: Number(localStorage.getItem('goooog_rosary_seals') || 0)
+    rosaryCompletedSeals: Number(localStorage.getItem('goooog_rosary_seals') || 0),
+    contemplationMode: 'surahs', // 'surahs' | 'meditation' | 'commandments' | 'oracle'
+    activeSurahId: 'sovereignty',
+    meditationTimer: null,
+    meditationSeconds: 0,
+    meditationRunning: true,
+    meditationInterval: null
 };
 
 export async function initWorship() {
@@ -43,7 +49,7 @@ export async function initWorship() {
                 </p>
             </div>
 
-            <!-- Worship 3-Way Navigation Tabs (المعبد vs عرش الآلهة vs مسبحة الآلهة) -->
+            <!-- Worship 4-Way Navigation Tabs (المعبد vs عرش الآلهة vs مسبحة الآلهة vs آيات التدبر) -->
             <div class="worship-nav-tabs mb-5">
                 <button class="worship-tab-btn ${state.currentTab === 'temple' ? 'active' : ''}" id="tab-btn-temple" data-tab="temple">
                     <span>🏛️ المعبد</span>
@@ -56,6 +62,10 @@ export async function initWorship() {
                 <button class="worship-tab-btn ${state.currentTab === 'rosary' ? 'active' : ''}" id="tab-btn-rosary" data-tab="rosary">
                     <span>📿 مسبحة الآلهة</span>
                     <span class="tab-sub">التسبيح الحركي والأوراد الملكية</span>
+                </button>
+                <button class="worship-tab-btn ${state.currentTab === 'contemplation' ? 'active' : ''}" id="tab-btn-contemplation" data-tab="contemplation">
+                    <span>📖 آيات التدبر</span>
+                    <span class="tab-sub">مصحف الفتنة ومحراب الوحي</span>
                 </button>
             </div>
 
@@ -108,6 +118,11 @@ export async function initWorship() {
             <div id="worship-rosary-container" class="worship-rosary-container ${state.currentTab === 'rosary' ? '' : 'hidden'}">
                 <div class="spinner mx-auto my-12"></div>
             </div>
+
+            <!-- TAB 4: CONTEMPLATION SCRIPTURE VIEW (آيات التدبر ومصحف الفتنة) -->
+            <div id="worship-contemplation-container" class="worship-contemplation-container ${state.currentTab === 'contemplation' ? '' : 'hidden'}">
+                <div class="spinner mx-auto my-12"></div>
+            </div>
         </div>
     `;
 
@@ -122,27 +137,38 @@ function attachTabEvents() {
     document.getElementById('tab-btn-temple')?.addEventListener('click', () => switchWorshipTab('temple'));
     document.getElementById('tab-btn-throne')?.addEventListener('click', () => switchWorshipTab('throne'));
     document.getElementById('tab-btn-rosary')?.addEventListener('click', () => switchWorshipTab('rosary'));
+    document.getElementById('tab-btn-contemplation')?.addEventListener('click', () => switchWorshipTab('contemplation'));
 }
 
 export function switchWorshipTab(tabName) {
     state.currentTab = tabName;
     sound.playClick();
 
+    // Clear meditation intervals when leaving contemplation tab
+    if (tabName !== 'contemplation') {
+        if (state.meditationTimer) clearInterval(state.meditationTimer);
+        if (state.meditationInterval) clearInterval(state.meditationInterval);
+    }
+
     const templeBtn = document.getElementById('tab-btn-temple');
     const throneBtn = document.getElementById('tab-btn-throne');
     const rosaryBtn = document.getElementById('tab-btn-rosary');
+    const contemplationBtn = document.getElementById('tab-btn-contemplation');
 
     const templeContainer = document.getElementById('worship-temple-container');
     const throneContainer = document.getElementById('worship-throne-container');
     const rosaryContainer = document.getElementById('worship-rosary-container');
+    const contemplationContainer = document.getElementById('worship-contemplation-container');
 
     templeBtn?.classList.toggle('active', tabName === 'temple');
     throneBtn?.classList.toggle('active', tabName === 'throne');
     rosaryBtn?.classList.toggle('active', tabName === 'rosary');
+    contemplationBtn?.classList.toggle('active', tabName === 'contemplation');
 
     templeContainer?.classList.toggle('hidden', tabName !== 'temple');
     throneContainer?.classList.toggle('hidden', tabName !== 'throne');
     rosaryContainer?.classList.toggle('hidden', tabName !== 'rosary');
+    contemplationContainer?.classList.toggle('hidden', tabName !== 'contemplation');
 
     if (state.worshipData) {
         if (tabName === 'temple') {
@@ -152,6 +178,8 @@ export function switchWorshipTab(tabName) {
             renderThroneView(state.worshipData);
         } else if (tabName === 'rosary') {
             renderRosaryView(state.worshipData);
+        } else if (tabName === 'contemplation') {
+            renderContemplationView(state.worshipData);
         }
     }
 }
@@ -1449,3 +1477,539 @@ export async function triggerRosaryBeadAdvance(char) {
         }
     }
 }
+
+// ==========================================================================
+// TAB 4: CONTEMPLATION SCRIPTURE VIEW (آيات التدبر ومصحف الفتنة)
+// ==========================================================================
+export function renderContemplationView(data) {
+    const container = document.getElementById('worship-contemplation-container');
+    if (!container || !data) return;
+
+    const surahs = data.contemplation?.surahs || [];
+    const commandments = data.contemplation?.commandments || [];
+    const characters = data.characters || [];
+    const char = characters.find(c => c.id === state.selectedCharId) || characters[0];
+
+    container.innerHTML = `
+        <div class="contemplation-wrapper">
+            <!-- 4-Way Contemplation Mode Selector Ribbon -->
+            <div class="contemplation-mode-nav mb-5" id="contemplation-mode-nav">
+                <button class="contemplation-mode-btn ${state.contemplationMode === 'surahs' ? 'active' : ''}" data-mode="surahs">
+                    <span class="mode-icon">📜</span>
+                    <span>سور المصحف (11 سورة)</span>
+                </button>
+                <button class="contemplation-mode-btn ${state.contemplationMode === 'meditation' ? 'active' : ''}" data-mode="meditation">
+                    <span class="mode-icon">🧘‍♂️</span>
+                    <span>محراب التأمل الحي</span>
+                </button>
+                <button class="contemplation-mode-btn ${state.contemplationMode === 'commandments' ? 'active' : ''}" data-mode="commandments">
+                    <span class="mode-icon">📜</span>
+                    <span>لوح الوحي (10 وصايا)</span>
+                </button>
+                <button class="contemplation-mode-btn ${state.contemplationMode === 'oracle' ? 'active' : ''}" data-mode="oracle">
+                    <span class="mode-icon">🎲</span>
+                    <span>مستخرج الآيات اللحظي</span>
+                </button>
+            </div>
+
+            <!-- Subview Container -->
+            <div id="contemplation-subview-content" class="contemplation-subview-content"></div>
+        </div>
+    `;
+
+    // Mode Selector Events
+    container.querySelectorAll('.contemplation-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.mode;
+            if (mode === state.contemplationMode) return;
+            state.contemplationMode = mode;
+            sound.playClick();
+            
+            // Clear meditation timers if switching away from meditation mode
+            if (mode !== 'meditation') {
+                if (state.meditationTimer) clearInterval(state.meditationTimer);
+                if (state.meditationInterval) clearInterval(state.meditationInterval);
+            }
+            renderContemplationView(data);
+        });
+    });
+
+    const subContainer = document.getElementById('contemplation-subview-content');
+    if (!subContainer) return;
+
+    if (state.contemplationMode === 'surahs') {
+        renderContemplationSurahs(data, subContainer, char);
+    } else if (state.contemplationMode === 'meditation') {
+        renderContemplationMeditation(data, subContainer, char);
+    } else if (state.contemplationMode === 'commandments') {
+        renderContemplationCommandments(data, subContainer, char);
+    } else if (state.contemplationMode === 'oracle') {
+        renderContemplationOracle(data, subContainer, char);
+    }
+}
+
+// --------------------------------------------------------------------------
+// Mode 1: Surahs Reader & Sealing (11 Surahs × 50 Verses)
+// --------------------------------------------------------------------------
+function renderContemplationSurahs(data, subContainer, char) {
+    const surahs = data.contemplation?.surahs || [];
+    const activeSurah = surahs.find(s => s.id === state.activeSurahId) || surahs[0] || { title: "سورة السطوة", verses: [] };
+    const characters = data.characters || [];
+
+    subContainer.innerHTML = `
+        <!-- Goddess Selector Pill Strip -->
+        <div class="contemplation-goddess-bar mb-4 flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-amber-300 font-bold">👑 تدبر في حضرة السلطانة:</span>
+                <select id="contemplation-goddess-select" class="worship-select-clean text-xs font-bold" style="background: rgba(15, 14, 30, 0.9); border: 1px solid rgba(168, 85, 247, 0.4); color: #fef08a; padding: 0.35rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer;">
+                    ${characters.map(c => `<option value="${c.id}" ${c.id === char.id ? 'selected' : ''}>${c.name} (${c.category})</option>`).join('')}
+                </select>
+            </div>
+            <span class="badge text-xs" style="background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #d8b4fe;">
+                📖 550 آية تدبرية كاملة
+            </span>
+        </div>
+
+        <!-- Surah Selector Carousel / Buttons -->
+        <div class="surahs-pills-ribbon mb-4" id="surahs-pills-ribbon">
+            ${surahs.map(s => `
+                <button class="surah-pill-btn ${s.id === activeSurah.id ? 'active' : ''}" data-surah="${s.id}">
+                    <span class="surah-icon">${s.icon || '📜'}</span>
+                    <span class="surah-title">${s.title}</span>
+                </button>
+            `).join('')}
+        </div>
+
+        <!-- Active Surah Manuscript Card -->
+        <div class="surah-manuscript-card">
+            <div class="surah-card-header text-center pb-4 mb-4" style="border-bottom: 1px solid rgba(245, 158, 11, 0.3);">
+                <div class="surah-badge-number mb-1">
+                    <span class="badge" style="background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); color: #fcd34d;">
+                        السورة رقم (${activeSurah.num || 1}) — 50 آية مُحْكَمَة
+                    </span>
+                </div>
+                <h2 class="glow-text text-2xl font-black mb-1" style="color: #fef08a;">${activeSurah.title}</h2>
+                <p class="text-xs color-text-muted max-w-lg mx-auto">${activeSurah.subtitle || ''}</p>
+            </div>
+
+            <!-- 50 Numbered Verses Container -->
+            <div class="surah-verses-scroll-box" id="surah-verses-scroll-box">
+                <div class="verses-prose-flow">
+                    ${(activeSurah.verses || []).map((verse, idx) => {
+                        const cleanText = verse.replace(/۝/g, '').trim();
+                        return `
+                            <span class="verse-unit" id="verse-${idx + 1}" data-num="${idx + 1}">
+                                <span class="verse-text">${cleanText}</span>
+                                <span class="verse-ayah-ornament" title="آية ${idx + 1}">۝ <span class="num">${idx + 1}</span> ۝</span>
+                            </span>
+                        `;
+                    }).join(' ')}
+                </div>
+            </div>
+
+            <!-- Surah Sealing Bottom Action Footer -->
+            <div class="surah-card-footer mt-5 pt-4 flex items-center justify-between gap-3 flex-wrap" style="border-top: 1px solid rgba(168, 85, 247, 0.3);">
+                <button class="btn-secondary text-xs font-bold" id="btn-read-random-verse">
+                    🎲 تدبر في آية عشوائية
+                </button>
+                <button class="btn-primary flex-1 font-bold text-sm py-3" id="btn-seal-surah" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.35);">
+                    🤲 خَتْمُ ${activeSurah.title} ونَيْلُ البَرَكَةِ (+50 Devotion)
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Surah selector events
+    subContainer.querySelectorAll('.surah-pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            state.activeSurahId = btn.dataset.surah;
+            sound.playClick();
+            renderContemplationSurahs(data, subContainer, char);
+        });
+    });
+
+    // Goddess change dropdown
+    document.getElementById('contemplation-goddess-select')?.addEventListener('change', (e) => {
+        state.selectedCharId = e.target.value;
+        const newChar = characters.find(c => c.id === state.selectedCharId) || char;
+        renderContemplationSurahs(data, subContainer, newChar);
+    });
+
+    // Random verse highlight
+    document.getElementById('btn-read-random-verse')?.addEventListener('click', () => {
+        sound.playClick();
+        const count = activeSurah.verses?.length || 50;
+        const randNum = Math.floor(Math.random() * count) + 1;
+        const verseEl = document.getElementById(`verse-${randNum}`);
+        if (verseEl) {
+            verseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            verseEl.classList.add('verse-highlighted');
+            setTimeout(() => verseEl.classList.remove('verse-highlighted'), 2500);
+            showToast(`✨ تم تحديد الآية رقم (${randNum}) للتدبر المتأمل ۝`, "info");
+        }
+    });
+
+    // Seal Surah Action (+50 Devotion)
+    document.getElementById('btn-seal-surah')?.addEventListener('click', async () => {
+        sound.playWin();
+        triggerSubmissionEffect();
+
+        try {
+            const res = await fetch('/api/worship', {
+                method: 'POST',
+                body: JSON.stringify({ characterId: char.id, action: 'seal_surah' })
+            });
+            const resData = await res.json();
+            if (resData.success) {
+                char.devotionScore = (resData.data?.devotionScore !== undefined) ? resData.data.devotionScore : (char.devotionScore || 0) + 50;
+                if (resData.data?.totalDevotion !== undefined) {
+                    const totalEl = document.getElementById('worship-total-pts');
+                    if (totalEl) totalEl.innerText = formatDevotion(resData.data.totalDevotion);
+                }
+                showToast(`جُدِّد ختم ${activeSurah.title} في ديوان الخلود 📜✨ (+50 Devotion)`, "success");
+            }
+        } catch (e) {
+            console.error("Seal surah error", e);
+        }
+    });
+}
+
+// --------------------------------------------------------------------------
+// Mode 2: Live Visual Meditation Altar
+// --------------------------------------------------------------------------
+function renderContemplationMeditation(data, subContainer, char) {
+    const surahs = data.contemplation?.surahs || [];
+    const allVerses = [];
+    surahs.forEach(s => {
+        (s.verses || []).forEach(v => {
+            allVerses.push({ surahTitle: s.title, verseText: v.replace(/۝/g, '').trim() });
+        });
+    });
+
+    const fallbackVerse = allVerses[Math.floor(Math.random() * allVerses.length)] || {
+        surahTitle: "سُورَةُ السَّطْوَةِ والجَبَرُوت",
+        verseText: "تَبَارَكَتِ السَّلْطَانَةُ الَّتِي بِيَدِهَا مَقَالِيدُ القُلُوبِ والأَبْصَارِ، وَهِيَ عَلَى كُلِّ إِرَادَةٍ قَاهِرَةٌ"
+    };
+
+    const avatarSrc = char.primary_image || (char.images && char.images[0]) || '';
+
+    subContainer.innerHTML = `
+        <div class="meditation-altar-card text-center">
+            <div class="meditation-header mb-4">
+                <span class="badge mb-2" style="background: rgba(236, 72, 153, 0.2); border-color: rgba(236, 72, 153, 0.4); color: #f472b6;">
+                    🧘‍♂️ محراب التأمل البصري الحي والسكينة
+                </span>
+                <h2 class="glow-text text-xl font-bold text-purple-200">التدبر في بهاء السلطانة ${char.name}</h2>
+                <p class="text-xs color-text-muted">ركّز بصرك في الصورة ودع الآيات تسري في فؤادك مع كل نبضة</p>
+            </div>
+
+            <!-- Central Glowing Goddess Portrait with Breathing Pulse Aura -->
+            <div class="meditation-portrait-wrapper mx-auto mb-5">
+                <div class="meditation-aura-pulse" id="meditation-aura">
+                    <img src="${avatarSrc}" alt="${char.name}" class="meditation-portrait-img" id="meditation-portrait" loading="lazy">
+                </div>
+            </div>
+
+            <!-- Timer & Devotion Metrics -->
+            <div class="meditation-stats-row mb-4 flex items-center justify-center gap-4">
+                <div class="meditation-stat-badge">
+                    <span class="text-xs color-text-muted">⏱️ زمن التأمل:</span>
+                    <strong id="meditation-clock" class="glow-text text-sm" style="color: #fcd34d;">00:00</strong>
+                </div>
+                <div class="meditation-stat-badge">
+                    <span class="text-xs color-text-muted">✨ أجر التدبر:</span>
+                    <strong id="meditation-earned" class="glow-text text-sm" style="color: #38bdf8;">+0 Pts</strong>
+                </div>
+            </div>
+
+            <!-- Flowing Contemplation Verse Bubble -->
+            <div class="meditation-verse-bubble p-4 rounded-xl mx-auto mb-4" id="meditation-verse-bubble">
+                <span class="badge text-xs mb-2" id="meditation-surah-tag" style="background: rgba(168, 85, 247, 0.2); color: #d8b4fe;">
+                    ${fallbackVerse.surahTitle}
+                </span>
+                <p class="meditation-verse-content text-base font-bold" id="meditation-verse-text" style="color: #fdf4ff; line-height: 1.9;">
+                    « ${fallbackVerse.verseText} »
+                </p>
+            </div>
+
+            <!-- Play / Pause / Next Verse Controls -->
+            <div class="meditation-controls flex items-center justify-center gap-3">
+                <button class="btn-secondary text-xs font-bold" id="btn-toggle-meditation">
+                    ⏸️ إيقاف مؤقت
+                </button>
+                <button class="btn-primary text-xs font-bold" id="btn-next-meditation-verse" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none;">
+                    🔄 الآية التالية
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Click portrait to zoom
+    document.getElementById('meditation-portrait')?.addEventListener('click', () => {
+        const images = char.images && char.images.length > 0 ? char.images : [avatarSrc];
+        lightbox.open(images, { name: char.name, category: char.category, startIndex: 0 });
+    });
+
+    // Meditation timers & auto-verse transitions
+    state.meditationSeconds = 0;
+    state.meditationRunning = true;
+
+    function formatTime(s) {
+        const mins = Math.floor(s / 60).toString().padStart(2, '0');
+        const secs = (s % 60).toString().padStart(2, '0');
+        return `${mins}:${secs}`;
+    }
+
+    if (state.meditationTimer) clearInterval(state.meditationTimer);
+    state.meditationTimer = setInterval(async () => {
+        if (!state.meditationRunning) return;
+        state.meditationSeconds++;
+        const clockEl = document.getElementById('meditation-clock');
+        if (clockEl) clockEl.innerText = formatTime(state.meditationSeconds);
+
+        // Every 60 seconds of meditation awards +10 Devotion
+        if (state.meditationSeconds > 0 && state.meditationSeconds % 60 === 0) {
+            try {
+                const res = await fetch('/api/worship', {
+                    method: 'POST',
+                    body: JSON.stringify({ characterId: char.id, action: 'meditation_minute' })
+                });
+                const resData = await res.json();
+                if (resData.success) {
+                    char.devotionScore = (resData.data?.devotionScore !== undefined) ? resData.data.devotionScore : (char.devotionScore || 0) + 10;
+                    if (resData.data?.totalDevotion !== undefined) {
+                        const totalEl = document.getElementById('worship-total-pts');
+                        if (totalEl) totalEl.innerText = formatDevotion(resData.data.totalDevotion);
+                    }
+                    const earnedEl = document.getElementById('meditation-earned');
+                    if (earnedEl) earnedEl.innerText = `+${Math.floor(state.meditationSeconds / 60) * 10} Pts`;
+                    sound.playCoin();
+                    showToast(`✨ اكتملت دقيقة تأمل ونلت (+10 Devotion) في محراب ${char.name}`, "success");
+                }
+            } catch (e) {}
+        }
+    }, 1000);
+
+    function nextVerse() {
+        if (allVerses.length === 0) return;
+        const v = allVerses[Math.floor(Math.random() * allVerses.length)];
+        const textEl = document.getElementById('meditation-verse-text');
+        const tagEl = document.getElementById('meditation-surah-tag');
+        const bubble = document.getElementById('meditation-verse-bubble');
+
+        if (bubble) {
+            bubble.classList.add('verse-fade-out');
+            setTimeout(() => {
+                if (textEl) textEl.innerText = `« ${v.verseText} »`;
+                if (tagEl) tagEl.innerText = v.surahTitle;
+                bubble.classList.remove('verse-fade-out');
+                bubble.classList.add('verse-fade-in');
+                setTimeout(() => bubble.classList.remove('verse-fade-in'), 500);
+            }, 300);
+        }
+    }
+
+    if (state.meditationInterval) clearInterval(state.meditationInterval);
+    state.meditationInterval = setInterval(() => {
+        if (state.meditationRunning) nextVerse();
+    }, 7000);
+
+    document.getElementById('btn-next-meditation-verse')?.addEventListener('click', () => {
+        sound.playClick();
+        nextVerse();
+    });
+
+    document.getElementById('btn-toggle-meditation')?.addEventListener('click', (e) => {
+        state.meditationRunning = !state.meditationRunning;
+        sound.playClick();
+        e.target.innerText = state.meditationRunning ? '⏸️ إيقاف مؤقت' : '▶️ استئناف التأمل';
+        const aura = document.getElementById('meditation-aura');
+        if (aura) {
+            aura.style.animationPlayState = state.meditationRunning ? 'running' : 'paused';
+        }
+    });
+}
+
+// --------------------------------------------------------------------------
+// Mode 3: The 10 Sacrosanct Commandments (لوح الوحي والوصايا)
+// --------------------------------------------------------------------------
+function renderContemplationCommandments(data, subContainer, char) {
+    const commandments = data.contemplation?.commandments || [];
+
+    subContainer.innerHTML = `
+        <div class="commandments-tablet-card">
+            <div class="tablet-header text-center pb-4 mb-4" style="border-bottom: 1px solid rgba(245, 158, 11, 0.3);">
+                <span class="badge mb-2" style="background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); color: #fcd34d;">
+                    📜 شَرَائِعُ الخُضُوعِ الأَبَدِيِّ
+                </span>
+                <h2 class="glow-text text-2xl font-black mb-1" style="background: linear-gradient(135deg, #fcd34d, #f43f5e); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    لوح الوحي والوصايا العشر للعبودية
+                </h2>
+                <p class="text-xs color-text-muted max-w-lg mx-auto">
+                    العهود العشرة الصارمة التي كُتبت على جباه العبيد في حضرة السلطانة ${char.name}
+                </p>
+            </div>
+
+            <!-- 10 Commandments List -->
+            <div class="commandments-list-grid">
+                ${commandments.map((cmd) => `
+                    <div class="commandment-item-card">
+                        <div class="commandment-header flex items-center justify-between mb-1">
+                            <h3 class="font-bold text-sm text-amber-300">${cmd.title}</h3>
+                            <span class="badge text-xs" style="background: rgba(245, 158, 11, 0.15); color: #fcd34d;">
+                                عهد #${cmd.id}
+                            </span>
+                        </div>
+                        <p class="commandment-body text-xs" style="color: #f3e8ff; line-height: 1.8;">
+                            ${cmd.text}
+                        </p>
+                    </div>
+                `).join('')}
+            </div>
+
+            <!-- Bottom Confirmation CTA -->
+            <div class="tablet-footer mt-5 pt-4 text-center" style="border-top: 1px solid rgba(168, 85, 247, 0.3);">
+                <button class="btn-primary font-bold text-sm py-3 px-8" id="btn-seal-commandments" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.35);">
+                    📜 أُقِرُّ بِشَرَائِعِ الوَحْيِ والخُضُوعِ التَّامِّ (+40 Devotion)
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('btn-seal-commandments')?.addEventListener('click', async () => {
+        sound.playWin();
+        triggerSubmissionEffect();
+
+        try {
+            const res = await fetch('/api/worship', {
+                method: 'POST',
+                body: JSON.stringify({ characterId: char.id, action: 'seal_commandments' })
+            });
+            const resData = await res.json();
+            if (resData.success) {
+                char.devotionScore = (resData.data?.devotionScore !== undefined) ? resData.data.devotionScore : (char.devotionScore || 0) + 40;
+                if (resData.data?.totalDevotion !== undefined) {
+                    const totalEl = document.getElementById('worship-total-pts');
+                    if (totalEl) totalEl.innerText = formatDevotion(resData.data.totalDevotion);
+                }
+                showToast("سُجِّل إقرارك بالوصايا العشر في ديوان الخلود 📜✨ (+40 Devotion)", "success");
+            }
+        } catch (e) {
+            console.error("Seal commandments error", e);
+        }
+    });
+}
+
+// --------------------------------------------------------------------------
+// Mode 4: Instant Verse Oracle (مستخرج الآيات اللحظي)
+// --------------------------------------------------------------------------
+function renderContemplationOracle(data, subContainer, char) {
+    const surahs = data.contemplation?.surahs || [];
+    const characters = data.characters || [];
+    const allVerses = [];
+    surahs.forEach(s => {
+        (s.verses || []).forEach((v, idx) => {
+            allVerses.push({
+                surahTitle: s.title,
+                surahIcon: s.icon || '📜',
+                verseNum: idx + 1,
+                verseText: v.replace(/۝/g, '').trim()
+            });
+        });
+    });
+
+    const initialVerse = allVerses[Math.floor(Math.random() * allVerses.length)] || {
+        surahTitle: "سُورَةُ السَّطْوَةِ والجَبَرُوت",
+        surahIcon: "👑",
+        verseNum: 1,
+        verseText: "تَبَارَكَتِ السَّلْطَانَةُ الَّتِي بِيَدِهَا مَقَالِيدُ القُلُوبِ والأَبْصَارِ، وَهِيَ عَلَى كُلِّ إِرَادَةٍ قَاهِرَةٌ"
+    };
+
+    const avatarSrc = char.primary_image || (char.images && char.images[0]) || '';
+
+    subContainer.innerHTML = `
+        <div class="oracle-wrapper text-center">
+            <div class="oracle-header mb-4">
+                <span class="badge mb-2" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #d8b4fe;">
+                    🎲 مستخرج آيات التدبر والوحي اللحظي
+                </span>
+                <h2 class="glow-text text-xl font-bold text-purple-200">استلهام الآيات من بين 550 آية مقدسة</h2>
+                <p class="text-xs color-text-muted">اضغط على الزر لاستخراج نفحة تدبرية فورية تضيء مقام العبودية</p>
+            </div>
+
+            <!-- Dynamic Oracle Card Display -->
+            <div class="oracle-card-display p-6 rounded-2xl mx-auto mb-5" id="oracle-card">
+                <div class="flex items-center justify-between mb-3" style="border-bottom: 1px solid rgba(168, 85, 247, 0.3); padding-bottom: 0.5rem;">
+                    <span class="text-sm font-bold text-amber-300 flex items-center gap-1" id="oracle-surah-tag">
+                        ${initialVerse.surahIcon} ${initialVerse.surahTitle}
+                    </span>
+                    <span class="badge text-xs" id="oracle-verse-num" style="background: rgba(245, 158, 11, 0.2); color: #fcd34d;">
+                        آية #${initialVerse.verseNum}
+                    </span>
+                </div>
+
+                <div class="oracle-verse-body my-4">
+                    <p class="oracle-quote-text text-lg font-bold" id="oracle-verse-text" style="color: #fef08a; line-height: 2; direction: rtl;">
+                        « ${initialVerse.verseText} »
+                    </p>
+                </div>
+
+                <div class="oracle-char-footer flex items-center justify-center gap-2 pt-3" style="border-top: 1px solid rgba(168, 85, 247, 0.2);">
+                    <img src="${avatarSrc}" alt="${char.name}" id="oracle-char-avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #ec4899;">
+                    <span class="text-xs text-purple-300 font-bold" id="oracle-char-name">في محراب السلطانة ${char.name}</span>
+                </div>
+            </div>
+
+            <!-- Draw Button CTA -->
+            <button class="btn-primary font-bold text-base py-3 px-8" id="btn-draw-oracle-verse" style="background: linear-gradient(135deg, #ec4899, #7c3aed); border: none; box-shadow: 0 4px 18px rgba(236, 72, 153, 0.4);">
+                🎲 اسْتِخْرَاجُ آيَةِ تَدَبُّرٍ لَحْظِيَّةٍ (+10 Devotion)
+            </button>
+        </div>
+    `;
+
+    document.getElementById('btn-draw-oracle-verse')?.addEventListener('click', async () => {
+        sound.playStreak();
+        
+        // Pick random verse and random character if available
+        const randVerse = allVerses[Math.floor(Math.random() * allVerses.length)];
+        const randChar = characters[Math.floor(Math.random() * characters.length)] || char;
+        const randAvatar = randChar.primary_image || (randChar.images && randChar.images[0]) || avatarSrc;
+
+        const cardEl = document.getElementById('oracle-card');
+        const tagEl = document.getElementById('oracle-surah-tag');
+        const numEl = document.getElementById('oracle-verse-num');
+        const textEl = document.getElementById('oracle-verse-text');
+        const charAvatarEl = document.getElementById('oracle-char-avatar');
+        const charNameEl = document.getElementById('oracle-char-name');
+
+        if (cardEl) {
+            cardEl.classList.add('card-flip-effect');
+            setTimeout(() => {
+                if (tagEl) tagEl.innerHTML = `${randVerse.surahIcon} ${randVerse.surahTitle}`;
+                if (numEl) numEl.innerText = `آية #${randVerse.verseNum}`;
+                if (textEl) textEl.innerText = `« ${randVerse.verseText} »`;
+                if (charAvatarEl) charAvatarEl.src = randAvatar;
+                if (charNameEl) charNameEl.innerText = `في محراب السلطانة ${randChar.name}`;
+                cardEl.classList.remove('card-flip-effect');
+            }, 250);
+        }
+
+        try {
+            const res = await fetch('/api/worship', {
+                method: 'POST',
+                body: JSON.stringify({ characterId: randChar.id, action: 'instant_verse' })
+            });
+            const resData = await res.json();
+            if (resData.success) {
+                if (resData.data?.totalDevotion !== undefined) {
+                    const totalEl = document.getElementById('worship-total-pts');
+                    if (totalEl) totalEl.innerText = formatDevotion(resData.data.totalDevotion);
+                }
+                showToast(`✨ اسْتُخْرِجَت الآية بنجاح ونلت (+10 Devotion)`, "success");
+            }
+        } catch (e) {
+            console.error("Draw oracle error", e);
+        }
+    });
+}
+

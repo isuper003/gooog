@@ -10,6 +10,10 @@ import {
     ARTIST_LITANY, 
     ARTIST_PROSE_TEXTS 
 } from './data/phrases.js';
+import {
+    CONTEMPLATION_SURAHS,
+    CONTEMPLATION_COMMANDMENTS
+} from './data/contemplation.js';
 
 export const DEVOTION_RANKS = [
     { minScore: 5000000,   title: "العدمُ المحض تحت السيادة المطلقة (Total Void Under Supreme Dominance)", tier: 10, badge: "👑🌌", desc: "قمة الانمحاء المطلق وبلوغ المرتبة الكبرى (5,000,000 نقطة)." },
@@ -130,6 +134,10 @@ export async function onRequestGet(context) {
             penanceList,
             totalDevotion,
             ranks: DEVOTION_RANKS,
+            contemplation: {
+                surahs: CONTEMPLATION_SURAHS,
+                commandments: CONTEMPLATION_COMMANDMENTS
+            },
             phrases: {
                 ARTIST_PROSE_TEXTS,
                 praise: PRAISE_PHRASES,
@@ -191,6 +199,30 @@ export async function onRequestPost(context) {
                 VALUES (?, ?, 3, (unixepoch() * 1000))
                 ON CONFLICT(user_id, character_id) DO UPDATE SET
                   times_correct = times_correct + 3
+            `).bind(data.user.id, characterId).run();
+        } else if (action === 'seal_surah') {
+            // Seal Contemplation Surah Rite (+50 pts / 5 increments)
+            await db.prepare(`
+                INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
+                VALUES (?, ?, 5, (unixepoch() * 1000))
+                ON CONFLICT(user_id, character_id) DO UPDATE SET
+                  times_correct = times_correct + 5
+            `).bind(data.user.id, characterId).run();
+        } else if (action === 'meditation_minute' || action === 'instant_verse') {
+            // Meditation minute or instant verse oracle draw (+10 pts)
+            await db.prepare(`
+                INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
+                VALUES (?, ?, 1, (unixepoch() * 1000))
+                ON CONFLICT(user_id, character_id) DO UPDATE SET
+                  times_correct = times_correct + 1
+            `).bind(data.user.id, characterId).run();
+        } else if (action === 'seal_commandments') {
+            // Acknowledge the 10 Commandments (+40 pts)
+            await db.prepare(`
+                INSERT INTO user_character_progress (user_id, character_id, times_correct, due_at_ms)
+                VALUES (?, ?, 4, (unixepoch() * 1000))
+                ON CONFLICT(user_id, character_id) DO UPDATE SET
+                  times_correct = times_correct + 4
             `).bind(data.user.id, characterId).run();
         } else if (action === 'rosary_cycle') {
             // Completed rosary cycle tribute (+count increments)
