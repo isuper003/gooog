@@ -344,14 +344,19 @@ export function initCrawler(currentUser) {
             const isDup = existingNames.has(model.name.toLowerCase().trim());
 
             const galleryPhotos = model.photos || [];
+            const profileImg = model.profileImage;
+            const combined = profileImg && !galleryPhotos.includes(profileImg)
+                ? [profileImg, ...galleryPhotos]
+                : galleryPhotos;
+
             const newChar = {
                 id: `direct_${Date.now()}`,
                 name: model.name,
                 slug: model.slug,
                 category: category,
-                profileImage: model.profileImage,
-                allImages: galleryPhotos,
-                selectedImages: galleryPhotos.slice(0, Math.min(4, galleryPhotos.length)),
+                profileImage: profileImg || (combined[0] || ''),
+                allImages: combined,
+                selectedImages: combined.slice(0, Math.min(4, combined.length)),
                 isDuplicate: isDup,
                 isFullGalleryLoaded: true
             };
@@ -361,7 +366,7 @@ export function initCrawler(currentUser) {
 
             renderCrawlerRows();
             sound.playCorrect();
-            showToast(`🎉 Loaded ${galleryPhotos.length} Ultra-HD photos for ${model.name}!`, "success");
+            showToast(`🎉 Loaded ${combined.length} Ultra-HD photos for ${model.name}!`, "success");
             if (directInput) directInput.value = '';
             
             // Scroll to the new card
@@ -412,6 +417,7 @@ export function initCrawler(currentUser) {
                     ? existingChar.images 
                     : (isDup && existingChar.primary_image ? [existingChar.primary_image] : []);
                 const defaultAvatar = isDup && existingPhotos.length > 0 ? existingPhotos[0] : (item.profileImage || '');
+                const initialPhotos = isDup ? [...existingPhotos] : (item.profileImage ? [item.profileImage] : []);
 
                 return {
                     id: `crawl_${activePage}_${idx}`,
@@ -419,8 +425,8 @@ export function initCrawler(currentUser) {
                     slug: item.slug,
                     category: category,
                     profileImage: defaultAvatar,
-                    allImages: isDup ? [...existingPhotos] : [], // Populate with current library photos if duplicate!
-                    selectedImages: isDup ? [...existingPhotos] : [],
+                    allImages: initialPhotos, // Initially contains the model profile image!
+                    selectedImages: [...initialPhotos],
                     isDuplicate: isDup,
                     isFullGalleryLoaded: isDup // Marked as loaded so background scraping skips it completely!
                 };
@@ -457,10 +463,17 @@ export function initCrawler(currentUser) {
                     const res = await fetch(`/api/crawler/model-photos?slug=${encodeURIComponent(char.slug)}`);
                     const data = await res.json();
                     if (data.success && data.data?.photos?.length > 0) {
-                        char.allImages = data.data.photos;
-                        if (char.selectedImages.length === 0) {
-                            char.selectedImages = data.data.photos.slice(0, Math.min(4, data.data.photos.length));
-                        }
+                        const photos = data.data.photos;
+                        const profileImg = data.data.profileImage || char.profileImage;
+                        // Ensure profile image is ALWAYS first photo (index 0)
+                        const combined = profileImg && !photos.includes(profileImg)
+                            ? [profileImg, ...photos]
+                            : photos;
+
+                        char.allImages = combined;
+                        char.profileImage = combined[0] || profileImg;
+                        // Automatically select top 4 photos starting with the profile portrait
+                        char.selectedImages = combined.slice(0, Math.min(4, combined.length));
                     } else if (char.profileImage && char.allImages.length === 0) {
                         char.allImages = [char.profileImage];
                         char.selectedImages = [char.profileImage];
@@ -777,16 +790,23 @@ export function initCrawler(currentUser) {
     // Batch Import Handler
     document.getElementById('btn-batch-import')?.addEventListener('click', async () => {
         if (selectedCharIds.size === 0) {
-            showToast("No characters selected for import.", 'warning');
+            showToast("لم يتم تحديد أي شخصيات للاستيراد.", 'warning');
             return;
         }
 
-        const itemsToImport = crawledCharacters.filter(c => selectedCharIds.has(c.id) && !c.isDuplicate && c.selectedImages.length > 0);
-        if (itemsToImport.length === 0) {
-            showToast("Selected characters have no valid images.", 'error');
+        const selectedChars = crawledCharacters.filter(c => selectedCharIds.has(c.id) && !c.isDuplicate);
+        if (selectedChars.length === 0) {
+            showToast("الشخصيات المحددة موجودة بالفعل في المكتبة.", 'warning');
             return;
         }
 
+        const emptySelectionChars = selectedChars.filter(c => !c.selectedImages || c.selectedImages.length === 0);
+        if (emptySelectionChars.length > 0) {
+            showToast(`⚠️ تعذر الاستيراد: توجد ${emptySelectionChars.length} شخصية محددة بدون أي صور. يلزم اختيار صورة واحدة على الأقل لكل شخصية.`, 'error');
+            return;
+        }
+
+        const itemsToImport = selectedChars;
         sound.playClick();
         const btn = document.getElementById('btn-batch-import');
         if (btn) {
