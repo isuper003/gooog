@@ -4811,8 +4811,8 @@ select.form-select::-webkit-scrollbar {
 
 .mihrab-dome-frame {
     position: relative;
-    width: 220px;
-    height: 220px;
+    width: 280px;
+    height: 280px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -4821,14 +4821,14 @@ select.form-select::-webkit-scrollbar {
 
 .mihrab-halo-ring {
     position: absolute;
-    top: -10px;
-    left: -10px;
-    right: -10px;
-    bottom: -10px;
+    top: -14px;
+    left: -14px;
+    right: -14px;
+    bottom: -14px;
     border-radius: 50%;
-    background: conic-gradient(from 0deg, rgba(236, 72, 153, 0.6), rgba(124, 58, 237, 0.8), rgba(245, 158, 11, 0.7), rgba(236, 72, 153, 0.6));
-    filter: blur(14px);
-    opacity: 0.75;
+    background: conic-gradient(from 0deg, rgba(236, 72, 153, 0.7), rgba(124, 58, 237, 0.85), rgba(245, 158, 11, 0.8), rgba(236, 72, 153, 0.7));
+    filter: blur(18px);
+    opacity: 0.85;
     animation: mihrabHaloRotate 12s linear infinite;
     pointer-events: none;
 }
@@ -4840,29 +4840,34 @@ select.form-select::-webkit-scrollbar {
 
 .meditation-portrait-wrapper {
     position: relative;
-    width: 160px;
-    height: 160px;
+    width: 220px;
+    height: 220px;
     z-index: 2;
+}
+
+.zen-fullscreen-mode .meditation-portrait-wrapper {
+    width: 300px;
+    height: 300px;
 }
 
 .meditation-aura-pulse {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    padding: 4px;
+    padding: 5px;
     background: linear-gradient(135deg, #ec4899, #7c3aed, #fcd34d);
-    box-shadow: 0 0 25px rgba(236, 72, 153, 0.7), 0 0 50px rgba(124, 58, 237, 0.5);
+    box-shadow: 0 0 35px rgba(236, 72, 153, 0.8), 0 0 70px rgba(124, 58, 237, 0.6);
     animation: meditationPulseAura 4s ease-in-out infinite alternate;
 }
 
 @keyframes meditationPulseAura {
     0% {
-        transform: scale(0.97);
-        box-shadow: 0 0 20px rgba(236, 72, 153, 0.5), 0 0 40px rgba(124, 58, 237, 0.3);
+        transform: scale(0.98);
+        box-shadow: 0 0 25px rgba(236, 72, 153, 0.6), 0 0 50px rgba(124, 58, 237, 0.4);
     }
     100% {
         transform: scale(1.05);
-        box-shadow: 0 0 35px rgba(236, 72, 153, 0.9), 0 0 75px rgba(124, 58, 237, 0.7);
+        box-shadow: 0 0 45px rgba(236, 72, 153, 0.95), 0 0 90px rgba(124, 58, 237, 0.8);
     }
 }
 
@@ -4873,7 +4878,8 @@ select.form-select::-webkit-scrollbar {
     object-fit: cover;
     display: block;
     cursor: pointer;
-    border: 2px solid rgba(255, 255, 255, 0.75);
+    border: 3px solid rgba(255, 255, 255, 0.85);
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
     transition: transform 0.25s ease;
 }
 
@@ -5059,14 +5065,14 @@ select.form-select::-webkit-scrollbar {
 
 /* Mode 4: Instant Verse Oracle */
 .oracle-wrapper {
-    max-width: 660px;
+    max-width: 680px;
     margin: 0 auto;
 }
 
 .oracle-card-display {
     background: radial-gradient(circle at center, rgba(88, 28, 135, 0.5), rgba(8, 6, 20, 0.98));
     border: 2px solid rgba(236, 72, 153, 0.5);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.92), 0 0 35px rgba(236, 72, 153, 0.35);
+    box-shadow: 0 14px 45px rgba(0,0,0,0.92), 0 0 40px rgba(236, 72, 153, 0.35);
     position: relative;
     overflow: hidden;
     transition: transform 0.3s ease;
@@ -5078,14 +5084,44 @@ select.form-select::-webkit-scrollbar {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle at center, rgba(236, 72, 153, 0.15), transparent 60%);
+    background: radial-gradient(circle at center, rgba(236, 72, 153, 0.18), transparent 65%);
     pointer-events: none;
     animation: oracleGlowPulse 6s ease-in-out infinite alternate;
 }
 
 @keyframes oracleGlowPulse {
     0% { transform: scale(0.9); opacity: 0.4; }
-    100% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1.1); opacity: 0.85; }
+}
+
+/* Grand Oracle Centerpiece Deity Portrait Frame */
+.oracle-deity-centerpiece {
+    margin: 1rem auto;
+}
+
+.oracle-portrait-frame {
+    width: 220px;
+    height: 290px;
+    border-radius: var(--radius-lg);
+    padding: 5px;
+    background: linear-gradient(135deg, #ec4899, #7c3aed, #fcd34d);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.85), 0 0 25px rgba(236, 72, 153, 0.6);
+    position: relative;
+    transition: transform 0.25s ease;
+}
+
+.oracle-portrait-frame:hover {
+    transform: scale(1.02);
+}
+
+.oracle-portrait-img {
+    width: 100%;
+    height: 100%;
+    border-radius: calc(var(--radius-lg) - 4px);
+    object-fit: cover;
+    display: block;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 .oracle-quote-text {
@@ -5116,12 +5152,16 @@ select.form-select::-webkit-scrollbar {
         line-height: 2.4 !important;
     }
     .mihrab-dome-frame {
-        width: 180px;
-        height: 180px;
+        width: 220px;
+        height: 220px;
     }
     .meditation-portrait-wrapper {
-        width: 130px;
-        height: 130px;
+        width: 175px;
+        height: 175px;
+    }
+    .oracle-portrait-frame {
+        width: 180px;
+        height: 240px;
     }
     .meditation-verse-content {
         font-size: 1.15rem !important;

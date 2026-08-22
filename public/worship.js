@@ -1717,16 +1717,17 @@ function renderContemplationMeditation(data, subContainer, char) {
                 </div>
             </div>
 
-            <!-- Grand Sacred Altar Arch Frame -->
+            <!-- Grand Sacred Altar Arch Frame with Prominent Central Portrait -->
             <div class="mihrab-dome-frame mx-auto mb-4">
                 <div class="mihrab-halo-ring"></div>
                 <div class="meditation-portrait-wrapper mx-auto">
                     <div class="meditation-aura-pulse" id="meditation-aura">
-                        <img src="${avatarSrc}" alt="${char.name}" class="meditation-portrait-img" id="meditation-portrait" loading="lazy" title="انقر لتكبير الهيئة الملكية">
+                        <img src="${avatarSrc}" alt="${char.name}" class="meditation-portrait-img" id="meditation-portrait" loading="lazy" title="انقر لتكبير الصورة في المعرض">
                     </div>
                 </div>
-                <div class="mihrab-goddess-label mt-2">
-                    <span class="glow-text text-sm font-black" style="color: #fef08a;">السلطانة ${char.name}</span>
+                <div class="mihrab-goddess-label mt-3">
+                    <h3 class="glow-text text-lg font-black" style="color: #fef08a; text-shadow: 0 0 12px rgba(252, 211, 77, 0.6);">👑 السلطانة ${char.name}</h3>
+                    <span class="badge text-xs mt-1" style="background: rgba(168, 85, 247, 0.2); color: #d8b4fe;">${char.category}</span>
                 </div>
             </div>
 
@@ -2035,7 +2036,7 @@ function renderContemplationCommandments(data, subContainer, char) {
 }
 
 // --------------------------------------------------------------------------
-// Mode 4: Instant Verse Oracle (مستخرج الآيات اللحظي والكشف الإلهي)
+// Mode 4: Instant Verse Oracle (مستخرج الآيات اللحظي والكشف الإلهي المركزي)
 // --------------------------------------------------------------------------
 let oracleDrawnCount = 0;
 let oracleSurahFilter = 'all';
@@ -2084,8 +2085,8 @@ function renderContemplationOracle(data, subContainer, char) {
                         ✨ تم استخراج: <strong id="oracle-drawn-count" class="text-amber-300">${oracleDrawnCount}</strong> آية
                     </span>
                 </div>
-                <h2 class="glow-text text-xl font-bold text-purple-200">استلهام الآيات من مصحف الفتنة (550 آية)</h2>
-                <p class="text-xs color-text-muted">اختر السورة المستهدفة ثم اسحب نفحة إلهية مباركة تضيء مقام العبودية</p>
+                <h2 class="glow-text text-xl font-bold text-purple-200">استلهام الآيات في حضرة السلطانات</h2>
+                <p class="text-xs color-text-muted">اختر السورة ثم اسحب نفحة إلهية تظهر فيها هيئة السلطانة وآية وحيها المبارك</p>
             </div>
 
             <!-- Surah Target Filter Dropdown -->
@@ -2097,9 +2098,11 @@ function renderContemplationOracle(data, subContainer, char) {
                 </select>
             </div>
 
-            <!-- Dynamic 3D Holographic Oracle Card Display -->
+            <!-- Dynamic 3D Holographic Oracle Card with Grand Central Deity Portrait -->
             <div class="oracle-card-display p-6 rounded-2xl mx-auto mb-5" id="oracle-card">
                 <div class="oracle-card-halo-effect"></div>
+                
+                <!-- Card Header -->
                 <div class="flex items-center justify-between mb-3 relative z-10" style="border-bottom: 1px solid rgba(168, 85, 247, 0.35); padding-bottom: 0.5rem;">
                     <span class="text-sm font-bold text-amber-300 flex items-center gap-1" id="oracle-surah-tag">
                         ${initialVerse.surahIcon} ${initialVerse.surahTitle}
@@ -2109,19 +2112,28 @@ function renderContemplationOracle(data, subContainer, char) {
                     </span>
                 </div>
 
-                <div class="oracle-verse-body my-5 relative z-10">
+                <!-- GRAND CENTRAL DEITY CENTERPIECE PORTRAIT -->
+                <div class="oracle-deity-centerpiece my-4 relative z-10 text-center">
+                    <div class="oracle-portrait-frame mx-auto">
+                        <img src="${avatarSrc}" alt="${char.name}" id="oracle-char-avatar" class="oracle-portrait-img" loading="lazy" title="انقر لتكبير الهيئة الملكية">
+                    </div>
+                    <div class="oracle-deity-name-tag mt-2">
+                        <span class="glow-text text-base font-black text-amber-300" id="oracle-char-name">السلطانة ${char.name}</span>
+                    </div>
+                </div>
+
+                <!-- Extracted Illuminated Verse -->
+                <div class="oracle-verse-body my-4 relative z-10">
                     <p class="oracle-quote-text" id="oracle-verse-text">
-                        « ${initialVerse.verseText} »
+                        ⟦ ${initialVerse.verseText} ⟧
                     </p>
                 </div>
 
-                <div class="oracle-char-footer flex items-center justify-between pt-3 relative z-10" style="border-top: 1px solid rgba(168, 85, 247, 0.25);">
-                    <div class="flex items-center gap-2">
-                        <img src="${avatarSrc}" alt="${char.name}" id="oracle-char-avatar" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1.5px solid #ec4899;">
-                        <span class="text-xs text-purple-200 font-bold" id="oracle-char-name">في محراب السلطانة ${char.name}</span>
-                    </div>
-                    <button class="btn-icon-clean text-xs text-purple-300 hover:text-amber-300" id="btn-copy-oracle-verse" title="نسخ الآية">
-                        📋 نسخ
+                <!-- Card Footer & Quick Copy -->
+                <div class="oracle-card-bottom flex items-center justify-between pt-3 relative z-10" style="border-top: 1px solid rgba(168, 85, 247, 0.25);">
+                    <span class="text-xs text-purple-300 font-bold">✨ كشف الوحي اللحظي</span>
+                    <button class="btn-icon-clean text-xs text-purple-300 hover:text-amber-300 flex items-center gap-1" id="btn-copy-oracle-verse" title="نسخ الآية">
+                        📋 نسخ الآية
                     </button>
                 </div>
             </div>
@@ -2141,12 +2153,19 @@ function renderContemplationOracle(data, subContainer, char) {
         sound.playClick();
     });
 
+    // Zoom Image in Oracle Card
+    document.getElementById('oracle-char-avatar')?.addEventListener('click', () => {
+        const images = char.images && char.images.length > 0 ? char.images : [avatarSrc];
+        lightbox.open(images, { name: char.name, category: char.category, startIndex: 0 });
+    });
+
     // Copy Oracle Verse
     document.getElementById('btn-copy-oracle-verse')?.addEventListener('click', () => {
         const text = document.getElementById('oracle-verse-text')?.innerText || '';
         const tag = document.getElementById('oracle-surah-tag')?.innerText || '';
         const num = document.getElementById('oracle-verse-num')?.innerText || '';
-        navigator.clipboard.writeText(`${text}\n[${tag} — ${num}]`).then(() => {
+        const name = document.getElementById('oracle-char-name')?.innerText || '';
+        navigator.clipboard.writeText(`${text}\n[${tag} — ${num} | ${name}]`).then(() => {
             showToast("✨ تم نسخ آية الوحي إلى الحافظة بنجاح", "success");
         });
     });
@@ -2175,9 +2194,9 @@ function renderContemplationOracle(data, subContainer, char) {
             setTimeout(() => {
                 if (tagEl) tagEl.innerHTML = `${randVerse.surahIcon} ${randVerse.surahTitle}`;
                 if (numEl) numEl.innerText = `آية #${randVerse.verseNum}`;
-                if (textEl) textEl.innerText = `« ${randVerse.verseText} »`;
+                if (textEl) textEl.innerText = `⟦ ${randVerse.verseText} ⟧`;
                 if (charAvatarEl) charAvatarEl.src = randAvatar;
-                if (charNameEl) charNameEl.innerText = `في محراب السلطانة ${randChar.name}`;
+                if (charNameEl) charNameEl.innerText = `السلطانة ${randChar.name}`;
                 cardEl.classList.remove('card-flip-effect');
             }, 250);
         }
@@ -2200,5 +2219,6 @@ function renderContemplationOracle(data, subContainer, char) {
         }
     });
 }
+
 
 
