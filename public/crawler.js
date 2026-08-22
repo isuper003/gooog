@@ -497,7 +497,7 @@ export function initCrawler(currentUser) {
             rowCard.className = `crawler-row-card ${char.isDuplicate ? 'is-duplicate' : ''}`;
             rowCard.id = `card-${char.id}`;
 
-            const avatarSrc = char.selectedImages[0] || char.profileImage || (char.allImages[0] || '');
+            const avatarSrc = char.profileImage || (char.allImages[0] || '');
 
             rowCard.innerHTML = `
                 <!-- Top Row inside Card: Main Profile Portrait (Left) + Name & Controls (Right) -->
@@ -529,11 +529,6 @@ export function initCrawler(currentUser) {
                     </div>
                 </div>
 
-                <!-- Selected Photos Reorder Dock (Drag / Arrow Reordering & 1st Photo = Avatar) -->
-                <div class="crawler-selected-dock-container" id="dock-container-${char.id}">
-                    ${renderSelectedDockHtml(char)}
-                </div>
-
                 <!-- Bottom Row inside Card: Full Horizontal Scroll Photo Strip -->
                 <div class="row-photos-strip-container">
                     <div class="text-xs color-text-muted mb-1 flex justify-between items-center">
@@ -550,17 +545,15 @@ export function initCrawler(currentUser) {
 
             // Avatar Lightbox Zoom on Click
             rowCard.querySelector('.row-main-avatar')?.addEventListener('click', () => {
-                const photosToView = char.selectedImages.length > 0 ? char.selectedImages : (char.allImages.length > 0 ? char.allImages : [avatarSrc]);
-                lightbox.open(photosToView, {
+                lightbox.open(char.allImages.length > 0 ? char.allImages : [avatarSrc], {
                     showCaption: true,
                     name: char.name,
                     category: char.category
                 });
             });
 
-            // Bind thumbnail and dock events
+            // Bind thumbnail events
             bindThumbnailEvents(rowCard, char);
-            bindDockEvents(rowCard, char);
 
             // Mouse drag-to-scroll for the horizontal album strip
             const stripEl = rowCard.querySelector('.row-photos-strip');
@@ -586,35 +579,6 @@ export function initCrawler(currentUser) {
         updateStatsAndFooter();
     }
 
-    function renderSelectedDockHtml(char) {
-        if (!char.selectedImages || char.selectedImages.length === 0) {
-            return `
-                <div class="dock-empty-hint text-xs color-text-muted py-1 flex items-center gap-1.5">
-                    <span>💡 Click any photo in the album strip below to select (up to 4). Photo #1 becomes the Main Avatar.</span>
-                </div>
-            `;
-        }
-
-        return `
-            <div class="dock-items-row flex items-center gap-2 flex-wrap py-1">
-                <span class="text-xs font-bold" style="color: var(--accent-cyan);">Chosen Order:</span>
-                ${char.selectedImages.map((imgUrl, idx) => `
-                    <div class="dock-thumb-item ${idx === 0 ? 'is-primary' : ''}" data-idx="${idx}">
-                        <img src="${imgUrl}" alt="Selected #${idx + 1}" loading="lazy">
-                        <span class="dock-order-badge ${idx === 0 ? 'badge-gold' : ''}">
-                            ${idx === 0 ? '👑 1 (Avatar)' : `#${idx + 1}`}
-                        </span>
-                        <div class="dock-actions">
-                            ${idx > 0 ? `<button class="dock-btn dock-btn-move-left" data-idx="${idx}" title="Move left / Promote">◀</button>` : ''}
-                            ${idx < char.selectedImages.length - 1 ? `<button class="dock-btn dock-btn-move-right" data-idx="${idx}" title="Move right">▶</button>` : ''}
-                            <button class="dock-btn dock-btn-remove" data-idx="${idx}" title="Remove photo">✕</button>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    }
-
     function renderThumbnailsHtml(char) {
         if (char.allImages.length === 0) {
             if (char.isFullGalleryLoaded) {
@@ -630,89 +594,18 @@ export function initCrawler(currentUser) {
         return char.allImages.map((imgUrl, imgIdx) => {
             const isSelected = char.selectedImages.includes(imgUrl);
             const selOrder = char.selectedImages.indexOf(imgUrl) + 1;
-            const isPrimary = isSelected && selOrder === 1;
-
             return `
-                <div class="img-strip-thumb ${isSelected ? 'selected' : ''} ${isPrimary ? 'is-primary' : ''}" 
+                <div class="img-strip-thumb ${isSelected ? 'selected' : ''}" 
                      data-char-id="${char.id}" 
                      data-img-url="${imgUrl}" 
                      data-img-idx="${imgIdx}"
-                     title="Photo #${imgIdx + 1} - ${isSelected ? `Selected #${selOrder} (Click to remove)` : 'Click to select'}">
+                     title="Photo #${imgIdx + 1} - Click to select (1..4)">
                     <img src="${imgUrl}" alt="${esc(char.name)} #${imgIdx + 1}" loading="lazy" referrerpolicy="no-referrer">
-                    <div class="thumb-check">${isSelected ? (isPrimary ? '👑 1' : selOrder) : '+'}</div>
+                    <div class="thumb-check">${isSelected ? selOrder : '+'}</div>
                     <button class="thumb-zoom-btn" title="Zoom in full size">🔍</button>
                 </div>
             `;
         }).join('');
-    }
-
-    function bindDockEvents(rowCard, char) {
-        const dockEl = rowCard.querySelector(`#dock-container-${char.id}`);
-        if (!dockEl) return;
-
-        // Move Left / Promote
-        dockEl.querySelectorAll('.dock-btn-move-left').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const idx = parseInt(btn.dataset.idx);
-                if (idx > 0 && idx < char.selectedImages.length) {
-                    const temp = char.selectedImages[idx];
-                    char.selectedImages[idx] = char.selectedImages[idx - 1];
-                    char.selectedImages[idx - 1] = temp;
-                    sound.playClick();
-                    updateThumbnailSelectionInPlace(rowCard, char);
-                    updateStatsAndFooter();
-                }
-            });
-        });
-
-        // Move Right / Demote
-        dockEl.querySelectorAll('.dock-btn-move-right').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const idx = parseInt(btn.dataset.idx);
-                if (idx >= 0 && idx < char.selectedImages.length - 1) {
-                    const temp = char.selectedImages[idx];
-                    char.selectedImages[idx] = char.selectedImages[idx + 1];
-                    char.selectedImages[idx + 1] = temp;
-                    sound.playClick();
-                    updateThumbnailSelectionInPlace(rowCard, char);
-                    updateStatsAndFooter();
-                }
-            });
-        });
-
-        // Remove photo from selection
-        dockEl.querySelectorAll('.dock-btn-remove').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const idx = parseInt(btn.dataset.idx);
-                if (idx >= 0 && idx < char.selectedImages.length) {
-                    char.selectedImages.splice(idx, 1);
-                    if (char.selectedImages.length === 0) {
-                        selectedCharIds.delete(char.id);
-                    }
-                    sound.playClick();
-                    updateThumbnailSelectionInPlace(rowCard, char);
-                    updateStatsAndFooter();
-                }
-            });
-        });
-
-        // Click image inside dock to open lightbox
-        dockEl.querySelectorAll('.dock-thumb-item img').forEach(img => {
-            img.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const parent = img.closest('.dock-thumb-item');
-                const idx = parseInt(parent?.dataset.idx) || 0;
-                lightbox.open(char.selectedImages, {
-                    initialIndex: idx,
-                    showCaption: true,
-                    name: `${char.name} (Photo #${idx + 1})`,
-                    category: char.category
-                });
-            });
-        });
     }
 
     function bindThumbnailEvents(rowCard, char) {
@@ -763,19 +656,17 @@ export function initCrawler(currentUser) {
                 const isCurrentlySelected = char.selectedImages.includes(imgUrl);
 
                 if (isCurrentlySelected) {
-                    // Remove photo from selection
-                    char.selectedImages = char.selectedImages.filter(u => u !== imgUrl);
-                    if (char.selectedImages.length === 0) {
-                        selectedCharIds.delete(char.id);
+                    if (char.selectedImages.length <= 1 && selectedCharIds.has(char.id)) {
+                        showToast("Each character needs at least 1 image selected.", "warning");
+                        return;
                     }
+                    char.selectedImages = char.selectedImages.filter(u => u !== imgUrl);
                 } else {
-                    // Add photo to selection if under max 4
                     if (char.selectedImages.length >= 4) {
-                        showToast("Maximum 4 images allowed. Use dock to remove or reorder.", "warning");
+                        showToast("Maximum 4 images allowed per character.", "warning");
                         return;
                     }
                     char.selectedImages.push(imgUrl);
-                    selectedCharIds.add(char.id);
                 }
 
                 sound.playClick();
@@ -792,41 +683,25 @@ export function initCrawler(currentUser) {
         const countEl = rowCard.querySelector(`#count-imgs-${char.id}`);
         if (countEl) countEl.innerText = char.selectedImages.length;
 
-        // Live update the Main Profile Avatar to reflect photo #1
-        const avatarImg = rowCard.querySelector('.row-main-avatar img');
-        if (avatarImg) {
-            avatarImg.src = char.selectedImages[0] || char.profileImage || (char.allImages[0] || '');
-        }
-
-        // Live update the Selected Photos Reorder Dock
-        const dockEl = rowCard.querySelector(`#dock-container-${char.id}`);
-        if (dockEl) {
-            dockEl.innerHTML = renderSelectedDockHtml(char);
-            bindDockEvents(rowCard, char);
-        }
-
-        // Live update thumbnail classes and order badges in the horizontal strip
         rowCard.querySelectorAll('.img-strip-thumb').forEach(thumb => {
             const imgUrl = thumb.dataset.imgUrl;
             const isSelected = char.selectedImages.includes(imgUrl);
-            const selOrder = char.selectedImages.indexOf(imgUrl) + 1;
-            const isPrimary = isSelected && selOrder === 1;
             const checkEl = thumb.querySelector('.thumb-check');
 
-            thumb.classList.toggle('selected', isSelected);
-            thumb.classList.toggle('is-primary', isPrimary);
-
             if (isSelected) {
-                if (checkEl) checkEl.innerHTML = isPrimary ? '👑 1' : selOrder;
+                thumb.classList.add('selected');
+                const selOrder = char.selectedImages.indexOf(imgUrl) + 1;
+                if (checkEl) checkEl.innerText = selOrder;
             } else {
+                thumb.classList.remove('selected');
                 if (checkEl) checkEl.innerText = '+';
             }
         });
 
-        // Live update card checkbox
         const cb = rowCard.querySelector('.crawler-checkbox');
-        if (cb && !char.isDuplicate) {
-            cb.checked = selectedCharIds.has(char.id);
+        if (char.selectedImages.length === 0) {
+            selectedCharIds.delete(char.id);
+            if (cb) cb.checked = false;
         }
     }
 
@@ -837,17 +712,6 @@ export function initCrawler(currentUser) {
         const countEl = rowCard.querySelector(`#count-imgs-${char.id}`);
         if (countEl) countEl.innerText = char.selectedImages.length;
 
-        const avatarImg = rowCard.querySelector('.row-main-avatar img');
-        if (avatarImg) {
-            avatarImg.src = char.selectedImages[0] || char.profileImage || (char.allImages[0] || '');
-        }
-
-        const dockEl = rowCard.querySelector(`#dock-container-${char.id}`);
-        if (dockEl) {
-            dockEl.innerHTML = renderSelectedDockHtml(char);
-            bindDockEvents(rowCard, char);
-        }
-
         const stripContainer = rowCard.querySelector(`#strip-${char.id}`);
         if (stripContainer) {
             stripContainer.innerHTML = renderThumbnailsHtml(char);
@@ -855,8 +719,9 @@ export function initCrawler(currentUser) {
         }
 
         const cb = rowCard.querySelector('.crawler-checkbox');
-        if (cb && !char.isDuplicate) {
-            cb.checked = selectedCharIds.has(char.id);
+        if (char.selectedImages.length === 0) {
+            selectedCharIds.delete(char.id);
+            if (cb) cb.checked = false;
         }
     }
 
