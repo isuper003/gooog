@@ -1566,7 +1566,7 @@ function renderContemplationSurahs(data, subContainer, char) {
                 </select>
             </div>
             <span class="badge text-xs" style="background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #d8b4fe;">
-                📖 550 آية تدبرية كاملة
+                📖 600 آية تدبرية كاملة (12 سورة)
             </span>
         </div>
 
@@ -2104,7 +2104,7 @@ function renderContemplationOracle(data, subContainer, char) {
             <div class="oracle-filter-bar mb-4 flex items-center justify-center gap-2">
                 <span class="text-xs text-amber-300 font-bold">🎯 نطاق السحب:</span>
                 <select id="oracle-surah-filter-select" class="worship-select-clean text-xs font-bold" style="background: rgba(15, 14, 30, 0.9); border: 1px solid rgba(168, 85, 247, 0.4); color: #fef08a; padding: 0.35rem 0.75rem; border-radius: var(--radius-sm);">
-                    <option value="all" ${oracleSurahFilter === 'all' ? 'selected' : ''}>🌟 كافة السور (550 آية)</option>
+                    <option value="all" ${oracleSurahFilter === 'all' ? 'selected' : ''}>🌟 كافة السور (600 آية)</option>
                     ${surahs.map(s => `<option value="${s.id}" ${s.id === oracleSurahFilter ? 'selected' : ''}>${s.icon} ${s.title}</option>`).join('')}
                 </select>
             </div>
