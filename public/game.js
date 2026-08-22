@@ -4,7 +4,20 @@ import { renderResults } from './results.js';
 import { showToast } from './toast.js';
 import { getCsrfToken } from './csrf.js';
 
+// sessionStorage key holding an in-flight round so a page refresh can offer
+// resume instead of silently orphaning the server-side session (#34).
+const ROUND_SAVE_KEY = 'goooog_active_round_v1';
+const ROUND_SAVE_TTL_MS = 6 * 60 * 60 * 1000;
+
+let activeEngine = null;
+
 export function endGame() {
+    // Tear down the live engine first: its question timer and pending advance
+    // timeouts must never fire into a view that is gone (#15).
+    if (activeEngine) {
+        try { activeEngine.destroy(); } catch (e) {}
+        activeEngine = null;
+    }
     const gameView = document.getElementById('view-game');
     const mainView = document.getElementById('view-main');
     if (gameView) {
@@ -17,7 +30,7 @@ export function endGame() {
 export async function initGame(category, mode, rounds) {
     const container = document.getElementById('view-game');
     const mainView = document.getElementById('view-main');
-    
+
     if (mainView) mainView.classList.add('hidden');
     if (container) {
         container.classList.remove('hidden');
@@ -28,7 +41,24 @@ export async function initGame(category, mode, rounds) {
             </div>
         `;
     }
-    
+
+    // Resume path: an unfinished round survives a page refresh (#34).
+    try {
+        const savedRaw = sessionStorage.getItem(ROUND_SAVE_KEY);
+        if (savedRaw) {
+            const saved = JSON.parse(savedRaw);
+            const stale = !saved || !Array.isArray(saved.questions) || saved.questions.length === 0 ||
+                (Date.now() - (saved.savedAtMs || 0)) > ROUND_SAVE_TTL_MS;
+            if (!stale && confirm('يوجد جولة غير مكتملة. هل تريد استئنافها؟')) {
+                runGameEngine(saved, saved.selectedCategory || category, true);
+                return;
+            }
+            sessionStorage.removeItem(ROUND_SAVE_KEY);
+        }
+    } catch (e) {
+        try { sessionStorage.removeItem(ROUND_SAVE_KEY); } catch (e2) {}
+    }
+
     try {
         const res = await fetch('/api/game/start', {
             method: 'POST',
@@ -38,15 +68,15 @@ export async function initGame(category, mode, rounds) {
             },
             body: JSON.stringify({ category, mode, rounds })
         });
-        
+
         const data = await res.json();
-        
+
         if (!res.ok || !data.success) {
             showToast(data.error || "Failed to start game session.", 'error');
             endGame();
             return;
         }
-        
+
         runGameEngine(data.data, category);
     } catch (e) {
         console.error("Game launch error", e);
@@ -55,31 +85,90 @@ export async function initGame(category, mode, rounds) {
     }
 }
 
-function runGameEngine(sessionData, selectedCategory) {
+function runGameEngine(sessionData, selectedCategory, restored = false) {
     const { gameSessionId, mode, questions, roundsRequested } = sessionData;
     // Preserve original round count for "New Round" restart
     const originalRounds = roundsRequested === 9999 ? 'unlimited' : (roundsRequested || questions.length);
     const container = document.getElementById('view-game');
 
-    let currentIdx = 0;
-    let correctCount = 0;
-    let currentStreak = 0;
-    let maxStreak = 0;
-    let totalTimeMs = 0;
-    let wrongAnswers = [];
-    let masteryChanges = [];
-    
-    let lifelines = {
-        fiftyFifty: 1,
-        skip: 1
-    };
+    // Engine lifecycle handle: endGame()/quit destroy this so no timer or
+    // pending timeout can ever submit an answer into a dead view (#15).
+    const engine = { destroyed: false };
+    activeEngine = engine;
+
+    let currentIdx = restored ? (sessionData.currentIdx || 0) : 0;
+    let correctCount = restored ? (sessionData.correctCount || 0) : 0;
+    let currentStreak = restored ? (sessionData.currentStreak || 0) : 0;
+    let maxStreak = restored ? (sessionData.maxStreak || 0) : 0;
+    let totalTimeMs = restored ? (sessionData.totalTimeMs || 0) : 0;
+    let wrongAnswers = restored ? (sessionData.wrongAnswers || []) : [];
+    let masteryChanges = restored ? (sessionData.masteryChanges || []) : [];
+
+    let lifelines = restored && sessionData.lifelines
+        ? sessionData.lifelines
+        : {
+            fiftyFifty: 1,
+            skip: 1
+        };
+
+    // Set while an answer POST is in flight: option clicks, Skip and 50/50 are
+    // all ignored until the next question renders (#16). It also blocks the
+    // duplicate-tap window on Hot-or-Not cards where el.disabled is a no-op.
+    let submitting = false;
+    // Whether the 50/50 lifeline was spent on the question being answered; sent
+    // to the server so SRS never promotes a assisted answer (#32).
+    let fiftyUsedThisQuestion = false;
 
     const isClassicUntimed = mode === 'classic';
     const isUnlimited = questions.length >= 100 && sessionData.roundsRequested === 9999;
 
+    function persistRoundState() {
+        try {
+            sessionStorage.setItem(ROUND_SAVE_KEY, JSON.stringify({
+                gameSessionId,
+                mode,
+                selectedCategory,
+                roundsRequested,
+                questions,
+                currentIdx,
+                correctCount,
+                currentStreak,
+                maxStreak,
+                totalTimeMs,
+                wrongAnswers,
+                masteryChanges,
+                lifelines,
+                timerEnabled,
+                timerTotalSeconds,
+                savedAtMs: Date.now()
+            }));
+        } catch (e) {}
+    }
+
+    function clearRoundState() {
+        try { sessionStorage.removeItem(ROUND_SAVE_KEY); } catch (e) {}
+    }
+
+    engine.destroy = () => {
+        engine.destroyed = true;
+        submitting = true;
+        stopTimer();
+        clearRoundState();
+    };
+
     let timerInterval = null;
-    let timerTotalSeconds = parseInt(localStorage.getItem('timer_seconds') || '15', 10);
-    let timerEnabled = !isClassicUntimed && localStorage.getItem('timer_enabled') !== 'false';
+    // Sanitize stored timer length: corrupt values ("abc", "0", negatives) must
+    // not produce instant timeouts or NaN countdowns (#47).
+    let parsedTimerSeconds = parseInt(localStorage.getItem('timer_seconds') || '15', 10);
+    if (!Number.isFinite(parsedTimerSeconds) || parsedTimerSeconds <= 0 || parsedTimerSeconds > 600) {
+        parsedTimerSeconds = 15;
+    }
+    let timerTotalSeconds = restored && Number.isFinite(sessionData.timerTotalSeconds)
+        ? sessionData.timerTotalSeconds
+        : parsedTimerSeconds;
+    let timerEnabled = restored
+        ? sessionData.timerEnabled !== false
+        : (!isClassicUntimed && localStorage.getItem('timer_enabled') !== 'false');
     let questionStartTime = Date.now();
 
     function startTimer(onTimeout) {
@@ -130,13 +219,21 @@ function runGameEngine(sessionData, selectedCategory) {
 
     function stopTimer() {
         clearInterval(timerInterval);
+        timerInterval = null;
     }
 
     function renderCurrentQuestion() {
+        if (engine.destroyed) return;
         if (currentIdx >= questions.length) {
             finishGame();
             return;
         }
+
+        // Fresh question: release the submission lock and clear the per-question
+        // lifeline flag, then checkpoint the round for refresh-resume (#34).
+        submitting = false;
+        fiftyUsedThisQuestion = false;
+        persistRoundState();
 
         const q = questions[currentIdx];
         questionStartTime = Date.now();
@@ -308,10 +405,11 @@ function runGameEngine(sessionData, selectedCategory) {
 
         // 50/50 Lifeline
         document.getElementById('btn-5050')?.addEventListener('click', () => {
-            if (lifelines.fiftyFifty <= 0) return;
+            if (submitting || lifelines.fiftyFifty <= 0) return;
             lifelines.fiftyFifty--;
+            fiftyUsedThisQuestion = true;
             sound.playClick();
-            
+
             const btn5050 = document.getElementById('btn-5050');
             if (btn5050) {
                 btn5050.disabled = true;
@@ -330,13 +428,32 @@ function runGameEngine(sessionData, selectedCategory) {
             showToast('50/50 applied: 2 wrong options eliminated!', 'info');
         });
 
-        // Skip Lifeline
+        // Skip Lifeline — reported to the server so the session counter and SRS
+        // schedule stay in sync with what the player actually played (#32).
         document.getElementById('btn-skip')?.addEventListener('click', () => {
-            if (lifelines.skip <= 0) return;
+            if (submitting || engine.destroyed || lifelines.skip <= 0) return;
             lifelines.skip--;
             sound.playClick();
             stopTimer();
             showToast('Question skipped!', 'info');
+
+            const skipAnswerId = crypto.randomUUID();
+            fetch('/api/game/answers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    answerId: skipAnswerId,
+                    gameSessionId,
+                    questionId: q.questionId,
+                    selectedCharacterId: null,
+                    usedLifeline: 'skip',
+                    answerTimeMs: Math.max(10, Date.now() - questionStartTime)
+                })
+            }).catch(() => {});
+
             currentIdx++;
             renderCurrentQuestion();
         });
@@ -345,21 +462,25 @@ function runGameEngine(sessionData, selectedCategory) {
         if (mode === 'hot_or_not') {
             document.querySelectorAll('.hon-card').forEach(card => {
                 card.addEventListener('click', (e) => {
+                    if (submitting || engine.destroyed) return;
                     const selectedId = e.currentTarget.dataset.id;
-                    handleAnswerSubmission(selectedId, 'none');
+                    handleAnswerSubmission(selectedId, fiftyUsedThisQuestion ? 'fifty_fifty' : 'none');
                 });
             });
         } else {
             document.querySelectorAll('.btn-option').forEach(btn => {
                 btn.addEventListener('click', (e) => {
+                    if (submitting || engine.destroyed) return;
                     const selectedId = e.currentTarget.dataset.id;
-                    handleAnswerSubmission(selectedId, 'none');
+                    handleAnswerSubmission(selectedId, fiftyUsedThisQuestion ? 'fifty_fifty' : 'none');
                 });
             });
         }
     }
 
     async function handleAnswerSubmission(selectedId, usedLifeline = 'none', isTimeout = false) {
+        if (submitting || engine.destroyed) return;
+        submitting = true;
         stopTimer();
         const q = questions[currentIdx];
         const answerTimeMs = Math.max(10, Date.now() - questionStartTime);
@@ -455,6 +576,7 @@ function runGameEngine(sessionData, selectedCategory) {
                     // Sudden Death mode ends immediately on first wrong answer
                     if (mode === 'sudden_death') {
                         setTimeout(() => {
+                            if (engine.destroyed) return;
                             finishGame();
                         }, 1200);
                         return;
@@ -463,6 +585,7 @@ function runGameEngine(sessionData, selectedCategory) {
 
                 // Advance to next question after short visual delay
                 setTimeout(() => {
+                    if (engine.destroyed) return;
                     currentIdx++;
                     renderCurrentQuestion();
                 }, 1000);
@@ -481,7 +604,11 @@ function runGameEngine(sessionData, selectedCategory) {
     }
 
     function finishGame() {
+        if (engine.destroyed) return;
+        submitting = true;
         stopTimer();
+        // Round over: the resume checkpoint has no reason to live anymore (#34).
+        clearRoundState();
         const totalPlayed = mode === 'sudden_death' ? Math.max(1, correctCount + wrongAnswers.length) : questions.length;
         renderResults({
             mode,

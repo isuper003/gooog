@@ -81,18 +81,15 @@ export async function onRequestGet(context) {
                 const total = row.correct_count + row.wrong_count;
                 const accuracy = total > 0 ? ((row.correct_count / total) * 100) : 100;
                 
-                // Calculate trend movement
+                // Calculate trend movement from real recent activity only;
+                // low-activity entries honestly report 'same' instead of a
+                // fabricated pseudo-random direction.
                 const recentTotal = row.recent_correct + row.recent_wrong;
                 let trend = 'same'; // 'up', 'down', 'same'
                 if (recentTotal >= 3) {
                     const recentAccuracy = (row.recent_correct / recentTotal) * 100;
                     if (recentAccuracy > accuracy + 1.5) trend = 'up';
                     else if (recentAccuracy < accuracy - 1.5) trend = 'down';
-                } else {
-                    const hash = (index + (row.created_at_ms % 7)) % 3;
-                    if (hash === 0 && index > 2) trend = 'up';
-                    else if (hash === 1 && index < 40) trend = 'down';
-                    else trend = 'same';
                 }
 
                 // Format duration in rank / on charts
@@ -138,13 +135,13 @@ export async function onRequestGet(context) {
         `;
         
         if (category === 'trans') {
-            query += ` ORDER BY trans_count DESC, total_added DESC LIMIT 50`;
+            query += ` ORDER BY trans_count DESC, total_added DESC, u.username ASC LIMIT 50`;
         } else if (category === 'sluts') {
-            query += ` ORDER BY sluts_count DESC, total_added DESC LIMIT 50`;
+            query += ` ORDER BY sluts_count DESC, total_added DESC, u.username ASC LIMIT 50`;
         } else if (category === 'twinks') {
-            query += ` ORDER BY twinks_count DESC, total_added DESC LIMIT 50`;
+            query += ` ORDER BY twinks_count DESC, total_added DESC, u.username ASC LIMIT 50`;
         } else {
-            query += ` ORDER BY total_added DESC LIMIT 50`;
+            query += ` ORDER BY total_added DESC, trans_count DESC, sluts_count DESC, twinks_count DESC, u.username ASC LIMIT 50`;
         }
         
         const { results } = await db.prepare(query).all();

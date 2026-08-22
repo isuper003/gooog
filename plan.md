@@ -828,3 +828,40 @@ d:\Projects\GoooG\
     - فحص العرض على الشاشات الكبيرة (Desktop).
     - فحص التحول إلى شبكة 2×2 على الأجهزة اللوحية (Tablet).
     - فحص شريط التبويبات السفلي وتجربة اللمس على شاشات الجوال (Mobile).
+
+---
+
+## 21. سجل الجراحة البرمجية (Surgical Changelog — 2026-08-22)
+
+تعديلات جراحية منفذة وفق تقرير التدقيق (بنود المسار المنطقي فقط)، دون تغيير الميزات القائمة:
+
+| # | الموقع | الإصلاح |
+|---|---|---|
+| 15 | `public/game.js` | سجل `activeEngine` مع `destroy()` يوقف مؤقت السؤال ويبطل المهلات المعلقة عند الخروج/الإنهاء؛ لا "إجابات زومبي" بعد الآن |
+| 16 | `public/game.js` | قفل `submitting` يحجب النقر/Skip/50-50 أثناء طيران طلب الإجابة، ويعالج عجز `el.disabled` على بطاقات Hot-or-Not |
+| 18 | `functions/lib/srs.js`, `answers.js` | مطابقة SM-2/الخطة: فواصل 1يوم→3أيام ثم `interval×ease` مع رفع ease حتى 3.0؛ هبوط متدرج -1 بدل -2؛ فاصل 0 = إعادة تعلم خلال 10 دقائق (`RELEARN_DELAY_MS`) بدل استحقاق لحظي |
+| 19 | `functions/api/game/answers.js` | دفعة ذرية: INSERT محروس بـ`UNIQUE(question_id)` + claim شرطي `WHERE answered_at_ms IS NULL`؛ التعارض يعيد النتيجة المخزنة بدل 500 |
+| 20 | `worship.js` + `app.js` | تصدير `pauseWorshipTimers()` واستدعاؤها في الراوتر عند مغادرة صفحة العبادة؛ مؤقتا التأمل لم يعدا يستمران خلف الكواليس |
+| 21 | `public/app.js` | حرسا `routerWired/globalEventsWired`: تسجيل الدخول المتكرر لا يكدّس مستمعي hashchange/nav |
+| 22 | `functions/api/auth/login.js` | تحديث Streak بعبارة واحدة ذرية (`INSERT ... ON CONFLICT DO UPDATE ... WHERE last < today`) بلا نافذة read-modify-write؛ ودعم `timezoneOffsetMinutes` اختياري من العميل ليوم المستخدم المحلي (افتراضي UTC كما تنص الخطة) |
+| 31 | `answers.js` (`loadAnswerResponse`) | مسار الإعادة يعيد الحمولة الكاملة (`correctName/srs/isSessionFinished/replayed`) مقيّداً بمالك الجلسة |
+| 32 | `game.js` + `answers.js` | 50/50 يرسل `'fifty_fifty'` فعلياً (قيمة ضمن قيد CHECK)، والتخطي يبلغ الخادم بحدث skip يطالب السؤال ويحرك عداد الجلسة دون إنشاء answer_event يحرف إحصاءات الشخصيات |
+| 34 | `public/game.js` | حفظ نقطة استئناف في sessionStorage (`goooog_active_round_v1`، صلاحية 6 ساعات) وسؤال استئناف عند refresh؛ يُمسح عند الإنهاء/التدمير |
+| 35 | `public/sound.js` | التقاط رفض `resume()` خارج إيماءة المستخدم |
+| 36 | `public/worship.js` | قراءة `data.data.phrases.ARTIST_PROSE_TEXTS` بالشكل الصحيح + `.catch()` للوعد اليتيم |
+| 37 | `public/gallery.js` | مستمع scroll واحد بالاستبدال قبل التسجيل؛ لا تراكم عبر التنقل |
+| 40 | `functions/api/me/progress.js` | فئتا weak/learning متعارضتان أصبحتا منفصلتين منطقياً (weak لها الأولوية، learning ما عدا weak) |
+| 41 | `functions/api/leaderboard.js` | حسم التعادلات (`u.username ASC` وسلسلة عدادات للإجمالي) + حذف الـtrend المفبرك رياضياً: نشاط أسبوعي غير كافٍ = `'same'` صادقة |
+| 42 | `public/csrf.js` | إزالة فرع localStorage الميت من القراءة والمسح معاً |
+| 46 | `public/app.js` | صلاحية خمس دقائق لكاش عدادات الرئيسية (`cachedCharactersAt`) ويُمسح عند الخروج |
+| 47 | `public/game.js` | تعقيم `timer_seconds`: NaN/0/سالب/>600 يعود للافتراضي 15 |
+| 48 | `public/toast.js` | سقف 4 toasts مع إحالة الأقدم، وكبت الرسالة المكررة خلال 800ms |
+| 49 | `public/worship.js` | عدّاد الأوراكل يزيد بعد نجاح الطلب فقط، وإسقاط أنماط اختلاق النقاط المحلية `(x||0)+N` في المواقع الخمسة كلها |
+| 50 | `public/worship.js` | `.catch()` برسالة خطأ لنسخ الحافظة في الموضعين |
+| 51 | `worship.js` + `app.js` | تصدير `resetWorshipSession()` واستدعاؤها عند الخروج: تصفير الوصايا المُقررة وعدّاد الأوراكل والحالة داخل الذاكرة (تفضيلات الجهاز وعدادات العمر تبقى عن قصد) |
+
+### نواقص مقصودة/مؤجلة (خارج نطاق هذه الجراحة)
+- اختبار `tests/auth.test.js` فاشل موروثاً (كوكي بلا علم `Secure` — بند التدقيق #55): يتطلب قراراً على مستوى طبقة المصادقة وليس جزءاً من هذا الطلب.
+- توقيت Streak يبقى UTC افتراضياً؛ الدعم المحلي يتطلب تمرير `timezoneOffsetMinutes` من شاشة الدخول (الحقل جاهز في الخادم).
+- حمولة SRS في مسار الإعادة (#31) تقريبية (من صف التقدم الحالي) لأن oldMastery اللحظية غير مخزنة.
+- بنود الأمان من التقرير (الأرقام 1-14, 17, 24-25, 27-30, 33, 38, 43-45, 52-57) لم تُمَس هنا.

@@ -5,7 +5,8 @@ export const SESSION_COOKIE_NAME = 'goooog_session';
 export const SECURE_SESSION_COOKIE_NAME = '__Host-goooog_session';
 
 export function createCookieHeader(name, value, maxAge, isLogout = false, isSecure = false) {
-    const secureFlag = isSecure ? '; Secure' : '';
+    const isHostPrefix = typeof name === 'string' && name.startsWith('__Host-');
+    const secureFlag = (isSecure || isHostPrefix) ? '; Secure' : '';
     if (isLogout) {
         return `${name}=; Path=/; HttpOnly${secureFlag}; SameSite=Lax; Max-Age=0`;
     }

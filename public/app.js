@@ -6,7 +6,7 @@ import { initLeaderboard } from './leaderboard.js';
 import { initCrawler } from './crawler.js';
 import { initSettingsModal } from './settings.js';
 import { openRandomPicker } from './random-picker.js';
-import { initWorship } from './worship.js';
+import { initWorship, pauseWorshipTimers, resetWorshipSession } from './worship.js';
 import { sound } from './sound.js';
 import { showToast } from './toast.js';
 import { getCsrfToken, clearCsrfToken } from './csrf.js';
@@ -41,8 +41,14 @@ window.fetch = function(url, options = {}) {
 const state = {
     user: null,
     selectedCategory: 'mix',
-    cachedCharacters: null
+    cachedCharacters: null,
+    cachedCharactersAt: 0
 };
+
+// Home page category counts are cached briefly so back-to-back navigation
+// doesn't refetch the whole library, but never long enough to show stale
+// counts after the user adds or removes characters (#46).
+const CHARACTERS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 async function checkAuth() {
     try {
@@ -86,7 +92,10 @@ export function performClientLogout() {
     sessionStorage.removeItem('goooog_session_token');
     localStorage.removeItem('goooog_user');
     clearCsrfToken();
+    resetWorshipSession();
     state.user = null;
+    state.cachedCharacters = null;
+    state.cachedCharactersAt = 0;
     document.getElementById('view-main')?.classList.add('hidden');
     document.getElementById('view-auth')?.classList.remove('hidden');
     initAuth();
@@ -128,20 +137,27 @@ function registerServiceWorker() {
     }
 }
 
+let routerWired = false;
+let globalEventsWired = false;
+
 function initRouter() {
     const pages = ['home', 'gallery', 'stats', 'leaderboard', 'worship', 'admin'];
-    
+
     const navigate = (page) => {
         if (!pages.includes(page)) page = 'home';
-        
+
+        // Leaving the worship page must stop its live meditation timers,
+        // otherwise they keep awarding devotion for a hidden view (#20).
+        pauseWorshipTimers();
+
         pages.forEach(p => {
             const pageEl = document.getElementById(`page-${p}`);
             if (pageEl) pageEl.classList.add('hidden');
         });
-        
+
         const targetPage = document.getElementById(`page-${page}`);
         if (targetPage) targetPage.classList.remove('hidden');
-        
+
         document.querySelectorAll('.nav-item').forEach(el => {
             if (el.dataset.nav === page) {
                 el.classList.add('active');
@@ -149,7 +165,7 @@ function initRouter() {
                 el.classList.remove('active');
             }
         });
-        
+
         if (page === 'home') initHome();
         if (page === 'gallery') initGallery(state.user);
         if (page === 'stats') initCharStats();
@@ -158,18 +174,24 @@ function initRouter() {
         if (page === 'admin') initCrawler(state.user);
     };
 
-    document.querySelectorAll('[data-nav]').forEach(el => {
-        el.addEventListener('click', (e) => {
-            sound.playClick();
-            const page = e.currentTarget.dataset.nav;
-            window.location.hash = page;
-        });
-    });
+    // Wire global listeners exactly once; re-login must not stack duplicate
+    // hashchange/nav handlers that made every click fire N times (#21).
+    if (!routerWired) {
+        routerWired = true;
 
-    window.addEventListener('hashchange', () => {
-        const hash = window.location.hash.replace('#', '') || 'home';
-        navigate(hash);
-    });
+        document.querySelectorAll('[data-nav]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                sound.playClick();
+                const page = e.currentTarget.dataset.nav;
+                window.location.hash = page;
+            });
+        });
+
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.replace('#', '') || 'home';
+            navigate(hash);
+        });
+    }
 
     const initialHash = window.location.hash.replace('#', '') || 'home';
     navigate(initialHash);
@@ -218,13 +240,17 @@ async function initHome() {
 
     // Fetch live category counts and random backdrop images
     try {
-        let characters = state.cachedCharacters;
-        if (!characters) {
+        let characters = null;
+        const cacheFresh = state.cachedCharacters && (Date.now() - state.cachedCharactersAt) < CHARACTERS_CACHE_TTL_MS;
+        if (cacheFresh) {
+            characters = state.cachedCharacters;
+        } else {
             const res = await fetch('/api/characters?limit=2000');
             const data = await res.json();
             if (data.success) {
                 characters = data.data.characters || [];
                 state.cachedCharacters = characters;
+                state.cachedCharactersAt = Date.now();
             }
         }
 
@@ -297,6 +323,9 @@ async function initHome() {
 }
 
 function setupGlobalEvents() {
+    if (globalEventsWired) return;
+    globalEventsWired = true;
+
     // Mode Card Selection
     document.querySelectorAll('#setup-mode .mode-card').forEach(card => {
         card.addEventListener('click', (e) => {

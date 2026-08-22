@@ -13,7 +13,7 @@ export function setCsrfToken(token) {
 export function getCsrfToken() {
     if (memoryCsrfToken) return memoryCsrfToken;
     try {
-        const stored = sessionStorage.getItem('csrf_token') || localStorage.getItem('csrf_token');
+        const stored = sessionStorage.getItem('csrf_token');
         if (stored) {
             memoryCsrfToken = stored;
             return stored;
@@ -26,6 +26,5 @@ export function clearCsrfToken() {
     memoryCsrfToken = '';
     try {
         sessionStorage.removeItem('csrf_token');
-        localStorage.removeItem('csrf_token');
     } catch (e) {}
 }

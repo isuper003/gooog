@@ -4,6 +4,8 @@ import { initGame } from './game.js';
 import { showToast } from './toast.js';
 import { getCsrfToken } from './csrf.js';
 
+let galleryScrollHandler = null;
+
 export async function initGallery(currentUser) {
     const container = document.getElementById('page-gallery');
     if (!container) return;
@@ -498,13 +500,18 @@ export async function initGallery(currentUser) {
         showToast('Exported library as CSV', 'info');
     });
 
-    // Infinite scroll
-    window.addEventListener('scroll', () => {
+    // Infinite scroll — replace the previous handler so repeated visits to the
+    // gallery page never accumulate duplicate window scroll listeners.
+    if (galleryScrollHandler) {
+        window.removeEventListener('scroll', galleryScrollHandler);
+    }
+    galleryScrollHandler = () => {
         if (document.getElementById('page-gallery')?.classList.contains('hidden')) return;
         if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
             loadCharacters();
         }
-    });
+    };
+    window.addEventListener('scroll', galleryScrollHandler);
 
     loadWeakSpotlight();
     loadCharacters(true);

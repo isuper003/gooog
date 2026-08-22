@@ -6,11 +6,14 @@ export async function onRequestGet(context) {
     
     try {
         const statsStmt = db.prepare(`
-            SELECT 
+            SELECT
                 COUNT(*) as total_tracked,
                 SUM(CASE WHEN mastery_level = 5 THEN 1 ELSE 0 END) as mastered_count,
-                SUM(CASE WHEN mastery_level BETWEEN 1 AND 4 THEN 1 ELSE 0 END) as learning_count,
-                SUM(CASE WHEN mastery_level = 0 OR (times_wrong > times_correct AND times_shown > 0) THEN 1 ELSE 0 END) as weak_count,
+                SUM(CASE WHEN mastery_level BETWEEN 1 AND 4 AND NOT (
+                        mastery_level = 0 OR (times_wrong > times_correct AND times_shown > 0)
+                    ) THEN 1 ELSE 0 END) as learning_count,
+                SUM(CASE WHEN (mastery_level = 0 OR (times_wrong > times_correct AND times_shown > 0))
+                        AND mastery_level <= 4 THEN 1 ELSE 0 END) as weak_count,
                 SUM(CASE WHEN due_at_ms <= ? THEN 1 ELSE 0 END) as due_count,
                 SUM(times_shown) as total_answers,
                 SUM(times_correct) as total_correct,

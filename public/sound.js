@@ -13,7 +13,12 @@ class SoundManager {
             }
         }
         if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
+            // resume() rejects outside a user gesture (autoplay policy); the
+            // context revives on the next real interaction, so swallow it.
+            const resume = this.ctx.resume();
+            if (resume && typeof resume.catch === 'function') {
+                resume.catch(() => {});
+            }
         }
     }
 

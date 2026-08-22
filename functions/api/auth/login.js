@@ -11,7 +11,7 @@ export async function onRequestPost(context) {
         return errorResponse("Invalid JSON", 400);
     }
 
-    const { username, password, rememberMe } = body;
+    const { username, password, rememberMe, timezoneOffsetMinutes } = body;
     
     if (!username || !password) {
         return errorResponse("Username and password are required.", 400);
@@ -59,7 +59,7 @@ export async function onRequestPost(context) {
             VALUES (?, ?, ?, ?, ?, ?)
         `).bind(sessionId, user.id, tokenHash, csrfTokenHash, isRememberMe ? 1 : 0, expiresAtMs).run();
         
-        await updateDailyStreak(db, user.id);
+        await updateDailyStreak(db, user.id, timezoneOffsetMinutes);
         
         const isHttps = new URL(request.url).protocol === 'https:';
         const cookieHeaders = [
@@ -89,37 +89,40 @@ export async function onRequestPost(context) {
     }
 }
 
-async function updateDailyStreak(db, userId) {
+async function updateDailyStreak(db, userId, timezoneOffsetMinutes) {
     try {
-        const today = new Date().toISOString().split('T')[0];
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        
-        const streakStmt = db.prepare("SELECT current_streak, longest_streak, last_login_date_utc, unlocked_milestones_json FROM daily_streaks WHERE user_id = ?").bind(userId);
-        const streakRecord = await streakStmt.first();
-        
-        if (!streakRecord) {
-            await db.prepare(`
-                INSERT INTO daily_streaks (user_id, current_streak, longest_streak, last_login_date_utc, unlocked_milestones_json)
-                VALUES (?, 1, 1, ?, '[]')
-            `).bind(userId, today).run();
-        } else {
-            if (streakRecord.last_login_date_utc === today) {
-                return;
-            }
-            
-            let newStreak = 1;
-            if (streakRecord.last_login_date_utc === yesterday) {
-                newStreak = streakRecord.current_streak + 1;
-            }
-            
-            const newLongest = Math.max(newStreak, streakRecord.longest_streak);
-            
-            await db.prepare(`
-                UPDATE daily_streaks 
-                SET current_streak = ?, longest_streak = ?, last_login_date_utc = ?
-                WHERE user_id = ?
-            `).bind(newStreak, newLongest, today, userId).run();
-        }
+        // Resolve the user's calendar day. Defaults to UTC (plan.md contract);
+        // when the client supplies its getTimezoneOffset() the local date is
+        // derived so users near UTC boundaries do not lose daily streaks.
+        const offsetMin = Number.isFinite(timezoneOffsetMinutes)
+            ? Math.max(-840, Math.min(840, Math.trunc(timezoneOffsetMinutes)))
+            : 0;
+        const localNowMs = Date.now() - (offsetMin * 60 * 1000);
+        const today = new Date(localNowMs).toISOString().split('T')[0];
+        const yesterday = new Date(localNowMs - 86400000).toISOString().split('T')[0];
+
+        // Single-statement upsert + conditional advance: no read-modify-write
+        // window, so concurrent logins can never double-increment or clobber
+        // each other. String dates compare chronologically (YYYY-MM-DD).
+        await db.prepare(`
+            INSERT INTO daily_streaks (user_id, current_streak, longest_streak, last_login_date_utc, unlocked_milestones_json)
+            VALUES (?, 1, 1, ?, '[]')
+            ON CONFLICT(user_id) DO UPDATE SET
+                current_streak = CASE
+                    WHEN daily_streaks.last_login_date_utc = ? THEN daily_streaks.current_streak
+                    WHEN daily_streaks.last_login_date_utc = ? THEN daily_streaks.current_streak + 1
+                    ELSE 1
+                END,
+                longest_streak = CASE
+                    WHEN daily_streaks.last_login_date_utc = ? THEN daily_streaks.longest_streak
+                    ELSE MAX(daily_streaks.longest_streak, CASE
+                        WHEN daily_streaks.last_login_date_utc = ? THEN daily_streaks.current_streak + 1
+                        ELSE 1
+                    END)
+                END,
+                last_login_date_utc = ?
+            WHERE daily_streaks.last_login_date_utc IS NULL OR daily_streaks.last_login_date_utc < ?
+        `).bind(userId, today, today, yesterday, today, yesterday, today, userId, today).run();
     } catch (e) {
         console.error("Failed to update daily streak", e);
     }

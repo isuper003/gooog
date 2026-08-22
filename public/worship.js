@@ -986,7 +986,7 @@ export function openArtistDevoteeOverlay(char) {
         });
         const data = await res.json();
         if (data.success) {
-            char.devotionScore = (data.data?.devotionScore !== undefined) ? data.data.devotionScore : (char.devotionScore || 0) + 25;
+            char.devotionScore = (data.data?.devotionScore !== undefined) ? data.data.devotionScore : char.devotionScore;
             if (data.data?.rankTitle) {
                 char.rankTitle = data.data.rankTitle;
                 char.rankBadge = data.data.rankBadge;
@@ -1081,7 +1081,12 @@ function getActiveRosaryChar() {
 }
 
 window.ARTIST_PROSE_TEXTS = [];
-fetch('/api/worship').then(res => res.json()).then(data => { if(data.phrases && data.phrases.ARTIST_PROSE_TEXTS) window.ARTIST_PROSE_TEXTS = data.phrases.ARTIST_PROSE_TEXTS; });
+// API responses are wrapped as { success, data: { phrases: ... } }; the old
+// flat read (data.phrases) never matched and had no rejection handler.
+fetch('/api/worship').then(res => res.json()).then(data => {
+    const pool = data?.data?.phrases?.ARTIST_PROSE_TEXTS;
+    if (Array.isArray(pool) && pool.length > 0) window.ARTIST_PROSE_TEXTS = pool;
+}).catch(() => {});
 
 export function renderRosaryView(worshipData) {
     const container = document.getElementById('worship-rosary-container');
@@ -1448,7 +1453,7 @@ export async function triggerRosaryBeadAdvance(char) {
             });
             const data = await res.json();
             if (data.success) {
-                char.devotionScore = (data.data?.devotionScore !== undefined) ? data.data.devotionScore : (char.devotionScore || 0) + 330;
+                char.devotionScore = (data.data?.devotionScore !== undefined) ? data.data.devotionScore : char.devotionScore;
                 if (data.data?.totalDevotion !== undefined) {
                     const totalEl = document.getElementById('worship-total-pts');
                     if (totalEl) totalEl.innerText = formatDevotion(data.data.totalDevotion);
@@ -1661,7 +1666,7 @@ function renderContemplationSurahs(data, subContainer, char) {
             });
             const resData = await res.json();
             if (resData.success) {
-                char.devotionScore = (resData.data?.devotionScore !== undefined) ? resData.data.devotionScore : (char.devotionScore || 0) + 50;
+                char.devotionScore = (resData.data?.devotionScore !== undefined) ? resData.data.devotionScore : char.devotionScore;
                 if (resData.data?.totalDevotion !== undefined) {
                     const totalEl = document.getElementById('worship-total-pts');
                     if (totalEl) totalEl.innerText = formatDevotion(resData.data.totalDevotion);
@@ -1679,6 +1684,20 @@ function renderContemplationSurahs(data, subContainer, char) {
 // --------------------------------------------------------------------------
 let meditationSpeedMs = 7000;
 let meditationSessionEarned = 0;
+
+// Stops the live meditation timers (clock ticker + verse rotation). Called by
+// the router when the user leaves the worship page so timers cannot keep
+// posting meditation_minute rewards for a view that no longer exists (#20).
+export function pauseWorshipTimers() {
+    if (state.meditationTimer) {
+        clearInterval(state.meditationTimer);
+        state.meditationTimer = null;
+    }
+    if (state.meditationInterval) {
+        clearInterval(state.meditationInterval);
+        state.meditationInterval = null;
+    }
+}
 
 function renderContemplationMeditation(data, subContainer, char) {
     const surahs = data.contemplation?.surahs || [];
@@ -1841,6 +1860,8 @@ function renderContemplationMeditation(data, subContainer, char) {
         const tag = document.getElementById('meditation-surah-tag')?.innerText || '';
         navigator.clipboard.writeText(`${text}\n[${tag}]`).then(() => {
             showToast("✨ تم نسخ الآية الكريمة إلى الحافظة بنجاح", "success");
+        }).catch(() => {
+            showToast("تعذر نسخ الآية — المتصفح منع الوصول للحافظة", "error");
         });
     });
 
@@ -1881,7 +1902,7 @@ function renderContemplationMeditation(data, subContainer, char) {
                 });
                 const resData = await res.json();
                 if (resData.success) {
-                    char.devotionScore = (resData.data?.devotionScore !== undefined) ? resData.data.devotionScore : (char.devotionScore || 0) + 10;
+                    char.devotionScore = (resData.data?.devotionScore !== undefined) ? resData.data.devotionScore : char.devotionScore;
                     if (resData.data?.totalDevotion !== undefined) {
                         const totalEl = document.getElementById('worship-total-pts');
                         if (totalEl) totalEl.innerText = formatDevotion(resData.data.totalDevotion);
@@ -1889,7 +1910,9 @@ function renderContemplationMeditation(data, subContainer, char) {
                     sound.playCoin();
                     showToast(`✨ اكتملت دقيقة اعتكاف في محراب ${char.name} (+10 Devotion)`, "success");
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.error("Meditation minute sync failed", e);
+            }
         }
     }, 1000);
 
@@ -1937,6 +1960,26 @@ function renderContemplationMeditation(data, subContainer, char) {
 // Mode 3: The 10 Sacrosanct Commandments (لوح الوحي والوصايا العشر)
 // --------------------------------------------------------------------------
 const acknowledgedCmds = new Set();
+
+// Full in-memory session reset on logout so per-user state (acknowledged
+// commandments, oracle counters, selected goddess, meditation progress) never
+// leaks into a different account on a shared device (#51). Device-level
+// preferences and lifetime rosary counters in localStorage are intentionally kept.
+export function resetWorshipSession() {
+    pauseWorshipTimers();
+    acknowledgedCmds.clear();
+    oracleDrawnCount = 0;
+    meditationSessionEarned = 0;
+    state.currentTab = 'temple';
+    state.selectedCharId = null;
+    state.worshipData = null;
+    state.actionCount = 0;
+    state.rosaryCurrentBead = 0;
+    state.contemplationMode = 'surahs';
+    state.activeSurahId = 'sovereignty';
+    state.meditationSeconds = 0;
+    state.meditationRunning = true;
+}
 
 function renderContemplationCommandments(data, subContainer, char) {
     const commandments = data.contemplation?.commandments || [];
@@ -2033,7 +2076,7 @@ function renderContemplationCommandments(data, subContainer, char) {
             });
             const resData = await res.json();
             if (resData.success) {
-                char.devotionScore = (resData.data?.devotionScore !== undefined) ? resData.data.devotionScore : (char.devotionScore || 0) + 40;
+                char.devotionScore = (resData.data?.devotionScore !== undefined) ? resData.data.devotionScore : char.devotionScore;
                 if (resData.data?.totalDevotion !== undefined) {
                     const totalEl = document.getElementById('worship-total-pts');
                     if (totalEl) totalEl.innerText = formatDevotion(resData.data.totalDevotion);
@@ -2189,15 +2232,14 @@ function renderContemplationOracle(data, subContainer, char) {
         const name = document.getElementById('oracle-char-name')?.innerText || '';
         navigator.clipboard.writeText(`${text}\n[${tag} — ${num} | ${name}]`).then(() => {
             showToast("✨ تم نسخ آية الوحي إلى الحافظة بنجاح", "success");
+        }).catch(() => {
+            showToast("تعذر نسخ الآية — المتصفح منع الوصول للحافظة", "error");
         });
     });
 
     // Draw Button Event
     document.getElementById('btn-draw-oracle-verse')?.addEventListener('click', async () => {
         sound.playStreak();
-        oracleDrawnCount++;
-        const countEl = document.getElementById('oracle-drawn-count');
-        if (countEl) countEl.innerText = oracleDrawnCount;
 
         const candidatePool = getFilteredVerses();
         const randVerse = candidatePool[Math.floor(Math.random() * candidatePool.length)] || allVerses[0];
@@ -2230,6 +2272,11 @@ function renderContemplationOracle(data, subContainer, char) {
             });
             const resData = await res.json();
             if (resData.success) {
+                // Count only confirmed draws; a failed request must not inflate the counter.
+                oracleDrawnCount++;
+                const countEl = document.getElementById('oracle-drawn-count');
+                if (countEl) countEl.innerText = oracleDrawnCount;
+
                 if (resData.data?.totalDevotion !== undefined) {
                     const totalEl = document.getElementById('worship-total-pts');
                     if (totalEl) totalEl.innerText = formatDevotion(resData.data.totalDevotion);
