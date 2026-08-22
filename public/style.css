@@ -4599,16 +4599,16 @@ select.form-select::-webkit-scrollbar {
 }
 
 .artist-prose-body {
-    line-height: 2 !important;
-    font-size: 0.96rem !important;
+    line-height: 2.3 !important;
+    font-size: 1.18rem !important;
     color: #fdf4ff !important;
     text-align: justify !important;
     direction: rtl !important;
-    font-family: inherit !important;
+    font-family: 'Amiri Quran', 'Amiri', serif !important;
 }
 
 .artist-prose-body p {
-    margin-bottom: 1rem !important;
+    margin-bottom: 1.2rem !important;
     text-shadow: 0 1px 3px rgba(0,0,0,0.8) !important;
 }
 
@@ -4623,8 +4623,8 @@ select.form-select::-webkit-scrollbar {
         height: 135px !important;
     }
     .artist-prose-body {
-        font-size: 0.90rem !important;
-        line-height: 1.85 !important;
+        font-size: 1.05rem !important;
+        line-height: 2.1 !important;
     }
 }
 
@@ -4738,12 +4738,13 @@ select.form-select::-webkit-scrollbar {
 }
 
 .verses-prose-flow {
-    line-height: 2.3;
-    font-size: 1.02rem;
+    font-family: 'Amiri Quran', 'Amiri', serif !important;
+    line-height: 2.6 !important;
+    font-size: 1.35rem !important;
     color: #fdf4ff;
     text-align: justify;
     direction: rtl;
-    font-family: inherit;
+    letter-spacing: 0.3px;
 }
 
 .verse-unit {
@@ -4759,19 +4760,22 @@ select.form-select::-webkit-scrollbar {
 }
 
 .verse-ayah-ornament {
+    font-family: 'Amiri Quran', 'Amiri', serif !important;
     display: inline-block;
     color: #fcd34d;
-    font-weight: 900;
-    font-size: 0.85rem;
-    margin: 0 0.3rem;
-    padding: 0 0.3rem;
-    border-radius: 50%;
+    font-weight: 700;
+    font-size: 1.25rem !important;
+    margin: 0 0.35rem;
+    padding: 0 0.2rem;
     text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
     user-select: none;
+    vertical-align: baseline;
 }
 
 .verse-ayah-ornament .num {
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif !important;
     font-size: 0.78rem;
+    font-weight: 800;
     color: #fef08a;
 }
 
@@ -4839,6 +4843,14 @@ select.form-select::-webkit-scrollbar {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
+.meditation-verse-content {
+    font-family: 'Amiri Quran', 'Amiri', serif !important;
+    font-size: 1.35rem !important;
+    line-height: 2.4 !important;
+    color: #fdf4ff;
+    direction: rtl;
+}
+
 .verse-fade-out {
     opacity: 0;
     transform: translateY(8px);
@@ -4890,6 +4902,14 @@ select.form-select::-webkit-scrollbar {
     transition: transform 0.3s ease;
 }
 
+.oracle-quote-text {
+    font-family: 'Amiri Quran', 'Amiri', serif !important;
+    font-size: 1.4rem !important;
+    line-height: 2.5 !important;
+    color: #fef08a;
+    direction: rtl;
+}
+
 .card-flip-effect {
     transform: rotateY(90deg) scale(0.95);
     opacity: 0.4;
@@ -4902,15 +4922,20 @@ select.form-select::-webkit-scrollbar {
         padding: 1rem 0.75rem;
     }
     .verses-prose-flow {
-        font-size: 0.93rem;
-        line-height: 2.1;
+        font-size: 1.18rem !important;
+        line-height: 2.4 !important;
     }
     .meditation-portrait-wrapper {
         width: 140px;
         height: 140px;
     }
     .meditation-verse-content {
-        font-size: 0.92rem !important;
+        font-size: 1.12rem !important;
+        line-height: 2.2 !important;
+    }
+    .oracle-quote-text {
+        font-size: 1.18rem !important;
+        line-height: 2.3 !important;
     }
     .contemplation-mode-btn {
         min-width: 140px;
