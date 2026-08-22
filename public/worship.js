@@ -1717,8 +1717,20 @@ function renderContemplationMeditation(data, subContainer, char) {
                 </div>
             </div>
 
-            <!-- 2-Column Balanced Split: Right = Content, Left = Full Uncropped Image -->
+            <!-- 2-Column Balanced Split: Left = Full Uncropped Image, Right = Content -->
             <div class="meditation-split-layout">
+                <!-- LEFT SIDE: Full Uncropped Goddess Portrait -->
+                <div class="meditation-split-left">
+                    <div class="meditation-full-image-frame">
+                        <div class="image-inner-wrapper">
+                            <img src="${avatarSrc}" alt="${char.name}" class="meditation-full-img" id="meditation-portrait" loading="lazy" title="انقر لتكبير الهيئة الملكية في المعرض">
+                        </div>
+                        <div class="meditation-image-footer mt-2 text-center">
+                            <span class="text-xs text-purple-300 font-bold">🔍 انقر على الصورة للتكبير الكامل</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- RIGHT SIDE: Telemetry, Verse, Speed, Controls -->
                 <div class="meditation-split-right">
                     <!-- Goddess Title & Rank -->
@@ -1782,18 +1794,6 @@ function renderContemplationMeditation(data, subContainer, char) {
                             <button class="btn-primary text-xs font-bold py-2 px-5" id="btn-next-meditation-verse" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none;">
                                 🔄 الآية التالية
                             </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- LEFT SIDE: Full Uncropped Goddess Portrait -->
-                <div class="meditation-split-left">
-                    <div class="meditation-full-image-frame">
-                        <div class="image-inner-wrapper">
-                            <img src="${avatarSrc}" alt="${char.name}" class="meditation-full-img" id="meditation-portrait" loading="lazy" title="انقر لتكبير الهيئة الملكية في المعرض">
-                        </div>
-                        <div class="meditation-image-footer mt-2 text-center">
-                            <span class="text-xs text-purple-300 font-bold">🔍 انقر على الصورة للتكبير الكامل</span>
                         </div>
                     </div>
                 </div>
@@ -2114,6 +2114,18 @@ function renderContemplationOracle(data, subContainer, char) {
                 <div class="oracle-card-halo-effect"></div>
                 
                 <div class="oracle-split-layout">
+                    <!-- LEFT SIDE: Full Uncropped Character Image -->
+                    <div class="oracle-split-left">
+                        <div class="oracle-full-image-frame">
+                            <div class="image-inner-wrapper">
+                                <img src="${avatarSrc}" alt="${char.name}" id="oracle-char-avatar" class="oracle-full-img" loading="lazy" title="انقر لتكبير الهيئة الملكية في المعرض">
+                            </div>
+                            <div class="oracle-image-footer mt-2 text-center">
+                                <span class="text-xs text-purple-300 font-bold">🔍 انقر للتكبير</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- RIGHT SIDE: Verse & Meta -->
                     <div class="oracle-split-right">
                         <!-- Card Header -->
@@ -2143,18 +2155,6 @@ function renderContemplationOracle(data, subContainer, char) {
                             <button class="btn-icon-clean text-xs text-purple-300 hover:text-amber-300 flex items-center gap-1" id="btn-copy-oracle-verse" title="نسخ الآية">
                                 📋 نسخ الآية
                             </button>
-                        </div>
-                    </div>
-
-                    <!-- LEFT SIDE: Full Uncropped Character Image -->
-                    <div class="oracle-split-left">
-                        <div class="oracle-full-image-frame">
-                            <div class="image-inner-wrapper">
-                                <img src="${avatarSrc}" alt="${char.name}" id="oracle-char-avatar" class="oracle-full-img" loading="lazy" title="انقر لتكبير الهيئة الملكية في المعرض">
-                            </div>
-                            <div class="oracle-image-footer mt-2 text-center">
-                                <span class="text-xs text-purple-300 font-bold">🔍 انقر للتكبير</span>
-                            </div>
                         </div>
                     </div>
                 </div>
