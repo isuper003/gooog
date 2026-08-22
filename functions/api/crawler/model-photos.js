@@ -48,14 +48,14 @@ export async function onRequestGet(context) {
 
     try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 6000);
+        const timeout = setTimeout(() => controller.abort(), 7000);
 
         const res = await fetch(pornpicsUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
             },
-            redirect: 'error',
+            redirect: 'follow',
             signal: controller.signal
         });
         clearTimeout(timeout);
@@ -68,11 +68,12 @@ export async function onRequestGet(context) {
             const extractedName = h1Match ? h1Match[1].replace(/\s*(?:Nude\s*Pics|Porn\s*Pics|Galleries)\s*$/i, '').trim() : formattedName;
 
             // Extract all gallery photos from data-src or src and upgrade to 1280px HQ (excluding profile avatar)
-            const regex = /(?:data-src|src)=['"](https:\/\/cdni\.pornpics\.com\/[^'"]+)['"]/gi;
+            const regex = /(?:data-src|src)=['"]((?:https?:)?\/\/(?:cdni|cdn[a-z0-9-]*)\.pornpics\.com\/[^'"]+)['"]/gi;
             const seen = new Set();
             let match;
             while ((match = regex.exec(html)) !== null) {
-                const rawUrl = match[1];
+                let rawUrl = match[1];
+                if (rawUrl.startsWith('//')) rawUrl = 'https:' + rawUrl;
                 if (!rawUrl.includes('1px.png') && !rawUrl.includes('/models/')) {
                     // Automatically upgrade low-res thumbnails (460/300/560) to 1280 HQ
                     const hqUrl = rawUrl.replace(/\/(?:460|300|560)\//g, '/1280/');
@@ -95,6 +96,11 @@ export async function onRequestGet(context) {
         }
     } catch (e) {
         console.warn("Live model scraping error:", e.message);
+    }
+
+    // Fallback: If live gallery scraping failed, supply the primary avatar so import works seamlessly
+    if (galleryPhotos.length === 0 && mainProfileImg) {
+        galleryPhotos.push(mainProfileImg);
     }
 
     if (galleryPhotos.length === 0) {

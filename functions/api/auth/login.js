@@ -89,11 +89,13 @@ export async function onRequestPost(context) {
         
         await updateDailyStreak(db, user.id, timezoneOffsetMinutes);
         
-        // Cookies are always Secure: production is HTTPS-only (plan.md PWA
-        // policy) and the __Host- prefix requires it. The duplicate plain-name
-        // cookie eases transitions; both carry identical flags now.
+        // __Host- is always Secure (spec-mandated; browsers drop it on http,
+        // which is fine). The plain fallback cookie MIRRORS THE REQUEST
+        // PROTOCOL so local http dev (wrangler pages dev) can persist a
+        // session — browsers refuse Secure cookies served over http.
+        const isHttps = new URL(request.url).protocol === 'https:';
         const cookieHeaders = [
-            createCookieHeader('goooog_session', sessionToken, maxAge, false, true),
+            createCookieHeader('goooog_session', sessionToken, maxAge, false, isHttps),
             createCookieHeader('__Host-goooog_session', sessionToken, maxAge, false, true)
         ];
         

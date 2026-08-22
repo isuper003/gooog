@@ -23,9 +23,11 @@ export async function onRequestPost(context) {
         }
     }
     
+    // Mirror the login protocol so clearing matches how each cookie was set.
+    const isHttps = new URL(request.url).protocol === 'https:';
     const logoutCookies = [
         createCookieHeader(SECURE_SESSION_COOKIE_NAME, '', 0, true, true),
-        createCookieHeader(SESSION_COOKIE_NAME, '', 0, true, false)
+        createCookieHeader(SESSION_COOKIE_NAME, '', 0, true, isHttps)
     ];
     
     return successResponse({ message: "Logout successful" }, 200, {

@@ -4,6 +4,45 @@ import { showToast } from './toast.js';
 import { getCsrfToken } from './csrf.js';
 import { esc } from './esc.js';
 
+// ── Horizontal photo strips: press-drag scrolling for mouse users ─────────
+// Touch/trackpads scroll natively; this adds desktop drag support. A move
+// threshold swallows the trailing click so flicking through the album never
+// accidentally toggles a thumbnail's selection.
+let stripDragMoved = false;
+
+function enableStripDragScroll(strip) {
+    let down = false;
+    let startX = 0;
+    let startScroll = 0;
+
+    strip.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'touch' || e.button !== 0) return;
+        down = true;
+        stripDragMoved = false;
+        startX = e.clientX;
+        startScroll = strip.scrollLeft;
+        strip.classList.add('strip-dragging');
+    });
+
+    strip.addEventListener('pointermove', (e) => {
+        if (!down) return;
+        const dx = e.clientX - startX;
+        if (!stripDragMoved && Math.abs(dx) > 6) stripDragMoved = true;
+        if (stripDragMoved) strip.scrollLeft = startScroll - dx;
+    });
+
+    strip.addEventListener('pointerup', () => { down = false; strip.classList.remove('strip-dragging'); });
+    strip.addEventListener('pointercancel', () => { down = false; strip.classList.remove('strip-dragging'); });
+
+    // Capture-phase click guard: consumes the click that follows a real drag.
+    strip.addEventListener('click', (e) => {
+        const wasDrag = stripDragMoved;
+        stripDragMoved = false;
+        if (wasDrag) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+}
+window.addEventListener('click', () => { stripDragMoved = false; });
+
 export function initCrawler(currentUser) {
     // Lives in its own pane inside the admin shell so the Users Control
     // Center can coexist as a sibling tab without overwriting each other.
@@ -418,10 +457,20 @@ export function initCrawler(currentUser) {
                         if (char.selectedImages.length === 0) {
                             char.selectedImages = data.data.photos.slice(0, Math.min(4, data.data.photos.length));
                         }
-                        char.isFullGalleryLoaded = true;
-                        updateRowCardState(char);
+                    } else if (char.profileImage && char.allImages.length === 0) {
+                        char.allImages = [char.profileImage];
+                        char.selectedImages = [char.profileImage];
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.warn(`Failed to preload gallery for ${char.name}:`, e);
+                    if (char.profileImage && char.allImages.length === 0) {
+                        char.allImages = [char.profileImage];
+                        char.selectedImages = [char.profileImage];
+                    }
+                } finally {
+                    char.isFullGalleryLoaded = true;
+                    updateRowCardState(char);
+                }
             }));
             updateStatsAndFooter();
         }
@@ -506,6 +555,10 @@ export function initCrawler(currentUser) {
             // Bind thumbnail events
             bindThumbnailEvents(rowCard, char);
 
+            // Mouse drag-to-scroll for the horizontal album strip
+            const stripEl = rowCard.querySelector('.row-photos-strip');
+            if (stripEl) enableStripDragScroll(stripEl);
+
             // Card Checkbox Toggle
             rowCard.querySelector('.crawler-checkbox')?.addEventListener('change', (e) => {
                 if (e.target.checked) {
@@ -528,6 +581,13 @@ export function initCrawler(currentUser) {
 
     function renderThumbnailsHtml(char) {
         if (char.allImages.length === 0) {
+            if (char.isFullGalleryLoaded) {
+                return `
+                    <div class="py-4 px-3 text-xs color-text-muted flex items-center gap-2" style="white-space: nowrap;">
+                        <span>⚠️ No album photos found</span>
+                        <button class="btn-secondary text-xs py-1 px-2 retry-model-btn" data-slug="${esc(char.slug)}" data-id="${esc(char.id)}">🔄 Retry</button>
+                    </div>`;
+            }
             return `<div class="py-6 px-4 text-xs color-text-muted" style="white-space: nowrap;">⏳ Loading full album photos...</div>`;
         }
 
@@ -540,7 +600,7 @@ export function initCrawler(currentUser) {
                      data-img-url="${imgUrl}" 
                      data-img-idx="${imgIdx}"
                      title="Photo #${imgIdx + 1} - Click to select (1..4)">
-                    <img src="${imgUrl}" alt="${char.name} #${imgIdx + 1}" loading="lazy" referrerpolicy="no-referrer">
+                    <img src="${imgUrl}" alt="${esc(char.name)} #${imgIdx + 1}" loading="lazy" referrerpolicy="no-referrer">
                     <div class="thumb-check">${isSelected ? selOrder : '+'}</div>
                     <button class="thumb-zoom-btn" title="Zoom in full size">🔍</button>
                 </div>
@@ -549,6 +609,33 @@ export function initCrawler(currentUser) {
     }
 
     function bindThumbnailEvents(rowCard, char) {
+        // Retry fetch button if album failed
+        rowCard.querySelector('.retry-model-btn')?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            btn.innerText = "⏳...";
+            try {
+                const res = await fetch(`/api/crawler/model-photos?slug=${encodeURIComponent(char.slug)}`);
+                const data = await res.json();
+                if (data.success && data.data?.photos?.length > 0) {
+                    char.allImages = data.data.photos;
+                    char.selectedImages = data.data.photos.slice(0, Math.min(4, data.data.photos.length));
+                    char.isFullGalleryLoaded = true;
+                    updateRowCardState(char);
+                    showToast(`Loaded ${data.data.photos.length} photos for ${char.name}!`, 'success');
+                } else {
+                    showToast("Could not find gallery photos for this model.", "warning");
+                    btn.disabled = false;
+                    btn.innerText = "🔄 Retry";
+                }
+            } catch (err) {
+                showToast("Retry failed. Check connection.", "error");
+                btn.disabled = false;
+                btn.innerText = "🔄 Retry";
+            }
+        });
+
         rowCard.querySelectorAll('.img-strip-thumb').forEach(thumb => {
             // Zoom button click
             thumb.querySelector('.thumb-zoom-btn')?.addEventListener('click', (e) => {

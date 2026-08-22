@@ -27,4 +27,20 @@ describe('Auth Helpers', () => {
         const logoutCookie = createCookieHeader('__Host-goooog_session', '', 0, true);
         expect(logoutCookie).toContain('Max-Age=0');
     });
+
+    it('plain fallback cookie mirrors the request protocol (http dev persistence)', () => {
+        const httpsCookie = createCookieHeader('goooog_session', 't', 86400, false, true);
+        expect(httpsCookie).toContain('Secure');
+
+        // http dev: Secure must be OMITTED or browsers drop the cookie and
+        // every page refresh logs the user out.
+        const httpCookie = createCookieHeader('goooog_session', 't', 86400, false, false);
+        expect(httpCookie).not.toContain('Secure');
+        expect(httpCookie).toContain('HttpOnly');
+        expect(httpCookie).toContain('SameSite=Lax');
+    });
+
+    it('__Host- prefix always forces Secure regardless of the flag', () => {
+        expect(createCookieHeader('__Host-goooog_session', 't', 86400, false, false)).toContain('Secure');
+    });
 });

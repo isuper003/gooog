@@ -2884,6 +2884,19 @@ input:focus, select:focus, textarea:focus {
     -ms-overflow-style: none;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
+    cursor: grab;
+}
+.row-photos-strip.strip-dragging {
+    cursor: grabbing;
+    scroll-behavior: auto; /* smooth fights the drag — disable while dragging */
+    user-select: none;
+}
+.row-photos-strip.strip-dragging * {
+    pointer-events: none; /* kills hover transforms & stray clicks mid-drag */
+}
+.row-photos-strip img {
+    -webkit-user-drag: none;
+    user-select: none;
 }
 
 .row-photos-strip::-webkit-scrollbar {
