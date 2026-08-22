@@ -166,6 +166,103 @@ export async function onRequestGet(context) {
 
             return successResponse({ leaderboard, type: 'devotees', filter });
         }
+
+        // ── 2. Supreme Deity Leaderboard (عَرْشُ الإِلَهِ الأَكْبَر) ─────────────
+        if (type === 'goddesses' || type === 'supreme' || type === 'deity') {
+            let query = `
+                SELECT 
+                    c.id, 
+                    c.name, 
+                    c.category, 
+                    c.label, 
+                    c.created_at_ms,
+                    COALESCE(SUM(MAX(0, p.times_correct * 10 - p.times_wrong * 5)), 0) as total_community_devotion,
+                    COALESCE(SUM(p.times_correct), 0) as total_community_tributes,
+                    COUNT(DISTINCT CASE WHEN (p.times_correct > 0 OR p.times_wrong > 0) THEN p.user_id ELSE NULL END) as total_devotees_count
+                FROM characters c
+                LEFT JOIN user_character_progress p ON c.id = p.character_id
+                WHERE c.status = 'approved' AND c.deleted_at_ms IS NULL
+            `;
+            const params = [];
+            if (category && category !== 'all' && category !== 'total') {
+                query += ` AND c.category = ?`;
+                params.push(category);
+            }
+
+            query += `
+                GROUP BY c.id
+                ORDER BY total_community_devotion DESC, total_community_tributes DESC, c.name ASC
+                LIMIT 50
+            `;
+
+            const { results } = await db.prepare(query).bind(...params).all();
+            const charList = results || [];
+
+            if (charList.length > 0) {
+                const charIds = charList.map(c => c.id);
+                const imgMap = {};
+                const topDevoteeMap = {};
+
+                // Fetch primary images in chunks
+                const chunkSize = 30;
+                for (let i = 0; i < charIds.length; i += chunkSize) {
+                    const chunk = charIds.slice(i, i + chunkSize);
+                    const placeholders = chunk.map(() => '?').join(',');
+                    
+                    const { results: imagesChunk } = await db.prepare(`
+                        SELECT character_id, image_url, display_order 
+                        FROM character_images 
+                        WHERE character_id IN (${placeholders})
+                        ORDER BY character_id, display_order ASC
+                    `).bind(...chunk).all();
+
+                    (imagesChunk || []).forEach(img => {
+                        if (!imgMap[img.character_id]) imgMap[img.character_id] = img.image_url;
+                    });
+
+                    // Fetch top devotee champion for each character
+                    const { results: topDevoteesChunk } = await db.prepare(`
+                        SELECT p.character_id, u.username,
+                               MAX(0, p.times_correct * 10 - p.times_wrong * 5) as devotion
+                        FROM user_character_progress p
+                        JOIN users u ON u.id = p.user_id
+                        WHERE p.character_id IN (${placeholders}) 
+                          AND u.status = 'approved' AND (p.times_correct > 0 OR p.times_wrong > 0)
+                        ORDER BY p.character_id, devotion DESC, p.times_correct DESC
+                    `).bind(...chunk).all();
+
+                    (topDevoteesChunk || []).forEach(dev => {
+                        if (!topDevoteeMap[dev.character_id]) {
+                            topDevoteeMap[dev.character_id] = {
+                                username: dev.username,
+                                devotion: dev.devotion
+                            };
+                        }
+                    });
+                }
+
+                charList.forEach(char => {
+                    char.image = imgMap[char.id] || '';
+                    char.topDevotee = topDevoteeMap[char.id] || null;
+                });
+            }
+
+            const leaderboard = charList.map((row, index) => ({
+                rank: index + 1,
+                id: row.id,
+                name: row.name,
+                category: row.category,
+                label: row.label,
+                image: row.image || '',
+                totalCommunityDevotion: row.total_community_devotion || 0,
+                totalCommunityTributes: row.total_community_tributes || 0,
+                totalDevoteesCount: row.total_devotees_count || 0,
+                topDevotee: row.topDevotee || null
+            }));
+
+            return successResponse({ leaderboard, type: 'goddesses', category });
+        }
+
         if (type === 'stars' || type === 'characters' || type === 'pornstars') {
             // Character / Pornstar accuracy leaderboard (least errors by players)
             let query = `

@@ -105,4 +105,64 @@ describe('Devotees Leaderboard Endpoint (ديوان صفوة العباد)', () 
         expect(json.data.leaderboard[0].charDevotion).toBe(2500);
         expect(json.data.leaderboard[0].isMe).toBe(false);
     });
+
+    it('handles goddesses (الإله الأكبر) supreme devotion leaderboard', async () => {
+        const mockDb = {
+            prepare: (sql) => ({
+                bind: (...args) => ({
+                    all: async () => {
+                        if (sql.includes('character_images')) {
+                            return {
+                                results: [
+                                    { character_id: 'goddess_1', image_url: 'https://img.local/1.jpg', display_order: 1 }
+                                ]
+                            };
+                        }
+                        if (sql.includes('ORDER BY p.character_id, devotion DESC')) {
+                            return {
+                                results: [
+                                    { character_id: 'goddess_1', username: 'top_zealot', devotion: 12000 }
+                                ]
+                            };
+                        }
+                        return {
+                            results: [
+                                {
+                                    id: 'goddess_1',
+                                    name: 'Empress Supreme',
+                                    category: 'sluts',
+                                    label: 'Goddess',
+                                    total_community_devotion: 850000,
+                                    total_community_tributes: 4200,
+                                    total_devotees_count: 50
+                                }
+                            ]
+                        };
+                    }
+                })
+            })
+        };
+
+        const req = new Request('https://test.local/api/leaderboard?type=goddesses&category=all');
+        const res = await onRequestGet({
+            env: { DB: mockDb },
+            request: req,
+            data: { user: { id: 'usr_1' } }
+        });
+
+        expect(res.status).toBe(200);
+        const json = await res.json();
+        expect(json.success).toBe(true);
+        expect(json.data.type).toBe('goddesses');
+        expect(json.data.leaderboard.length).toBe(1);
+        
+        const topGoddess = json.data.leaderboard[0];
+        expect(topGoddess.name).toBe('Empress Supreme');
+        expect(topGoddess.totalCommunityDevotion).toBe(850000);
+        expect(topGoddess.totalDevoteesCount).toBe(50);
+        expect(topGoddess.image).toBe('https://img.local/1.jpg');
+        expect(topGoddess.topDevotee.username).toBe('top_zealot');
+        expect(topGoddess.topDevotee.devotion).toBe(12000);
+    });
 });
+
