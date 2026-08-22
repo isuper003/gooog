@@ -1496,7 +1496,7 @@ export function renderContemplationView(data) {
             <div class="contemplation-mode-nav mb-5" id="contemplation-mode-nav">
                 <button class="contemplation-mode-btn ${state.contemplationMode === 'surahs' ? 'active' : ''}" data-mode="surahs">
                     <span class="mode-icon">📜</span>
-                    <span>سور المصحف (11 سورة)</span>
+                    <span>سور المصحف (${surahs.length || 28} سورة)</span>
                 </button>
                 <button class="contemplation-mode-btn ${state.contemplationMode === 'meditation' ? 'active' : ''}" data-mode="meditation">
                     <span class="mode-icon">🧘‍♂️</span>
@@ -1549,7 +1549,7 @@ export function renderContemplationView(data) {
 }
 
 // --------------------------------------------------------------------------
-// Mode 1: Surahs Reader & Sealing (11 Surahs × 50 Verses)
+// Mode 1: Surahs Reader & Sealing (28 Surahs)
 // --------------------------------------------------------------------------
 function renderContemplationSurahs(data, subContainer, char) {
     const surahs = data.contemplation?.surahs || [];
