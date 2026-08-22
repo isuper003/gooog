@@ -4552,5 +4552,81 @@ select.form-select::-webkit-scrollbar {
     padding: 0.5rem 0.75rem;
 }
 
+/* ==========================================================================
+   Council of Petition & Submission Modal (مقام العابد المهان) Mobile Layout
+   ========================================================================== */
+.artist-devotee-modal-content {
+    max-width: 780px !important;
+    width: 94vw !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    background: radial-gradient(circle at top, rgba(88, 28, 135, 0.45), rgba(12, 10, 24, 0.98)) !important;
+    border: 1px solid rgba(168, 85, 247, 0.45) !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.9), 0 0 35px rgba(168, 85, 247, 0.25) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 1.25rem 1rem !important;
+}
+
+.artist-devotee-gallery-strip {
+    margin: 0.75rem 0 1rem !important;
+}
+
+.artist-devotee-gallery-strip .artist-img-wrapper {
+    width: 110px !important;
+    height: 155px !important;
+    border-radius: var(--radius-md) !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(168, 85, 247, 0.4) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    transition: transform 0.2s ease, border-color 0.2s ease !important;
+}
+
+.artist-devotee-gallery-strip .artist-img-wrapper:hover,
+.artist-devotee-gallery-strip .artist-img-wrapper:active {
+    transform: scale(1.04) !important;
+    border-color: #ec4899 !important;
+}
+
+.artist-devotee-prose-container {
+    background: rgba(0, 0, 0, 0.65) !important;
+    border: 1px solid rgba(168, 85, 247, 0.4) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 1.15rem 1rem !important;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6) !important;
+}
+
+.artist-prose-body {
+    line-height: 2 !important;
+    font-size: 0.96rem !important;
+    color: #fdf4ff !important;
+    text-align: justify !important;
+    direction: rtl !important;
+    font-family: inherit !important;
+}
+
+.artist-prose-body p {
+    margin-bottom: 1rem !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8) !important;
+}
+
+@media (max-width: 600px) {
+    .artist-devotee-modal-content {
+        width: 96vw !important;
+        padding: 1rem 0.75rem !important;
+        max-height: 92vh !important;
+    }
+    .artist-devotee-gallery-strip .artist-img-wrapper {
+        width: 95px !important;
+        height: 135px !important;
+    }
+    .artist-prose-body {
+        font-size: 0.90rem !important;
+        line-height: 1.85 !important;
+    }
+}
+
 
 

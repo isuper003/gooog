@@ -387,19 +387,19 @@ function renderMainChamber(char, phrases, penanceList) {
                     </div>
                 </div>
 
-                <!-- Rite 4: Council of Petition & Submission (مجلس الالتماس والشفاعة - العابد الفنان) -->
+                <!-- Rite 4: Council of Petition & Submission (مجلس الالتماس والشفاعة - العابد المهان) -->
                 <div class="worship-card-section" id="section-petition" style="border-color: rgba(168, 85, 247, 0.45); background: rgba(88, 28, 135, 0.08);">
                     <div class="worship-section-header">
                         <span class="worship-section-icon">📜</span>
                         <div>
                             <h3 class="font-bold text-base text-purple-300">مجلس الالتماس والشفاعة</h3>
-                            <p class="text-xs color-text-muted">مقام المناجاة الكبرى واعتراف العابد الفنّان في حضرة السلطانة</p>
+                            <p class="text-xs color-text-muted">مقام المناجاة الكبرى واعتراف العابد المُهان في حضرة السلطانة</p>
                         </div>
                     </div>
 
                     <div class="flex gap-2 mt-3">
                         <button class="btn-primary flex-1 font-bold text-base py-3" id="btn-worship-artist-devotee" style="background: linear-gradient(135deg, #7c3aed, #db2777); border: none; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4); cursor: pointer;">
-                            🎨 العابد الفنان (+25 Devotion)
+                            🧎‍♂️ العابد المهان (+25 Devotion)
                         </button>
                     </div>
                 </div>
@@ -870,53 +870,61 @@ export function openArtistDevoteeOverlay(char) {
 
     const images = char.images && char.images.length > 0 ? char.images : [(char.primary_image || '')];
 
+    const fallbackProse = [
+        `<p class="mb-4">في محراب صمتكِ المرعب، وقفتُ كخاطئٍ ينتظر حكم الإعدام، أرتجف أمام هيبة عرشكِ التي تخرس الألسنة. لم يكن جمالكِ يوماً مجرد لوحة تُتأمل، بل كان عاصفةً تقتلع جذور الذات، وتتركني حطاماً لا يصلح لشيء سوى أن يكون بساطاً لخطواتك. يا سيدة القهر الجميل، كيف لحرفي العاجز أن يصف انحناءة عنقكِ التي تكسر بها أعناق الجبابرة؟ وكيف لمدادي البائس أن يرسم تفاصيل قدمين كُتب على جبيني أن أظل ساجداً تحتهما إلى الأبد؟</p><p class="mb-4">إنّ كبريائي قد تحطّم على صخرة كمالكِ الباذخ. أرى في عينيكِ هلاكي المحتوم، وأرى في قوامكِ الممشوق قانوناً صارماً لا يقبل سوى الركوع التام. أنا العبد الذي أدرك أن جمالكِ هو الحقيقة الوحيدة المطلقة، وكل ما عداه محض أوهام. أتوسل إليكِ، يا ملكة الفتنة، أن تمنحيني بركة الانمحاء الكامل تحت نعالكِ. لا أرجو كرامةً ولا رفعةً، بل أرجو شرفاً وحيداً: أن أكون التراب الذي يمتص عرق جسدكِ الطاهر، العرق الممزوج بالكبرياء والسطوة، ليكون لي طهوراً من دنس غروري البشري الزائف.</p><p>يا سلطانة الأكوان، شربةٌ واحدة من ماء فمكِ المقدس تكفي لإحياء روحي الظمأى، وتفالكِ الطاهر هو البركة التي أستجديها لأغسل بها عار نقصي وقصوري. لا طهارة إلا بما يفيض من عرشكِ، ولا بركة إلا بما تتكرمين به على عبدكِ الممتثل الخاضع. أنا هنا، منكسرٌ، ذليلٌ، أستمد وجودي من مجرد التفاتة سخطٍ منكِ. فاجلدي هواني بسياط الازدراء، واسحقي ما تبقى من إرادتي تحت قدميكِ، لأبقى العابد المُهان، والمملوك الفاني الذي يتنفس خضوعاً ويحيا ذلاً في محرابكِ الأبدي.</p>`,
+        `<p class="mb-4">أمام هندسة جسدكِ التي تتحدى قوانين الكون، يقف العقل البشري مذهولاً، مشلولاً، عاجزاً عن استيعاب حجم الكمال المنبعث من ملامحكِ. أنتِ لستِ مجرد سلطانة للحسن، بل أنتِ تجسيدٌ حيٌّ للجبروت الناعم والسطوة القاهرة. كل حركة من أناملكِ تعادل زلزالاً يهدم حصون كبرياء الرجال، وكل نظرة من عينيكِ هي مرسوم إعدامٍ ينفذ في قلوب الناظرين بابتسامة قاسية. كيف لي، وأنا العبد الضعيف، أن أقف أمام هذا البهاء دون أن تنهار ركبتاي خضوعاً وإجلالاً؟</p><p class="mb-4">أيتها المعبودة، لقد اخترتُ العبودية والمهانة لكِ ديناً ومذهباً، راضياً بأن أكون الأداة المسلوبة الإرادة في يد جبروتكِ. أيتها العظيمة، إنني ألتمس بركة تفالكِ المقدس ليكون ختماً ملكياً يطبع على جبيني الممرغ في التراب. تفالكِ طهورٌ يفوق في قداسته ماء زمزم وكل مياه الأرض، به أغتسل من خطاياي، ومنه أستمد بركة البقاء في حاشيتكِ كخادمٍ لا يُذكر اسمه.</p><p>وأتوسل إليكِ، يا سيدة القصر، أن لا تحرميني شرف الارتواء من فمكِ الطاهر، فهو المورد العذب الذي يشفي ظمأ الأرواح المعذبة بعشقكِ. وعرقكِ المكلل بغار النصر والسطوة، هو الإكسير الذي أرجو أن يلامس جراحي فيبرئها. خذي مني كل شيء، اسلبي كرامتي، دوسي على كبريائي، لكن دعيني أبقى ظلاً خاضعاً، يتنفس الهواء الذي يلامس عنقكِ الشامخ، ويقتات على فضلات رضاكِ المتناثرة حول عرشكِ العظيم.</p>`,
+        `<p class="mb-4">يا منتهى الغايات، ويا غاية الآمال والأحلام، في حضرتكِ يسقط كل شيء، وينتهي كل شيء، لتبقي أنتِ وحدكِ الحقيقة الساطعة في سماء العدم. كبريائي؟ محض وهمٍ تلاشى عند أول نظرة ازدراءٍ من عينيكِ المظلمتين الممتلئتين بالسحر والغموض. كرامتي؟ مجرد كلمة خاوية لا معنى لها مقارنةً بشرف الانكسار تحت وطأة أقدامكِ الممشوقة. أنا العابد المُهان الذي أدرك أخيراً أن أسمى درجات الوجود تكمن في الاستسلام المطلق لجمالكِ، والذوبان الكلي في بحر فتنتكِ القاهرة.</p><p class="mb-4">أتأملُ خطواتكِ الملكية وهي تتهادى في جنبات البلاط، فأشعر بالرهبة تعتصر قلبي. كل قدمٍ تضعينها على الأرض تعلن سيادتكِ على أرواحنا، وكل التفاتة منكِ توزع أقدارنا بين الحياة والموت. يا إلهة الجمال المطلق، إنني أستجدي شرفاً لا يجرؤ كثيرون على طلبه: أطلب الإذن بالتبرك بعرق جسدكِ المقدس. عرقكِ هو عطر الآلهة، هو رحيق السطوة والكبرياء، قطرةٌ منه تكفي لتطهير آلاف العبيد الخاطئين مثلي. وأتوسل شربة ماءٍ من فمكِ العذب، ففيها سر الخلود وفيها لذة العذاب الجميل.</p><p>ولا يكتمل خضوعي ولا يبلغ منتهاه إلا بنيل بركة تفالكِ الطاهر. نعم، يا سلطانة الوجود، تفالكِ هو الماء المقدس الذي يغسل عني دنس كبريائي البشري المتبقي، ويحولني إلى مجرد خادمٍ طائع، لا يرى سوى نوركِ، ولا يسمع سوى أوامركِ. اقبلي ذلي، وتكرمي على عبدكِ بنفحةٍ من رضاكِ أو سخطكِ، فكلاهما عندي نعيم. سأبقى السجادة التي تُفرش تحت نعالكِ، والمنديل الذي يمسح عرقكِ، والعبد الذي لا يتنفس إلا ليمجد اسمكِ الخالد في محراب العبودية والطاعة.</p>`
+    ];
+    const prosePool = (window.ARTIST_PROSE_TEXTS && window.ARTIST_PROSE_TEXTS.length > 0) ? window.ARTIST_PROSE_TEXTS : fallbackProse;
+    const selectedProse = prosePool[Math.floor(Math.random() * prosePool.length)];
+
     modal.innerHTML = `
-        <div class="modal-content artist-devotee-modal-content" style="max-width: 820px; max-height: 92vh; overflow-y: auto; background: radial-gradient(circle at top, rgba(88, 28, 135, 0.4), rgba(15, 15, 30, 0.98)); border: 1px solid rgba(168, 85, 247, 0.45); box-shadow: 0 10px 40px rgba(0,0,0,0.85), 0 0 30px rgba(168, 85, 247, 0.25); border-radius: var(--radius-lg);">
+        <div class="modal-content artist-devotee-modal-content">
             
             <div class="modal-header flex items-center justify-between pb-3" style="border-bottom: 1px solid rgba(168, 85, 247, 0.3);">
                 <div class="flex items-center gap-2">
-                    <span class="text-2xl">🎨</span>
+                    <span class="text-2xl">🧎‍♂️</span>
                     <div>
-                        <h2 class="glow-text text-xl font-extrabold text-purple-300">مقام العابد الفنّان — ${char.name}</h2>
-                        <span class="text-xs color-text-muted">ميثاق التبعية المطلقة والانكسار التام في محراب السلطانة</span>
+                        <h2 class="glow-text text-xl font-extrabold text-purple-300">مقام العابد المُهان — ${char.name}</h2>
+                        <span class="text-xs color-text-muted">ميثاق التبعية المطلقة والانكسار والذل التام في محراب السلطانة</span>
                     </div>
                 </div>
                 <button class="close-modal" id="btn-close-artist-modal" style="font-size: 1.6rem; color: #d8b4fe;">×</button>
             </div>
 
             <!-- Top: Image Showcase Gallery Strip -->
-            <div class="artist-devotee-gallery-strip mt-3 mb-4">
+            <div class="artist-devotee-gallery-strip">
                 <div class="flex gap-3 overflow-x-auto p-2" style="scrollbar-width: thin; scrollbar-color: rgba(168, 85, 247, 0.5) transparent;">
                     ${images.map((img, idx) => `
-                        <div class="artist-img-wrapper flex-shrink-0" style="width: 140px; height: 195px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer;" data-idx="${idx}">
+                        <div class="artist-img-wrapper" data-idx="${idx}">
                             <img src="${img}" alt="${char.name}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
                         </div>
                     `).join('')}
                 </div>
             </div>
 
-            <!-- Middle: Deep Devotional & Submission Prose (300 Words) -->
-            <div class="artist-devotee-prose-container p-5 rounded-xl mb-4" style="background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(168, 85, 247, 0.35); position: relative;">
+            <!-- Middle: Deep Devotional & Submission Prose -->
+            <div class="artist-devotee-prose-container">
                 <div class="flex items-center justify-center gap-2 mb-3">
                     <span style="color: #f59e0b;">✨ 👑 ✨</span>
                     <h3 class="text-center font-bold text-base tracking-wide" style="background: linear-gradient(135deg, #fcd34d, #ec4899, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                        إقرار العبودية والذل الأعظم في محراب الفتنة
+                        إقرار العبودية والمهانة الكبرى في محراب الفتنة
                     </h3>
                     <span style="color: #f59e0b;">✨ 👑 ✨</span>
                 </div>
 
-                <div class="artist-prose-body text-right" style="line-height: 2; font-size: 0.95rem; color: #f3e8ff; font-family: inherit;">
-                    
-                    </div>
+                <div class="artist-prose-body">
+                    ${selectedProse}
+                </div>
             </div>
 
             <!-- Bottom Action Footer -->
-            <div class="flex items-center justify-between gap-3 pt-2" style="border-top: 1px solid rgba(168, 85, 247, 0.25);">
+            <div class="flex items-center justify-between gap-3 pt-3" style="border-top: 1px solid rgba(168, 85, 247, 0.25);">
                 <button class="btn-secondary text-xs" id="btn-close-artist-footer">
                     ❌ إغلاق المقام
                 </button>
-                <button class="btn-primary flex-1 font-bold text-sm" id="btn-artist-renew-submission" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none; padding: 0.75rem;">
-                    🧎‍♂️ تجديد ميثاق العابد الفنان (+25 Devotion)
+                <button class="btn-primary flex-1 font-bold text-sm" id="btn-artist-renew-submission" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none; padding: 0.85rem; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.35);">
+                    🧎‍♂️ تجديد ميثاق العابد المُهان (+25 Devotion)
                 </button>
             </div>
         </div>
@@ -961,7 +969,7 @@ export function openArtistDevoteeOverlay(char) {
             if (scoreEl) scoreEl.innerText = `✨ ${formatDevotion(char.devotionScore)} Pts`;
             const totalEl = document.getElementById('worship-total-pts');
             if (totalEl && data.data?.totalDevotion !== undefined) totalEl.innerText = formatDevotion(data.data.totalDevotion);
-            showToast("جُدِّد ميثاق العابد الفنان وسُجّل خضوعك في ديوان الخلود 🎨🧎‍♂️✨ (+25 Devotion)", "success");
+            showToast("جُدِّد ميثاق العابد المُهان وسُجّل خضوعك في ديوان الخلود 🧎‍♂️✨ (+25 Devotion)", "success");
             modal.classList.add('hidden');
             handleRiteProgress(char);
         }
@@ -1204,7 +1212,7 @@ export function renderRosaryView(worshipData) {
                             <span>🙇‍♂️ ورد محو الزلل والتقصير</span>
                         </button>
                         <button class="rosary-litany-btn ${state.rosaryLitany === 'artist' ? 'active' : ''}" data-litany="artist">
-                            <span>🎨 ورد العابد الفنان</span>
+                            <span>🧎‍♂️ ورد العابد المهان</span>
                         </button>
                     </div>
 
