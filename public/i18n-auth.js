@@ -42,7 +42,10 @@ const STRINGS = {
         connErrLogin: 'خطأ اتصال. حاول مجدداً.',
         appReceived: '🏛️ تم استلام طلبك!',
         regFailed: 'فشل التسجيل',
-        connErrReg: 'خطأ اتصال أثناء التسجيل.'
+        connErrReg: 'خطأ اتصال أثناء التسجيل.',
+        pendingTitle: 'تم استلام طلب انضمامك إلى المعبد بنجاح! 🏛️📜',
+        pendingBody: 'طلبك حالياً في ديوان المراجعة لدى سدنة المعبد.<br>ستتمكن من تسجيل الدخول فور اعتماد عضويتك ومباركتها.',
+        btnBackToLogin: '🔙 العودة إلى صفحة تسجيل الدخول'
     },
     en: {
         brandBadge: '👑 CELEBRITY TRIVIA ARENA',
@@ -66,7 +69,10 @@ const STRINGS = {
         connErrLogin: 'Connection error. Please try again.',
         appReceived: '🏛️ Application received!',
         regFailed: 'Registration failed',
-        connErrReg: 'Connection error during registration.'
+        connErrReg: 'Connection error during registration.',
+        pendingTitle: 'Your request to join the Temple has been successfully received! 🏛️📜',
+        pendingBody: 'Your application is currently under review by the Temple Keepers.<br>You will be able to log in as soon as your membership has been approved and consecrated.',
+        btnBackToLogin: '🔙 Back to Sign In'
     }
 };
 

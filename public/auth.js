@@ -2,6 +2,8 @@ import { showToast } from './toast.js';
 import { setCsrfToken } from './csrf.js';
 import { getLang, applyAuthLanguage, setAuthLang, t } from './i18n-auth.js';
 
+let originalAuthBoxHtml = null;
+
 // Blueprint §1.B — official Temple reception screen shown after a successful
 // application. Replaces the auth forms; the account cannot log in until
 // approved, so no session flow is started here.
@@ -9,17 +11,31 @@ function renderPendingScreen(username) {
     // The glass auth card that hosts tabs + both forms.
     const card = document.querySelector('.auth-box');
     if (!card) return;
+    if (!originalAuthBoxHtml) {
+        originalAuthBoxHtml = card.innerHTML;
+    }
     card.innerHTML = `
         <div class="temple-pending-screen text-center">
             <div class="temple-pending-icon">🏛️📜</div>
-            <h2 class="glow-text" style="font-size: 1.15rem;">Your request to join the Temple has been successfully received! 🏛️📜</h2>
+            <h2 class="glow-text" style="font-size: 1.15rem;">${t('pendingTitle')}</h2>
             <p style="line-height: 1.9; margin-top: 0.75rem;">
-                Your application is currently under review by the Temple Keepers.<br>
-                You will be able to log in as soon as your membership has been approved and consecrated.
+                ${t('pendingBody')}
             </p>
-            <p style="opacity: 0.7; font-size: 0.78rem; margin-top: 1rem;">@${username.replace(/</g, '&lt;')}</p>
+            <p style="opacity: 0.7; font-size: 0.78rem; margin-top: 0.85rem;">@${username.replace(/</g, '&lt;')}</p>
+            <div style="margin-top: 1.4rem;">
+                <button type="button" id="btn-back-to-login" class="btn-primary auth-submit-btn" style="width: 100%; max-width: 280px; margin: 0 auto;">
+                    <span>${t('btnBackToLogin')}</span>
+                </button>
+            </div>
         </div>
     `;
+
+    document.getElementById('btn-back-to-login')?.addEventListener('click', () => {
+        if (originalAuthBoxHtml) {
+            card.innerHTML = originalAuthBoxHtml;
+            initAuth();
+        }
+    });
 }
 
 // Blueprint §1.C — styled status banner above the login form for
