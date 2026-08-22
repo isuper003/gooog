@@ -1663,7 +1663,7 @@ function renderContemplationSurahs(data, subContainer, char) {
         try {
             const res = await fetch('/api/worship', {
                 method: 'POST',
-                body: JSON.stringify({ characterId: char.id, action: 'seal_surah' })
+                body: JSON.stringify({ characterId: char.id, action: 'seal_surah', surahId: activeSurah.id })
             });
             const resData = await res.json();
             if (resData.success) {
@@ -2073,7 +2073,7 @@ function renderContemplationCommandments(data, subContainer, char) {
         try {
             const res = await fetch('/api/worship', {
                 method: 'POST',
-                body: JSON.stringify({ characterId: char.id, action: 'seal_commandments' })
+                body: JSON.stringify({ characterId: char.id, action: 'seal_commandments', count: acknowledgedCmds.size })
             });
             const resData = await res.json();
             if (resData.success) {

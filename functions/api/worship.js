@@ -1,5 +1,6 @@
 import { successResponse, errorResponse } from '../lib/response.js';
-import { 
+import { generateUUID } from '../lib/crypto.js';
+import {
     PRAISE_PHRASES, 
     SUBMISSION_PHRASES, 
     PENANCE_PHRASES, 
@@ -177,10 +178,21 @@ export async function onRequestPost(context) {
         return errorResponse("Invalid JSON", 400);
     }
     
-    const { characterId, action, count } = body;
+    const { characterId, action, count, surahId } = body;
     if (!characterId) {
         return errorResponse("Missing characterId", 400);
     }
+
+    // Rite telemetry (blueprint §2.C): every recognized rite appends an event
+    // row so the admin dossier reports real counts. `meta` carries the surah
+    // id for seal_surah so DISTINCT(meta) = distinct sealed surahs (of 28).
+    const RITES = new Set([
+        'seal_surah', 'meditation_minute', 'instant_verse',
+        'seal_commandments', 'rosary_cycle'
+    ]);
+    const riteMeta = action === 'seal_surah'
+        ? (typeof surahId === 'string' ? surahId.slice(0, 64) : null)
+        : null;
     
     try {
         if (action === 'praise') {
@@ -249,6 +261,19 @@ export async function onRequestPost(context) {
                   times_wrong = MAX(0, times_wrong - 1),
                   times_correct = times_correct + 1
             `).bind(data.user.id, characterId).run();
+        }
+
+        // Append rite telemetry event (fire-and-forget semantics: a telemetry
+        // failure must never fail the tribute itself).
+        if (RITES.has(action)) {
+            try {
+                await db.prepare(`
+                    INSERT INTO worship_events (id, user_id, character_id, rite, meta, created_at_ms)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                `).bind(generateUUID(), data.user.id, characterId, action, riteMeta, Date.now()).run();
+            } catch (telemetryErr) {
+                console.error('Worship event log failed', telemetryErr);
+            }
         }
 
         // Fetch freshly updated progress for this character

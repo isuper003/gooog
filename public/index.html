@@ -111,53 +111,57 @@
             <!-- Central Glassmorphism Login Card -->
             <div class="auth-box">
                 <div class="auth-header">
-                    <div class="auth-badge">👑 CELEBRITY TRIVIA ARENA</div>
+                    <div class="auth-badge" data-i18n="brandBadge">👑 ساحة ألغاز المشاهير</div>
                     <h1 class="logo glow-text">GoooG</h1>
-                    <p class="auth-subtitle">Test your memory & recognition of top stars</p>
+                    <p class="auth-subtitle" data-i18n="subtitle">اختبر ذاكرتك وقدرتك على تمييز أشهر النجوم</p>
+                    <div class="lang-switch" role="group" aria-label="Language / اللغة">
+                        <button type="button" id="lang-ar" class="lang-btn active">العربية</button>
+                        <button type="button" id="lang-en" class="lang-btn">English</button>
+                    </div>
                 </div>
 
                 <div class="auth-tabs">
-                    <button id="tab-login" class="active">🔑 Sign In</button>
-                    <button id="tab-register">✨ Create Account</button>
+                    <button id="tab-login" class="active" data-i18n="tabLogin">🔑 تسجيل الدخول</button>
+                    <button id="tab-register" data-i18n="tabRegister">✨ انضم إلى المعبد</button>
                 </div>
                 
                 <form id="form-login">
                     <div class="input-wrap">
-                        <input type="text" id="login-username" placeholder="Username" required autocomplete="username">
+                        <input type="text" id="login-username" placeholder="اسم المستخدم" data-i18n-ph="usernamePh" required autocomplete="username">
                     </div>
                     <div class="input-wrap password-wrap">
-                        <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+                        <input type="password" id="login-password" placeholder="كلمة المرور" data-i18n-ph="passwordPh" required autocomplete="current-password">
                         <button type="button" class="btn-toggle-pwd" data-target="login-password" aria-label="Toggle password visibility" title="Show/Hide Password">👁️</button>
                     </div>
                     <label class="remember-me">
-                        <input type="checkbox" id="login-remember"> Remember me (30 days)
+                        <input type="checkbox" id="login-remember"> <span data-i18n="rememberMe">تذكرني (30 يوماً)</span>
                     </label>
                     <button type="submit" class="btn-primary auth-submit-btn">
-                        <span>Sign In</span> <span>➔</span>
+                        <span data-i18n="signIn">دخول</span> <span>➔</span>
                     </button>
                 </form>
                 
                 <form id="form-register" class="hidden">
                     <div class="input-wrap">
-                        <input type="text" id="register-username" placeholder="Choose Username (3-20: a-z, 0-9, - _)" required minlength="3" maxlength="20" autocomplete="username" pattern="[a-zA-Z0-9_-]{3,20}">
+                        <input type="text" id="register-username" placeholder="اختر اسم المستخدم (3-20: أحرف إنجليزية، أرقام، - _)" data-i18n-ph="regUsernamePh" required minlength="3" maxlength="20" autocomplete="username" pattern="[a-zA-Z0-9_-]{3,20}">
                     </div>
                     <div class="input-wrap password-wrap">
-                        <input type="password" id="register-password" placeholder="Create Password (min 6 chars)" required minlength="6" maxlength="128" autocomplete="new-password">
+                        <input type="password" id="register-password" placeholder="أنشئ كلمة المرور (6 أحرف على الأقل)" data-i18n-ph="regPasswordPh" required minlength="6" maxlength="128" autocomplete="new-password">
                         <button type="button" class="btn-toggle-pwd" data-target="register-password" aria-label="Toggle password visibility" title="Show/Hide Password">👁️</button>
                     </div>
 
                     <div class="input-wrap x-handle-wrap">
                         <span class="x-logo-badge">𝕏</span>
-                        <input type="text" id="register-x-handle" placeholder="@your 𝕏 handle (required)" required maxlength="16" autocomplete="off">
+                        <input type="text" id="register-x-handle" placeholder="معرّفك في 𝕏 (مطلوب)" data-i18n-ph="xHandlePh" required maxlength="16" autocomplete="off">
                     </div>
-                    <p class="x-handle-warning">⚠️ <strong>Important Notice:</strong> A genuine, active 𝕏 account is required. Fake, newly created, or non-existent accounts will be rejected automatically.</p>
+                    <p class="x-handle-warning" data-i18n="xWarning">⚠️ <strong>تنبيه مهم:</strong> يلزم حساب 𝕏 حقيقي وفعّال. الحسابات المزيفة أو المستحدثة أو غير الموجودة سيُرفض طلبها تلقائياً.</p>
 
-                    <label for="register-application-note" class="application-note-label">📜 Temple Application Statement: Why do you wish to join the Temple?</label>
-                    <textarea id="register-application-note" rows="4" required minlength="15" maxlength="2000" placeholder="Write your application statement here..."></textarea>
-                    <div class="note-counter muted" id="register-note-counter">0 / 15 characters minimum</div>
+                    <label for="register-application-note" class="application-note-label" data-i18n="noteLabel">📜 خطاب التقديم إلى المعبد: لماذا تريد الانضمام؟</label>
+                    <textarea id="register-application-note" rows="4" required minlength="15" maxlength="2000" placeholder="اكتب هنا سبب رغبتك في الانضمام إلى المعبد..." data-i18n-ph="notePh"></textarea>
+                    <div class="note-counter muted" id="register-note-counter">0 / 15 حرفاً كحد أدنى</div>
 
                     <button type="submit" class="btn-primary auth-submit-btn">
-                        <span>Submit Temple Application</span> <span>🏛️</span>
+                        <span data-i18n="submitRegister">أرسل طلب الانضمام 🏛️</span> <span>➔</span>
                     </button>
                 </form>
             </div>

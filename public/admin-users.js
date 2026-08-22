@@ -1,4 +1,4 @@
-import { showToast } from './toast.js';
+﻿import { showToast } from './toast.js';
 import { getCsrfToken } from './csrf.js';
 import { esc } from './esc.js';
 
@@ -9,6 +9,8 @@ import { esc } from './esc.js';
 
 let activeTab = 'pending'; // 'pending' | 'directory' (persists across navigation)
 let directoryState = { q: '', status: 'all', role: 'all', page: 1 };
+let pendingState = { page: 1 };
+const PENDING_PAGE_SIZE = 20;
 let viewerRole = 'user';
 const selectedIds = new Set();
 
@@ -87,7 +89,7 @@ export function initAdminUsers(currentUser) {
     selectedIds.clear();
     renderShell(root);
     refreshTelemetry(root);
-    if (activeTab === 'pending') loadPendingPane(root);
+    if (activeTab === 'pending') loadPendingPane(root, 1);
     else loadDirectoryPane(root);
 }
 
@@ -95,7 +97,7 @@ function refreshAfterMutation() {
     const root = document.getElementById('pane-users');
     if (!root) return;
     refreshTelemetry(root);
-    if (activeTab === 'pending') loadPendingPane(root);
+    if (activeTab === 'pending') loadPendingPane(root, 1);
     else loadDirectoryPane(root);
 }
 
@@ -129,7 +131,7 @@ function renderShell(root) {
             activeTab = btn.dataset.tab;
             root.querySelectorAll('.au-tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            if (activeTab === 'pending') loadPendingPane(root);
+            if (activeTab === 'pending') loadPendingPane(root, 1);
             else loadDirectoryPane(root);
         });
     });
@@ -156,13 +158,15 @@ async function refreshTelemetry(root) {
 
 /* ── Tab 1: Pending Applications ────────────────────────────────────── */
 
-async function loadPendingPane(root) {
+async function loadPendingPane(root, page = pendingState.page) {
     const pane = root.querySelector('#au-pane-content');
     pane.innerHTML = `<div class="spinner mx-auto my-6"></div>`;
+    pendingState.page = page;
 
     try {
-        const data = await api('/api/admin/users?status=pending&limit=100');
+        const data = await api(`/api/admin/users?status=pending&limit=${PENDING_PAGE_SIZE}&page=${pendingState.page}`);
         const users = data.users || [];
+        const totalPages = Math.max(1, Math.ceil((data.total || 0) / (data.limit || PENDING_PAGE_SIZE)));
         selectedIds.clear();
 
         if (users.length === 0) {
@@ -173,7 +177,7 @@ async function loadPendingPane(root) {
         pane.innerHTML = `
             <div class="au-bulk-bar">
                 <label class="flex items-center gap-2 text-sm font-bold cursor-pointer select-none">
-                    <input type="checkbox" id="au-select-all"> ☑️ Select All (${users.length})
+                    <input type="checkbox" id="au-select-all"> ☑️ Select All (page: ${users.length})
                 </label>
                 <button class="btn-primary text-xs font-bold py-2 px-4" id="au-bulk-approve" disabled>
                     ⚡ Bulk Approve Selected (<span id="au-sel-count">0</span>)
@@ -182,8 +186,17 @@ async function loadPendingPane(root) {
             <div class="au-applicant-list">
                 ${users.map(applicantCard).join('')}
             </div>
+            ${totalPages > 1 ? `
+            <div class="au-pagination">
+                <button id="au-pend-prev" ${pendingState.page <= 1 ? 'disabled' : ''}>‹ Prev</button>
+                <span>Page ${pendingState.page} / ${totalPages} — ${fmtNum(data.total)} waiting</span>
+                <button id="au-pend-next" ${pendingState.page >= totalPages ? 'disabled' : ''}>Next ›</button>
+            </div>` : ''}
         `;
         bindPendingEvents(pane, root);
+
+        pane.querySelector('#au-pend-prev')?.addEventListener('click', () => loadPendingPane(root, pendingState.page - 1));
+        pane.querySelector('#au-pend-next')?.addEventListener('click', () => loadPendingPane(root, pendingState.page + 1));
     } catch (e) {
         pane.innerHTML = `<div class="text-center my-10" style="color:#f87171;">${esc(e.message)}</div>`;
     }
@@ -252,7 +265,7 @@ function bindPendingEvents(pane, root) {
             sound.playWin();
             showToast(`⚡ Approved ${data.approved} application(s).`, 'success');
             refreshTelemetry(root);
-            loadPendingPane(root);
+            loadPendingPane(root, 1);
         } catch (e) {
             showToast(e.message, 'error');
         }
@@ -268,7 +281,7 @@ function bindPendingEvents(pane, root) {
                 });
                 showToast('✅ Application approved — the member can now sign in.', 'success');
                 refreshTelemetry(root);
-                loadPendingPane(root);
+                loadPendingPane(root, 1);
             } catch (e) {
                 btn.disabled = false;
                 showToast(e.message, 'error');
@@ -288,7 +301,7 @@ function bindPendingEvents(pane, root) {
                 });
                 showToast('❌ Application rejected.', 'info');
                 refreshTelemetry(root);
-                loadPendingPane(root);
+                loadPendingPane(root, 1);
             } catch (e) {
                 btn.disabled = false;
                 showToast(e.message, 'error');
@@ -515,9 +528,11 @@ async function openUserModal(userId) {
             ${statBox('Rank', `${temple.rank?.badge || ''} T${temple.rank?.tier ?? '—'}`)}
             ${statBox('Tributes 🙇', fmtNum(temple.tributeCount))}
         </div>
-        <p class="text-xs color-text-muted mt-2" title="${esc(temple.untrackedNote || '')}">
-            Sealed Surahs / Meditation minutes / Commandments: — <em>(rite telemetry not tracked server-side yet)</em>
-        </p>
+        <div class="grid" style="display:grid; grid-template-columns: repeat(3,1fr); gap:6px; margin-top:6px;">
+            ${statBox('📜 Sealed Surahs', `${temple.sealedSurahs ?? 0} / 28`)}
+            ${statBox('🧘 Meditation Min', fmtNum(temple.meditationMinutes))}
+            ${statBox('📜 Commandments', `${temple.acknowledgedCommandments ?? 0} / 10`)}
+        </div>
 
         ${isAdminViewer ? `
         <hr style="border-color: rgba(168,85,247,.35); margin: 1rem 0;">

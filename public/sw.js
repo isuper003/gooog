@@ -1,4 +1,4 @@
-const CACHE_NAME = 'goooog-cache-v36';
+const CACHE_NAME = 'goooog-cache-v37';
 const IMAGE_CACHE_NAME = 'goooog-images-v2';
 const IMAGE_CACHE_MAX_ENTRIES = 150;
 const ASSETS_TO_CACHE = [
@@ -7,6 +7,7 @@ const ASSETS_TO_CACHE = [
     '/style.css',
     '/app.js',
     '/auth.js',
+    '/i18n-auth.js',
     '/esc.js',
     '/admin-users.js',
     '/gallery.js',

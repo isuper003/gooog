@@ -5496,6 +5496,67 @@ select.form-select::-webkit-scrollbar {
     user-select: all;
 }
 
+/* ==========================================================================
+   Auth bilingual layer — Arabic default (Amiri Quran) / English
+   Scoped strictly to the auth card; preference lives in localStorage.
+   ========================================================================== */
+.lang-switch {
+    display: inline-flex;
+    gap: 0;
+    margin-top: 0.6rem;
+    border: 1px solid rgba(168,85,247,.45);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.lang-btn {
+    background: transparent;
+    border: none;
+    color: #d8b4fe;
+    padding: 0.28rem 0.9rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+.lang-btn.active {
+    background: linear-gradient(135deg, rgba(124,58,237,.55), rgba(236,72,153,.4));
+    color: #fff;
+}
+
+html.auth-lang-ar .auth-box {
+    direction: rtl;
+}
+html.auth-lang-ar .auth-box h1.logo,
+html.auth-lang-ar .auth-subtitle,
+html.auth-lang-ar .auth-badge,
+html.auth-lang-ar .auth-tabs button,
+html.auth-lang-ar .remember-me,
+html.auth-lang-ar .application-note-label,
+html.auth-lang-ar .x-handle-warning,
+html.auth-lang-ar .note-counter,
+html.auth-lang-ar .auth-status-alert,
+html.auth-lang-ar .temple-pending-screen {
+    font-family: 'Amiri Quran', 'Amiri', serif !important;
+}
+html.auth-lang-ar .auth-box input,
+html.auth-lang-ar .auth-box textarea {
+    font-family: 'Amiri Quran', 'Amiri', serif !important;
+    font-size: 1.02rem;
+    text-align: right;
+}
+html.auth-lang-ar .auth-box input::placeholder,
+html.auth-lang-ar .auth-box textarea::placeholder {
+    font-family: 'Amiri Quran', 'Amiri', serif !important;
+}
+html.auth-lang-ar .btn-toggle-pwd {
+    left: 0.6rem; right: auto;
+}
+html.auth-lang-ar .x-handle-warning,
+html.auth-lang-ar .application-note-label,
+html.auth-lang-ar .note-counter {
+    text-align: right;
+}
+
 
 
 

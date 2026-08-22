@@ -61,6 +61,26 @@ export async function onRequestGet(context) {
             FROM user_character_progress WHERE user_id = ?
         `).bind(targetId).first();
 
+        // Real rite counters from the worship_events log (migration 0005):
+        // sealed surahs = DISTINCT surah ids; meditation = minute events;
+        // commandments = latest reported acknowledgment count (0-10).
+        const ritesRows = await db.prepare(`
+            SELECT rite, meta, created_at_ms
+            FROM worship_events WHERE user_id = ?
+            ORDER BY created_at_ms ASC
+        `).bind(targetId).all();
+        const rites = ritesRows || [];
+        const sealedSurahIds = new Set(
+            rites.filter(r => r.rite === 'seal_surah' && r.meta).map(r => r.meta)
+        );
+        const meditationMinutes = rites.filter(r => r.rite === 'meditation_minute').length;
+        let acknowledgedCommandments = 0;
+        for (const r of rites) {
+            if (r.rite !== 'seal_commandments') continue;
+            const n = parseInt(r.meta, 10);
+            if (Number.isFinite(n)) acknowledgedCommandments = Math.max(acknowledgedCommandments, Math.min(10, n));
+        }
+
         const devotionScore = worshipRow?.devotion || 0;
         const rank = getDevotionRank(devotionScore);
 
@@ -105,12 +125,9 @@ export async function onRequestGet(context) {
                 devotionPoints: devotionScore,
                 rank: { title: rank.title, badge: rank.badge, tier: rank.tier },
                 tributeCount: worshipRow?.tributes || 0,
-                // Per-rite counters (sealed surahs, meditation minutes,
-                // acknowledged commandments) are not persisted server-side yet.
-                sealedSurahs: null,
-                meditationMinutes: null,
-                acknowledgedCommandments: null,
-                untrackedNote: "Rite-specific counters require a worship events log; only aggregate tributes are tracked today."
+                sealedSurahs: sealedSurahIds.size,      // distinct surahs of 28
+                meditationMinutes,
+                acknowledgedCommandments
             }
         });
     } catch (e) {

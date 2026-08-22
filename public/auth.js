@@ -1,5 +1,6 @@
 import { showToast } from './toast.js';
 import { setCsrfToken } from './csrf.js';
+import { getLang, applyAuthLanguage, setAuthLang, t } from './i18n-auth.js';
 
 // Blueprint §1.B — official Temple reception screen shown after a successful
 // application. Replaces the auth forms; the account cannot log in until
@@ -48,6 +49,21 @@ export function initAuth() {
     const formLogin = document.getElementById('form-login');
     const formRegister = document.getElementById('form-register');
 
+    // Bilingual auth pages: Arabic default (Amiri Quran via html.auth-lang-ar),
+    // preference persisted on switch (blueprint: register/login only).
+    applyAuthLanguage();
+    document.getElementById(`lang-${getLang()}`)?.classList.add('active');
+    document.getElementById('lang-ar')?.addEventListener('click', () => {
+        setAuthLang('ar');
+        document.getElementById('lang-ar').classList.add('active');
+        document.getElementById('lang-en').classList.remove('active');
+    });
+    document.getElementById('lang-en')?.addEventListener('click', () => {
+        setAuthLang('en');
+        document.getElementById('lang-en').classList.add('active');
+        document.getElementById('lang-ar').classList.remove('active');
+    });
+
     tabLogin?.addEventListener('click', () => {
         tabLogin.classList.add('active');
         tabRegister.classList.remove('active');
@@ -68,7 +84,7 @@ export function initAuth() {
     noteInput?.addEventListener('input', () => {
         const len = noteInput.value.trim().length;
         if (noteCounter) {
-            noteCounter.innerText = `${len} / 15 characters minimum`;
+            noteCounter.innerText = `${len} / 15 ${getLang() === 'ar' ? 'حرفاً كحد أدنى' : 'characters minimum'}`;
             noteCounter.classList.toggle('muted', len < 15);
             noteCounter.classList.toggle('glowing', len >= 15);
         }
@@ -117,7 +133,7 @@ export function initAuth() {
                     localStorage.setItem('goooog_user', JSON.stringify(data.data.user));
                 }
                 setCsrfToken(data.data.csrfToken);
-                showToast('Welcome back! Loading game...', 'success');
+                showToast(t('welcomeBack'), 'success');
                 if (typeof window.onLoginSuccess === 'function') {
                     window.onLoginSuccess(data.data.user);
                 } else {
@@ -125,7 +141,7 @@ export function initAuth() {
                 }
             } else {
                 // Membership gate verdicts get their own styled banner.
-                const msg = data.error || 'Login failed';
+                const msg = data.error || t('loginFailed');
                 if (/pending/i.test(msg)) showAuthStatusAlert(msg, 'pending');
                 else if (/rejected/i.test(msg)) showAuthStatusAlert(msg, 'rejected');
                 else if (/suspended/i.test(msg)) showAuthStatusAlert(msg, 'banned');
@@ -133,7 +149,7 @@ export function initAuth() {
             }
         } catch (err) {
             console.error(err);
-            showToast('Connection error. Please try again.', 'error');
+            showToast(t('connErrLogin'), 'error');
         }
     });
 
@@ -157,14 +173,14 @@ export function initAuth() {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                showToast('🏛️ Application received!', 'success');
+                showToast(t('appReceived'), 'success');
                 renderPendingScreen(username);
             } else {
-                showToast(data.error || 'Registration failed', 'error');
+                showToast(data.error || t('regFailed'), 'error');
             }
         } catch (err) {
             console.error(err);
-            showToast('Connection error during registration.', 'error');
+            showToast(t('connErrReg'), 'error');
         }
     });
 }

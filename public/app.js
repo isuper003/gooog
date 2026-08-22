@@ -89,6 +89,10 @@ export function onLoginSuccess(user) {
     try {
         localStorage.setItem('goooog_user', JSON.stringify(user));
     } catch (e) {}
+    // The RTL/Amiri treatment is scoped to the auth gateway only; the main
+    // app returns to its LTR layout once authenticated.
+    document.documentElement.dir = 'ltr';
+    document.documentElement.classList.remove('auth-lang-ar');
     document.getElementById('view-auth')?.classList.add('hidden');
     document.getElementById('view-main')?.classList.remove('hidden');
     initRouter();

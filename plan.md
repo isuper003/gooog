@@ -958,3 +958,27 @@ d:\Projects\GoooG\
 - فحص نحوي: 16 ملفاً جديداً/معدّلاً سليماً.
 - تحقق حي على D1: أعمدة 0004 موجودة، المستخدمون الحاليون `approved` (3)، إدراج pending تجريبي نجاح ثم نُظف.
 - تشغيل الترحيلات على preview مستقبلاً يتطلب فصل `preview_database_id`.
+
+---
+
+## 25. ترقيم الانتظارات + تتبع الطقوس + بوابة ثنائية اللغة (2026-08-22)
+
+### 1) ترقيم قائمة انتظار الموافقات (`public/admin-users.js`)
+حد 100 الثابت استُبدل بصفحات من 20 مع شريط Prev/Next و«Page X / Y — N waiting». تحديد الكل يعمل لكل صفحة، وأي إعادة تحميل بعد إجراء يعود للصفحة الأولى.
+
+### 2) تتبع الطقوس خادمياً (`migrations/0005_rite_telemetry.sql` — مطبَّقة remote ✅)
+جدول `worship_events` (user_id FK، character_id FK nullable، rite ضمن CHECK، meta، created_at_ms) بفهرس `(user_id, rite, created_at_ms DESC)`.
+- `worship.js` يسجل حدثاً لكل طقس معروف؛ فشل التتبع لا يُفشل الطقس نفسه (fire-and-forget مع console.error).
+- `seal_surah` يرسل `surahId` من العميل ليُخزَّن في `meta` → عدد السور المختومة = `COUNT(DISTINCT meta)` من أصل 28.
+- `seal_commandments` يرسل عدد الإقرارات الحالي ويُحتفظ بأعلى قيمة (0–10).
+- `[id]/stats.js` يعيد أرقاماً حقيقية: `sealedSurahs / meditationMinutes / acknowledgedCommandments` (حذف حقول null وnote «غير متتبع»).
+- مودال الـDossier يعرضها: `📜 Sealed Surahs X/28` • `🧘 Meditation Min` • `📜 Commandments X/10`.
+
+### 3+4) البوابة ثنائية اللغة — عربي افتراضي بخط Amiri Quran
+- `public/i18n-auth.js`: قاموس ar/en لكل نصوص شاشتي الدخول والتسجيل، `localStorage('gooog_lang')` افتراضي `'ar'`، وتطبيق عبر `data-i18n` / `data-i18n-ph` في `index.html`.
+- مبدّل «العربية | English» داخل بطاقة المصادقة؛ تبديله يحفظ التفضيل فوراً.
+- العربية: `dir=rtl` + كلاس `auth-lang-ar` على `<html>` يطبق خط **Amiri Quran** على النصوص والحقول والplaceholders **ضمن بطاقة المصادقة فقط**؛ عند الدخول يُعاد `ltr` وإزالة الكلاس (النطاق: البوابة حصراً كما في المواصفة).
+
+### نتائج التحقق
+- `vitest`: **36/36** • فحص نحوي: 6/6 ملفات معدّلة سليمة.
+- تحقق حي D1: جدولا 0005 موجودان؛ اختبار دخاني (بمعرف مستخدم حقيقي بعد رفض FK لمعرف وهمي — المخطط يعمل بدقة): 4 أحداث → سور مميزة **2** (وليس 3 إدراجات) ودقيقة تأمل **1** ثم نُظفت بالكامل.
