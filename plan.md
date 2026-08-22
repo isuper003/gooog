@@ -865,3 +865,64 @@ d:\Projects\GoooG\
 - توقيت Streak يبقى UTC افتراضياً؛ الدعم المحلي يتطلب تمرير `timezoneOffsetMinutes` من شاشة الدخول (الحقل جاهز في الخادم).
 - حمولة SRS في مسار الإعادة (#31) تقريبية (من صف التقدم الحالي) لأن oldMastery اللحظية غير مخزنة.
 - بنود الأمان من التقرير (الأرقام 1-14, 17, 24-25, 27-30, 33, 38, 43-45, 52-57) لم تُمَس هنا.
+
+> **تحديث:** بنود الأمان أعلاه عولجت في القسم 22 أدناه، واختبار `auth.test.js` أصبح ناجحاً.
+
+---
+
+## 22. حزمة الأمان والأداء (Security & Performance Pass — 2026-08-22)
+
+### أمان
+| البند | الموقع | الإصلاح |
+|---|---|---|
+| CSRF ReferenceError | `functions/lib/auth.js:75` | `generateCsrfTokenForSession(sessionToken)` بدل متغير غير معرف كان يُسقط فرع التوكن |
+| بعث الجلسات | `functions/lib/auth.js` | انتهاء الصلاحية حد صارم (401)؛ التمديد المتدحرج مقيد بـ30 يوماً للجلسات قريبة الانتهاء فقط |
+| الحذف المؤجل الزائف | `functions/lib/auth.js` (`purgeDeletedAccount`) | بعد انقضاء مهلة 14 يوماً ينفذ التطهير فعلياً عند أول طلب: إبطال الجلسات، محو كلمات المرور والتقدم والإعدادات، إخفاء الهوية |
+| كوكي Secure | `login.js` + `tests/auth.test.js` | علم `Secure` دائماً على الكوكيز — الاختبار الموروث الفاشل أصبح ناجحاً |
+| تعداد المستخدمين | `login.js` | الحساب المحذوف يمر بمسار PBKDF2 نفسه ويعيد نفس الرسالة العامة؛ لا كشف قبل التحقق |
+| DoS عبر PBKDF2 | `register.js` | سقف كلمة المرور 128 حرفاً |
+| Rate Limiting | `lib/ratelimit.js` (جديد) + `_middleware.js` + login/register | مُحدد نافذة ثابتة ذري بـD1 (upsert واحد مع RETURNING، fail-open): دخول 15/5د لكل IP و10/5د لكل مستخدم؛ تسجيل 5/ساعة/IP؛ وميزانيات mutations عامة لكل مستخدم (game/start ‏10/د، answers ‏150/د، worship ‏90/د، crawler ‏12/د، reports ‏10/5د، عام 120/د) |
+| XSS المخزَّن | `public/esc.js` (جديد) + game/settings/gallery/char-stats/toast | دالة `esc()` موحدة مطبقة على كل المواضع الحرجة (أسماء الخيارات، أسماء الشخصيات، أسماء المستخدمين، رسائل الأخطاء) |
+| تحقق خادمي للأسماء | `lib/validation.js` (جديد) + characters POST/PUT | regex `\p{L}\p{N} .-'&` ‏2-80، رفض `<>"'` من المصدر؛ روابط https فقط بلا credentials وبطول ≤512؛ ترقية /1280/ مقيدة بمضيفي CDN معروفين |
+| تجاوس الإشراف | `characters/[id].js` PUT | تعديل المالك لشخصية approved/rejected يعيدها إلى `pending` تلقائياً |
+| بوابة دور الزاحف | `crawler/fetch.js` + `model-photos.js` | admin/moderator فقط + سقف page ≤500 |
+| CSP | `index.html` | سياسة كاملة: script-src 'self'، frame-ancestors none، connect-src 'self'... |
+| تسريب التوكن | `auth.js` (واجهة) + `login.js` | لا توكن خام في localStorage ولا في جسم استجابة الدخول؛ كوكي HttpOnly هو الناقل الوحيد |
+
+### أداء
+| البند | الموقع | الإصلاح |
+|---|---|---|
+| تفريغ المكتبة | `characters.js` (`?counts=1` جديد) + `app.js initHome` | GROUP BY واحد للعدادات بدل سحب 2000 صف + دفعات صور متسلسلة؛ العينة العشوائية للخلفيات `random_sample=1` (40 صفاً بصورة أولى فقط) |
+| دفعات الصور | `characters.js` | `ROW_NUMBER() OVER (PARTITION BY ...)` في استعلام واحد بدل ceil(N/30) استعلام متسلسل (chunk 90) |
+| subquery لكل صف | `worship.js` GET | JOIN بنافذة ROW_NUMBER لاستخراج primary_image مرة واحدة |
+| فهارس | `migrations/0003_security_and_indexes.sql` | `idx_answer_events_character_correct`، `idx_characters_listing`، وفهرس نافذة rate limits |
+| كاش SW | `sw.js` v34 | أصل CDN حصري (لا includes)، تخزين GET فقط من نفس الأصل أو مضيفي pornpics، تقليم كاش الصور عند 150 مدخلاً |
+
+### نتائج التحقق
+- `vitest`: **19/19** (SRS 8، crypto 3، auth 3 — منها إصلاح الفاشل الموروث، ratelimit 4 جديدة بمحاكاة D1).
+- فحص نحوي: 19 ملفاً معدّلاً/جديداً — جميعها سليمة.
+- مطلوب تشغيلياً عند النشر: تطبيق `migrations/0003` على preview ثم production (`wrangler d1 migrations apply`).
+
+---
+
+## 23. حزمة تنظيف الختام (Final Cleanup Pass — 2026-08-22)
+
+إغلاق آخر البنود المفتوحة من التدقيق، مع إكمال المسار المنطقي بالكامل:
+
+| البند | الموقع | الإصلاح |
+|---|---|---|
+| XSS — إكمال شامل | `worship.js` + `crawler.js` | تطبيق `esc()` على كل مواضع innerHTML المتبقية: أسماء الشخصيات في المعبد/العرش/المسبحة/التأمل/الأوراكل/بطاقات الطابور، و`r.reporter`/`r.note` في البلاغات |
+| #23 + G1 فقدان صامت | `game.js` + `results.js` | فشل الشبكة يعرض toast، يحسب `erroredCount`، يسترد زمن السؤال من المقام، وتُستبعد الأسئلة الفاشلة من المقسوم مع إظهار عددها في النتائج |
+| #25 سلامة الإشراف | `moderation/queue.js` | جلب الحالة أولاً: 404 لغير الموجود، 409 لغير pending، UPDATE محصور بـ`AND status='pending'`، وسجل تدقيق يسجل `previousStatus` الحقيقي |
+| #30 تقارير | `moderation/reports.js` | PATCH محصور بـ`status='open'` مع كشف `meta.changes=0` → 404 بدل نجاح زائف؛ GET بترقيم `limit/offset` مقيّدين |
+| #33 توقيت خادمي | `game/answers.js` | `answerTimeMs = now - q.issued_at_ms` من الخادم حصراً (مقيد بحدود CHECK)؛ قيمة العميل تُقبل وتُهمل |
+| #38 جلسات مهجورة | `game/start.js` | عند بدء جولة: جلسات المستخدم `active` القديمة تُعلَّم `'abandoned'` (ضمن CHECK) |
+| #45 تسرب الهيدرات | `app.js` | اعتراض fetch يقصر هيدرات المصادقة على `/api/` بنفس الأصل حصراً |
+| #52 إعادة التوجيه | `crawler/fetch.js` + `model-photos.js` | `redirect: 'error'` — الأصل المزروع مثبت بسياسة |
+| #54 مطابقة هشة | `characters.js` | `/UNIQUE/i.test(e.message)` بدل نص الرسالة الكامل |
+| Streak محلي | `public/auth.js` | إرسال `timezoneOffsetMinutes` من نموذجي الدخول والتسجيل التلقائي |
+| #57 artifact | `.gitignore` | إدراج `_worker.bundle` |
+
+### نتائج التحقق
+- `vitest`: **30/30** (أُضيف `tests/validation.test.js`: 11 اختباراً لطبقة التحقق المشتركة).
+- فحص نحوي: **13/13** ملفاً معدّلاً سليماً؛ ترميز UTF-8 للنصوص العربية محفوظ كاملاً بعد استعادتين موثقتين من HEAD (`game.js`, `worship.js`) بسبب خطأ قراءة ترميز أثناء الأتمتة، ثم إعادة تطبيق تعديلات اليوم بأداة التحرير حصراً.

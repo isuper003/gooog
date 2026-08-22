@@ -29,3 +29,6 @@ Thumbs.db
 # Temporary / Scratch
 scratch/
 tmp/
+
+# Build artifacts
+_worker.bundle

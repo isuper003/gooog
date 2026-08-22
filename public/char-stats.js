@@ -1,6 +1,7 @@
 import { lightbox } from './lightbox.js';
 import { sound } from './sound.js';
 import { initGame } from './game.js';
+import { esc } from './esc.js';
 
 export async function initCharStats() {
     const container = document.getElementById('page-stats');
@@ -110,13 +111,13 @@ export async function initCharStats() {
             const card = document.createElement('div');
             card.className = 'char-card';
             card.innerHTML = `
-                <div class="char-img-container" data-img="${primaryImg}" data-name="${char.name}" data-cat="${char.category}">
-                    <img src="${primaryImg}" alt="${char.name}" loading="lazy">
+                <div class="char-img-container" data-img="${primaryImg}" data-name="${esc(char.name)}" data-cat="${esc(char.category)}">
+                    <img src="${primaryImg}" alt="${esc(char.name)}" loading="lazy">
                     ${isWeak ? '<span class="pulsing-red-dot" style="position: absolute; top: 12px; right: 12px; z-index: 2;" title="Weak - Review Soon"></span>' : ''}
                 </div>
                 <div class="char-info">
                     <div class="char-header-row">
-                        <div class="char-name" title="${char.name}">${char.name}</div>
+                        <div class="char-name" title="${esc(char.name)}">${esc(char.name)}</div>
                         <span class="badge badge-${char.category}">${char.category.toUpperCase()}</span>
                     </div>
                     <div class="star-rating">${stars}</div>

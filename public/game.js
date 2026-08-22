@@ -3,6 +3,7 @@ import { sound } from './sound.js';
 import { renderResults } from './results.js';
 import { showToast } from './toast.js';
 import { getCsrfToken } from './csrf.js';
+import { esc } from './esc.js';
 
 // sessionStorage key holding an in-flight round so a page refresh can offer
 // resume instead of silently orphaning the server-side session (#34).
@@ -102,6 +103,9 @@ function runGameEngine(sessionData, selectedCategory, restored = false) {
     let maxStreak = restored ? (sessionData.maxStreak || 0) : 0;
     let totalTimeMs = restored ? (sessionData.totalTimeMs || 0) : 0;
     let wrongAnswers = restored ? (sessionData.wrongAnswers || []) : [];
+    // Questions whose answer POST failed (network/server): excluded from
+    // scoring and timing so the final report stays honest (#23/G1).
+    let erroredCount = restored ? (sessionData.erroredCount || 0) : 0;
     let masteryChanges = restored ? (sessionData.masteryChanges || []) : [];
 
     let lifelines = restored && sessionData.lifelines
@@ -137,6 +141,7 @@ function runGameEngine(sessionData, selectedCategory, restored = false) {
                 totalTimeMs,
                 wrongAnswers,
                 masteryChanges,
+                erroredCount,
                 lifelines,
                 timerEnabled,
                 timerTotalSeconds,
@@ -281,7 +286,7 @@ function runGameEngine(sessionData, selectedCategory, restored = false) {
                 <div class="game-options-grid" id="game-options-container">
                     ${q.options.map(opt => `
                         <button class="btn-option" data-id="${opt.id}">
-                            <span>${opt.name}</span>
+                            <span>${esc(opt.name)}</span>
                             <span class="option-indicator"></span>
                         </button>
                     `).join('')}
@@ -324,7 +329,7 @@ function runGameEngine(sessionData, selectedCategory, restored = false) {
                 <div class="game-options-grid" id="game-options-container">
                     ${q.options.map(opt => `
                         <button class="btn-option" data-id="${opt.id}">
-                            <span>${opt.name}</span>
+                            <span>${esc(opt.name)}</span>
                             <span class="option-indicator"></span>
                         </button>
                     `).join('')}
@@ -360,7 +365,7 @@ function runGameEngine(sessionData, selectedCategory, restored = false) {
             </div>
 
             <div class="hon-target-title glow-text">
-                Which one is "${q.targetName}"?
+                Which one is "${esc(q.targetName)}"?
             </div>
 
             <div class="hon-cards-grid">
@@ -591,13 +596,20 @@ function runGameEngine(sessionData, selectedCategory, restored = false) {
                 }, 1000);
 
             } else {
+                // Server rejected the answer: it was never scored, so refund
+                // its time and count it as errored rather than silently lost.
                 showToast(data.error || "Failed to submit answer", 'error');
+                erroredCount++;
+                totalTimeMs -= answerTimeMs;
                 currentIdx++;
                 renderCurrentQuestion();
             }
 
         } catch (e) {
             console.error("Answer submission error", e);
+            showToast('تعذر حفظ الإجابة — تحقق من الاتصال ثم أكمل', 'error');
+            erroredCount++;
+            totalTimeMs -= answerTimeMs;
             currentIdx++;
             renderCurrentQuestion();
         }
@@ -609,7 +621,10 @@ function runGameEngine(sessionData, selectedCategory, restored = false) {
         stopTimer();
         // Round over: the resume checkpoint has no reason to live anymore (#34).
         clearRoundState();
-        const totalPlayed = mode === 'sudden_death' ? Math.max(1, correctCount + wrongAnswers.length) : questions.length;
+        // Errored questions were never scored: exclude them from the played
+        // denominator and surface their count in the results report.
+        const scoredTotal = Math.max(1, questions.length - erroredCount);
+        const totalPlayed = mode === 'sudden_death' ? Math.max(1, correctCount + wrongAnswers.length) : scoredTotal;
         renderResults({
             mode,
             totalQuestions: totalPlayed,
@@ -617,7 +632,8 @@ function runGameEngine(sessionData, selectedCategory, restored = false) {
             maxStreak,
             totalTimeMs,
             wrongAnswers,
-            masteryChanges
+            masteryChanges,
+            erroredCount
         }, () => {
             initGame(selectedCategory, mode, originalRounds);
         }, () => {

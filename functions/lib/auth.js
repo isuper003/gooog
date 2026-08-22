@@ -72,8 +72,8 @@ export async function validateCsrfProtection(request, session, sessionToken) {
 
     // 4. Token validation (Deterministic session CSRF or Database hash)
     const csrfToken = request.headers.get('X-CSRF-Token');
-    if (csrfToken) {
-        const expectedDeterministicToken = await generateCsrfTokenForSession(tokenHash || sessionToken);
+    if (csrfToken && sessionToken) {
+        const expectedDeterministicToken = await generateCsrfTokenForSession(sessionToken);
         if (csrfToken === expectedDeterministicToken) {
             return { valid: true };
         }
@@ -86,8 +86,7 @@ export async function validateCsrfProtection(request, session, sessionToken) {
     return { valid: false, error: "Cross-site request forgery protection check failed", status: 403 };
 }
 
-export async function authenticateUser(request, db) {
-    const cookieHeader = request.headers.get('Cookie');
+export async function authenticateUser(request, db) {    const cookieHeader = request.headers.get('Cookie');
     const cookies = parseCookies(cookieHeader);
     const authHeader = request.headers.get('Authorization');
     const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
@@ -113,15 +112,29 @@ export async function authenticateUser(request, db) {
     
     const now = Date.now();
     if (session.revoked_at_ms) return { error: 'Session revoked', status: 401 };
-    
-    // Auto-extend rolling session so active users never expire unless they click logout
-    if (session.expires_at_ms < now || (session.expires_at_ms - now < 60 * 24 * 60 * 60 * 1000)) {
-        const newExpiry = now + (365 * 24 * 60 * 60 * 1000);
+
+    // Expiry is a hard boundary: expired sessions are rejected, never
+    // resurrected (plan.md: 24h normal / 30d remember-me).
+    if (session.expires_at_ms < now) return { error: 'Session expired', status: 401 };
+
+    // Bounded rolling extension: only near-expiry sessions get pushed forward,
+    // to the 30-day remember-me ceiling — not an infinite yearly lease.
+    if (!session.revoked_at_ms && (session.expires_at_ms - now < 24 * 60 * 60 * 1000)) {
+        const newExpiry = now + (30 * 24 * 60 * 60 * 1000);
         try {
-            await db.prepare("UPDATE sessions SET expires_at_ms = ?, last_seen_at_ms = ? WHERE id = ?")
+            await db.prepare("UPDATE sessions SET expires_at_ms = ?, last_seen_at_ms = ? WHERE id = ? AND revoked_at_ms IS NULL")
                 .bind(newExpiry, now, session.session_id)
                 .run();
-        } catch (e) {}
+        } catch (e) {
+            console.error('Session extension failed', e);
+        }
+    }
+
+    // Deferred account deletion (plan.md §3): once the 14-day grace window has
+    // passed, execute the promised purge lazily on the next authenticated hit.
+    if (session.deletion_requested_at_ms && (now - session.deletion_requested_at_ms > 14 * 24 * 60 * 60 * 1000)) {
+        await purgeDeletedAccount(db, session.user_id);
+        return { error: 'This account has been permanently deleted.', status: 403 };
     }
     
     // Multi-layer CSRF validation
@@ -142,4 +155,27 @@ export async function authenticateUser(request, db) {
         sessionToken: sessionToken,
         tokenHash: tokenHash
     };
+}
+
+// Executes the permanent-deletion promise after the 14-day grace window:
+// revokes every session, strips credentials and personal data, anonymizes the
+// identity, but keeps a minimal audit trail (append-only, per plan.md §3).
+async function purgeDeletedAccount(db, userId) {
+    const now = Date.now();
+    try {
+        await db.batch([
+            db.prepare("UPDATE sessions SET revoked_at_ms = ? WHERE user_id = ? AND revoked_at_ms IS NULL").bind(now, userId),
+            db.prepare(`
+                UPDATE users
+                SET password_hash = '', password_salt = '', username = 'deleted-user',
+                    deletion_requested_at_ms = NULL, deleted_at_ms = ?
+                WHERE id = ?
+            `).bind(now, userId),
+            db.prepare("DELETE FROM user_character_progress WHERE user_id = ?").bind(userId),
+            db.prepare("DELETE FROM daily_streaks WHERE user_id = ?").bind(userId),
+            db.prepare("DELETE FROM user_settings WHERE user_id = ?").bind(userId)
+        ]);
+    } catch (e) {
+        console.error('Deferred account purge failed', e);
+    }
 }

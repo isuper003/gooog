@@ -1,10 +1,13 @@
-const CACHE_NAME = 'goooog-cache-v33';
+const CACHE_NAME = 'goooog-cache-v35';
+const IMAGE_CACHE_NAME = 'goooog-images-v2';
+const IMAGE_CACHE_MAX_ENTRIES = 150;
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
     '/style.css',
     '/app.js',
     '/auth.js',
+    '/esc.js',
     '/gallery.js',
     '/game.js',
     '/results.js',
@@ -33,7 +36,7 @@ self.addEventListener('activate', event => {
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
-                    if (cacheName !== CACHE_NAME && cacheName !== 'goooog-images-v1') {
+                    if (cacheName !== CACHE_NAME && cacheName !== IMAGE_CACHE_NAME) {
                         return caches.delete(cacheName);
                     }
                 })
@@ -49,25 +52,48 @@ self.addEventListener('message', event => {
     }
 });
 
-self.addEventListener('fetch', event => {
-    const url = new URL(event.request.url);
+function isTrustedImageOrigin(url) {
+    // Exact host matches only: substring checks would let attacker-controlled
+    // hosts like cdni.pornpics.com.evil.io slip into the persistent cache.
+    const trustedHosts = new Set(['cdni.pornpics.com', 'www.pornpics.com']);
+    if (url.origin === self.location.origin) return true;
+    if (url.protocol !== 'https:') return false;
+    if (trustedHosts.has(url.hostname)) return true;
+    return url.hostname.endsWith('.pornpics.com');
+}
 
-    // Never cache API calls
+async function putTrimmedImageCache(request, response) {
+    const cache = await caches.open(IMAGE_CACHE_NAME);
+    await cache.put(request, response.clone());
+    const keys = await cache.keys();
+    if (keys.length > IMAGE_CACHE_MAX_ENTRIES) {
+        // Simple FIFO trim: retire the oldest entries beyond the cap so the
+        // image cache cannot grow without bound.
+        for (let i = 0; i < keys.length - IMAGE_CACHE_MAX_ENTRIES; i++) {
+            await cache.delete(keys[i]);
+        }
+    }
+}
+
+self.addEventListener('fetch', event => {
+    const request = event.request;
+    if (request.method !== 'GET') return;
+
+    const url = new URL(request.url);
+
+    // Never intercept or cache API calls
     if (url.pathname.startsWith('/api/')) {
-        event.respondWith(fetch(event.request));
+        event.respondWith(fetch(request));
         return;
     }
 
     // Dynamic cache for external/character images
-    if (url.hostname.includes('cdni.pornpics.com') || url.pathname.endsWith('.jpg') || url.pathname.endsWith('.png') || url.pathname.endsWith('.webp')) {
+    if ((url.pathname.endsWith('.jpg') || url.pathname.endsWith('.png') || url.pathname.endsWith('.webp')) && isTrustedImageOrigin(url)) {
         event.respondWith(
-            caches.match(event.request).then(response => {
-                return response || fetch(event.request).then(fetchRes => {
+            caches.match(request).then(response => {
+                return response || fetch(request).then(fetchRes => {
                     if (fetchRes && fetchRes.status === 200) {
-                        return caches.open('goooog-images-v1').then(cache => {
-                            cache.put(event.request, fetchRes.clone());
-                            return fetchRes;
-                        });
+                        event.waitUntil(putTrimmedImageCache(request, fetchRes));
                     }
                     return fetchRes;
                 }).catch(() => response);
@@ -76,20 +102,27 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // Network-first with cache fallback for app shell assets
+    // Network-first with cache fallback for same-origin app shell assets only.
+    // Cross-origin non-image responses (fonts CSS, etc.) pass straight through:
+    // caching them here mixed opaque CORS payloads into the shell cache and
+    // cache.put throws on non-GET, which previously surfaced as rejections.
+    if (url.origin !== self.location.origin) {
+        return;
+    }
+
     event.respondWith(
-        fetch(event.request)
+        fetch(request)
             .then(response => {
-                if (response && response.status === 200) {
+                if (response && response.type === 'basic' && response.status === 200) {
                     const resClone = response.clone();
                     caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request, resClone);
+                        cache.put(request, resClone);
                     });
                 }
                 return response;
             })
             .catch(() => {
-                return caches.match(event.request);
+                return caches.match(request);
             })
     );
 });

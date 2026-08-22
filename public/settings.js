@@ -1,5 +1,6 @@
 import { sound } from './sound.js';
 import { showToast } from './toast.js';
+import { esc } from './esc.js';
 import { getCsrfToken, clearCsrfToken } from './csrf.js';
 
 export async function initSettingsModal(currentUser) {
@@ -34,7 +35,7 @@ export async function initSettingsModal(currentUser) {
                 <!-- User Profile Info -->
                 <div class="result-stat-box flex items-center justify-between" style="text-align: left;">
                     <div>
-                        <div class="font-bold text-lg">@${currentUser?.username || 'User'}</div>
+                        <div class="font-bold text-lg">@${esc(currentUser?.username || 'User')}</div>
                         <div class="text-xs color-text-muted">Role: ${(currentUser?.role || 'user').toUpperCase()}</div>
                         ${currentUser?.deletionRequestedAtMs ? '<div class="text-xs text-rose-400 font-bold mt-1">⚠️ Deletion scheduled (14-day grace active)</div>' : ''}
                     </div>

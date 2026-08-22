@@ -16,7 +16,16 @@ const nativeFetch = window.fetch.bind(window);
 window.fetch = function(url, options = {}) {
     try {
         const urlStr = typeof url === 'string' ? url : (url && url.url ? url.url : '');
-        if (urlStr.startsWith('/api/') || urlStr.includes('/api/')) {
+        // Same-origin /api/ calls only: matching any URL that merely contains
+        // "/api/" leaked auth headers to third-party origins (#45).
+        let isApi = urlStr.startsWith('/api/');
+        if (!isApi && /^https?:\/\//i.test(urlStr)) {
+            try {
+                isApi = new URL(urlStr).origin === window.location.origin
+                    && new URL(urlStr).pathname.startsWith('/api/');
+            } catch (e) { isApi = false; }
+        }
+        if (isApi) {
             const token = localStorage.getItem('goooog_session_token') || sessionStorage.getItem('goooog_session_token');
             const csrf = getCsrfToken();
             const headers = new Headers(options.headers || (url && url.headers ? url.headers : {}));
@@ -240,36 +249,55 @@ async function initHome() {
 
     // Fetch live category counts and random backdrop images
     try {
+        // Prefer the lightweight aggregate endpoint (one GROUP BY query) over
+        // pulling the entire library just to count it.
         let characters = null;
         const cacheFresh = state.cachedCharacters && (Date.now() - state.cachedCharactersAt) < CHARACTERS_CACHE_TTL_MS;
-        if (cacheFresh) {
-            characters = state.cachedCharacters;
-        } else {
-            const res = await fetch('/api/characters?limit=2000');
+
+        if (!cacheFresh) {
+            const res = await fetch('/api/characters?counts=1');
             const data = await res.json();
-            if (data.success) {
-                characters = data.data.characters || [];
-                state.cachedCharacters = characters;
+            if (data.success && data.data.counts) {
+                const { total, trans, sluts, twinks } = data.data.counts;
+                const countMix = document.getElementById('count-mix');
+                const countTrans = document.getElementById('count-trans');
+                const countSluts = document.getElementById('count-sluts');
+                const countTwinks = document.getElementById('count-twinks');
+
+                if (countMix) countMix.innerText = `${total} Total Characters`;
+                if (countTrans) countTrans.innerText = `${trans} Characters`;
+                if (countSluts) countSluts.innerText = `${sluts} Characters`;
+                if (countTwinks) countTwinks.innerText = `${twinks} Characters`;
+
+                state.cachedCounts = data.data.counts;
                 state.cachedCharactersAt = Date.now();
             }
-        }
-
-        if (characters) {
-            const transChars = characters.filter(c => c.category === 'trans');
-            const slutsChars = characters.filter(c => c.category === 'sluts');
-            const twinksChars = characters.filter(c => c.category === 'twinks');
-
+        } else {
+            const c = state.cachedCounts || {};
             const countMix = document.getElementById('count-mix');
             const countTrans = document.getElementById('count-trans');
             const countSluts = document.getElementById('count-sluts');
             const countTwinks = document.getElementById('count-twinks');
+            if (countMix && c.total !== undefined) countMix.innerText = `${c.total} Total Characters`;
+            if (countTrans && c.trans !== undefined) countTrans.innerText = `${c.trans} Characters`;
+            if (countSluts && c.sluts !== undefined) countSluts.innerText = `${c.sluts} Characters`;
+            if (countTwinks && c.twinks !== undefined) countTwinks.innerText = `${c.twinks} Characters`;
+        }
 
-            if (countMix) countMix.innerText = `${characters.length} Total Characters`;
-            if (countTrans) countTrans.innerText = `${transChars.length} Characters`;
-            if (countSluts) countSluts.innerText = `${slutsChars.length} Characters`;
-            if (countTwinks) countTwinks.innerText = `${twinksChars.length} Characters`;
+        // Backdrop images need a small sample, not the whole library.
+        if (!characters) {
+            const res = await fetch('/api/characters?limit=40&random_sample=1').catch(() => null);
+            if (res && res.ok) {
+                const data = await res.json();
+                characters = data.success ? (data.data.characters || []) : [];
+            }
+        }
 
-            // Set random background image for cards
+        if (characters && characters.length > 0) {
+            const transChars = characters.filter(c => c.category === 'trans');
+            const slutsChars = characters.filter(c => c.category === 'sluts');
+            const twinksChars = characters.filter(c => c.category === 'twinks');
+
             setCardBackground('card-cat-mix', characters);
             setCardBackground('card-cat-trans', transChars);
             setCardBackground('card-cat-sluts', slutsChars);

@@ -2,6 +2,7 @@ import { sound } from './sound.js';
 import { lightbox } from './lightbox.js';
 import { showToast } from './toast.js';
 import { getCsrfToken } from './csrf.js';
+import { esc } from './esc.js';
 
 export function initCrawler(currentUser) {
     const container = document.getElementById('page-admin');
@@ -450,13 +451,13 @@ export function initCrawler(currentUser) {
             rowCard.innerHTML = `
                 <!-- Top Row inside Card: Main Profile Portrait (Left) + Name & Controls (Right) -->
                 <div class="row-card-header">
-                    <div class="row-main-avatar" title="${char.name} Profile">
-                        <img src="${avatarSrc}" alt="${char.name}" loading="lazy" referrerpolicy="no-referrer">
+                    <div class="row-main-avatar" title="${esc(char.name)} Profile">
+                        <img src="${avatarSrc}" alt="${esc(char.name)}" loading="lazy" referrerpolicy="no-referrer">
                     </div>
 
                     <div class="row-info-col">
                         <div class="row-title-bar">
-                            <span class="row-name" title="${char.name}">${char.name}</span>
+                            <span class="row-name" title="${esc(char.name)}">${esc(char.name)}</span>
                             <span class="badge" style="background: var(--bg-surface-elevated); font-size: 0.75rem;">Page ${activePage}</span>
                             ${char.isDuplicate ? `<span class="badge" style="background: var(--accent-red); font-size: 0.75rem;">ALREADY IN LIBRARY (${char.allImages.length} Photos)</span>` : ''}
                         </div>
@@ -779,12 +780,12 @@ export function initCrawler(currentUser) {
                     card.className = 'char-card';
                     card.innerHTML = `
                         <div class="char-img-container cursor-pointer">
-                            <img src="${primaryImg}" alt="${char.name}" loading="lazy" referrerpolicy="no-referrer">
+                            <img src="${primaryImg}" alt="${esc(char.name)}" loading="lazy" referrerpolicy="no-referrer">
                             <span class="badge badge-${char.category}" style="position: absolute; top: 10px; left: 10px; z-index: 2;">${char.category.toUpperCase()}</span>
                             <span class="badge" style="position: absolute; top: 10px; right: 10px; background: rgba(245, 158, 11, 0.3); color: #fbbf24; z-index: 2;">PENDING</span>
                         </div>
                         <div class="char-info">
-                            <div class="char-name">${char.name}</div>
+                            <div class="char-name">${esc(char.name)}</div>
                             <div class="char-meta">
                                 <span class="added-by-tag">By: @${char.submitted_by || 'unknown'}</span>
                                 ${char.label ? `<span class="badge" style="background: var(--bg-surface-elevated);">${char.label}</span>` : ''}
@@ -873,7 +874,7 @@ export function initCrawler(currentUser) {
                                 <span>Target: ${r.character_name || 'Deleted'}</span>
                             </div>
                             <div class="text-xs color-text-muted mt-1">
-                                Reported by: @${r.reporter} | Note: "${r.note || 'No note'}"
+                                Reported by: @${esc(r.reporter)} | Note: "${esc(r.note || 'No note')}"
                             </div>
                         </div>
                         <div class="flex gap-2">

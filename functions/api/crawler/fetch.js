@@ -131,15 +131,19 @@ export async function onRequestGet(context) {
     const { env, request } = context;
     const db = env.DB;
 
-    // Verify session
+    // Verify session AND staff role: each call triggers paid outbound fetches,
+    // so ordinary members must not be able to drive the crawler.
     const auth = await authenticateUser(request, db);
     if (auth.error) {
         return errorResponse(auth.error, auth.status);
     }
+    if (auth.user?.role !== 'admin' && auth.user?.role !== 'moderator') {
+        return errorResponse("Crawler access requires moderator role", 403);
+    }
 
     const url = new URL(request.url);
     const category = url.searchParams.get('category') || 'sluts';
-    const page = Math.max(1, parseInt(url.searchParams.get('page')) || 1);
+    const page = Math.min(500, Math.max(1, parseInt(url.searchParams.get('page')) || 1));
 
     const validCategories = ['sluts', 'trans', 'twinks'];
     if (!validCategories.includes(category)) {
@@ -167,6 +171,9 @@ export async function onRequestGet(context) {
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5'
             },
+            // Never follow redirects: the scraped origin is pinned by policy,
+            // and a redirect could silently repoint the crawl elsewhere (#52).
+            redirect: 'error',
             signal: controller.signal
         });
         clearTimeout(timeout);

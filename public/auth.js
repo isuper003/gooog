@@ -47,15 +47,17 @@ export function initAuth() {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password, rememberMe })
+                body: JSON.stringify({
+                    username, password, rememberMe,
+                    timezoneOffsetMinutes: new Date().getTimezoneOffset()
+                })
             });
             const data = await res.json();
             
             if (res.ok && data.success) {
-                if (data.data?.sessionToken) {
-                    localStorage.setItem('goooog_session_token', data.data.sessionToken);
-                    sessionStorage.setItem('goooog_session_token', data.data.sessionToken);
-                }
+                // No raw session token is persisted client-side anymore: the
+                // server sets an HttpOnly+Secure cookie and the middleware
+                // accepts it. XSS can no longer exfiltrate a long-lived token.
                 if (data.data?.user) {
                     localStorage.setItem('goooog_user', JSON.stringify(data.data.user));
                 }
@@ -94,14 +96,14 @@ export function initAuth() {
                 const loginRes = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, rememberMe: true })
+                    body: JSON.stringify({
+                        username, password, rememberMe: true,
+                        timezoneOffsetMinutes: new Date().getTimezoneOffset()
+                    })
                 });
                 const loginData = await loginRes.json();
                 if (loginRes.ok && loginData.success) {
-                    if (loginData.data?.sessionToken) {
-                        localStorage.setItem('goooog_session_token', loginData.data.sessionToken);
-                        sessionStorage.setItem('goooog_session_token', loginData.data.sessionToken);
-                    }
+                    // Same as login: cookie-based session only, no raw token.
                     if (loginData.data?.user) {
                         localStorage.setItem('goooog_user', JSON.stringify(loginData.data.user));
                     }

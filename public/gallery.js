@@ -3,6 +3,7 @@ import { sound } from './sound.js';
 import { initGame } from './game.js';
 import { showToast } from './toast.js';
 import { getCsrfToken } from './csrf.js';
+import { esc } from './esc.js';
 
 let galleryScrollHandler = null;
 
@@ -166,7 +167,7 @@ export async function initGallery(currentUser) {
                                     <div class="text-xs color-text-muted">Characters requiring review to cement memory</div>
                                 </div>
                                 <div class="weak-avatars-row">
-                                    ${weak.map(w => `<img class="weak-avatar-item" src="${(w.images && w.images[0]) || ''}" title="${w.name}">`).join('')}
+                                    ${weak.map(w => `<img class="weak-avatar-item" src="${(w.images && w.images[0]) || ''}" title="${esc(w.name)}">`).join('')}
                                 </div>
                             </div>
                             <button id="btn-train-spotlight" class="btn-primary" style="padding: 0.6rem 1.25rem; font-size: 0.85rem;">
@@ -254,22 +255,22 @@ export async function initGallery(currentUser) {
 
             card.innerHTML = `
                 <div class="char-img-container cursor-pointer">
-                    <img src="${primaryImg}" alt="${char.name}" loading="lazy">
+                    <img src="${primaryImg}" alt="${esc(char.name)}" loading="lazy">
                     ${char.images && char.images.length > 1 ? `<span class="badge badge-mix" style="position: absolute; bottom: 10px; right: 10px; z-index: 2;">📷 ${char.images.length}</span>` : ''}
                 </div>
                 <div class="char-info">
                     <div class="char-header-row">
-                        <div class="char-name" title="${char.name}">${char.name}</div>
+                        <div class="char-name" title="${esc(char.name)}">${esc(char.name)}</div>
                         <span class="badge badge-${char.category}">${char.category.toUpperCase()}</span>
                     </div>
                     <div class="char-meta">
-                        <span class="added-by-tag">@${char.added_by || 'system'}</span>
-                        ${char.label ? `<span class="badge" style="background: var(--bg-surface-elevated);">${char.label}</span>` : ''}
+                        <span class="added-by-tag">@${esc(char.added_by || 'system')}</span>
+                        ${char.label ? `<span class="badge" style="background: var(--bg-surface-elevated);">${esc(char.label)}</span>` : ''}
                     </div>
                     <div class="char-actions">
-                        ${isOwner ? `<button class="btn-card-action btn-edit-char" data-id="${char.id}" title="Edit Character">✏️ Edit</button>` : ''}
-                        ${isOwner ? `<button class="btn-card-action danger btn-del-char" data-id="${char.id}" title="Delete Character">🗑️ Delete</button>` : ''}
-                        <button class="btn-card-action report btn-report-char" data-id="${char.id}" data-name="${char.name}" title="Report Issue">🚩 Report</button>
+                        ${isOwner ? `<button class="btn-card-action btn-edit-char" data-id="${esc(char.id)}" title="Edit Character">✏️ Edit</button>` : ''}
+                        ${isOwner ? `<button class="btn-card-action danger btn-del-char" data-id="${esc(char.id)}" title="Delete Character">🗑️ Delete</button>` : ''}
+                        <button class="btn-card-action report btn-report-char" data-id="${esc(char.id)}" data-name="${esc(char.name)}" title="Report Issue">🚩 Report</button>
                     </div>
                 </div>
             `;

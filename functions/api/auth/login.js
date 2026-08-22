@@ -1,6 +1,7 @@
 import { successResponse, errorResponse } from '../../lib/response.js';
 import { generateUUID, hashPassword, generateRandomString, hashToken } from '../../lib/crypto.js';
 import { createCookieHeader, generateCsrfTokenForSession } from '../../lib/auth.js';
+import { checkRateLimit, getClientIp, tooManyRequests } from '../../lib/ratelimit.js';
 
 export async function onRequestPost(context) {
     const { request, env } = context;
@@ -12,30 +13,40 @@ export async function onRequestPost(context) {
     }
 
     const { username, password, rememberMe, timezoneOffsetMinutes } = body;
-    
+
     if (!username || !password) {
         return errorResponse("Username and password are required.", 400);
     }
-    
+
     const normalizedUsername = username.trim().toLowerCase();
     const db = env.DB;
-    
+
+    // Brute-force guard: per-IP and per-username fixed windows.
+    try {
+        const ipLimit = await checkRateLimit(db, `login:ip:${getClientIp(request)}`, 15, 5 * 60 * 1000);
+        if (!ipLimit.allowed) return tooManyRequests();
+        const userLimit = await checkRateLimit(db, `login:user:${normalizedUsername}`, 10, 5 * 60 * 1000);
+        if (!userLimit.allowed) return tooManyRequests();
+    } catch (e) {
+        console.error('Login rate limit error', e);
+    }
+
     try {
         const stmt = db.prepare("SELECT id, password_hash, password_salt, role, deleted_at_ms, deletion_requested_at_ms FROM users WHERE username_normalized = ?").bind(normalizedUsername);
         const user = await stmt.first();
         
         if (!user) {
+            // Burn comparable CPU on unknown users so response timing does not
+            // reveal whether a username exists.
             await hashPassword(password, generateRandomString(32));
             return errorResponse("Invalid username or password", 401);
         }
 
-        if (user.deleted_at_ms) {
-            return errorResponse("This account has been deleted.", 403);
-        }
-        
         const providedHash = await hashPassword(password, user.password_salt);
-        
-        if (providedHash !== user.password_hash) {
+
+        if (providedHash !== user.password_hash || user.deleted_at_ms) {
+            // Deleted accounts get the same generic verdict as wrong passwords:
+            // no pre-auth oracle that discloses account state.
             return errorResponse("Invalid username or password", 401);
         }
 
@@ -61,15 +72,15 @@ export async function onRequestPost(context) {
         
         await updateDailyStreak(db, user.id, timezoneOffsetMinutes);
         
-        const isHttps = new URL(request.url).protocol === 'https:';
+        // Cookies are always Secure: production is HTTPS-only (plan.md PWA
+        // policy) and the __Host- prefix requires it. The duplicate plain-name
+        // cookie eases transitions; both carry identical flags now.
         const cookieHeaders = [
-            createCookieHeader('goooog_session', sessionToken, maxAge, false, isHttps)
+            createCookieHeader('goooog_session', sessionToken, maxAge, false, true),
+            createCookieHeader('__Host-goooog_session', sessionToken, maxAge, false, true)
         ];
-        if (isHttps) {
-            cookieHeaders.push(createCookieHeader('__Host-goooog_session', sessionToken, maxAge, false, true));
-        }
         
-        return successResponse({ 
+        return successResponse({
             message: "Login successful",
             role: user.role,
             user: {
@@ -77,8 +88,9 @@ export async function onRequestPost(context) {
                 username: normalizedUsername,
                 role: user.role
             },
-            sessionToken: sessionToken,
-            csrfToken: csrfToken 
+            // The raw session token intentionally stays out of the body:
+            // the HttpOnly+Secure cookies above are the single transport.
+            csrfToken: csrfToken
         }, 200, {
             'Set-Cookie': cookieHeaders
         });

@@ -27,7 +27,6 @@ export async function onRequestPost(context) {
     // Schema CHECK constraint allows only ('none','fifty_fifty','skip','hint');
     // coerce anything unexpected (including client defaults) to 'none'.
     const usedLifeline = ALLOWED_LIFELINES.includes(body.usedLifeline) ? body.usedLifeline : 'none';
-    const answerTimeMs = Math.max(0, Math.min(600000, Number(body.answerTimeMs) || 0));
 
     if (!answerId || !gameSessionId || !questionId) {
         return errorResponse("Missing required fields", 400);
@@ -51,7 +50,7 @@ export async function onRequestPost(context) {
 
         const qStmt = db.prepare(`
             SELECT g.user_id, g.state, g.mode, g.rounds_requested, g.current_question_number,
-                   q.character_id as correct_character_id, q.answered_at_ms, q.option_ids_json,
+                   q.character_id as correct_character_id, q.answered_at_ms, q.option_ids_json, q.issued_at_ms,
                    c.name as correct_name, c.category as correct_category, c.label as correct_label, u.username as added_by
             FROM game_questions q
             JOIN game_sessions g ON q.game_session_id = g.id
@@ -75,6 +74,11 @@ export async function onRequestPost(context) {
 
         const isCorrect = (characterId === selectedCharacterId);
         const nowMs = Date.now();
+
+        // Server-derived answer timing (#33): measured from when THIS server
+        // issued the question, clamped to the schema CHECK bound. The client's
+        // answerTimeMs field is accepted but ignored.
+        const answerTimeMs = Math.max(0, Math.min(600000, nowMs - (question.issued_at_ms || nowMs)));
 
         const progressStmt = db.prepare("SELECT * FROM user_character_progress WHERE user_id = ? AND character_id = ?").bind(data.user.id, characterId);
         let progress = await progressStmt.first();

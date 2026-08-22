@@ -1,3 +1,5 @@
+import { esc } from './esc.js';
+
 const MAX_VISIBLE_TOASTS = 4;
 const DUPLICATE_SUPPRESS_MS = 800;
 
@@ -25,7 +27,7 @@ export function showToast(message, type = 'info', duration = 3500) {
 
     toast.innerHTML = `
         <span>${icon}</span>
-        <span class="flex-1">${message}</span>
+        <span class="flex-1">${esc(message)}</span>
     `;
 
     container.appendChild(toast);

@@ -11,7 +11,8 @@ export function renderResults(resultsData, onRestart, onHome) {
         maxStreak,
         totalTimeMs,
         wrongAnswers = [],
-        masteryChanges = []
+        masteryChanges = [],
+        erroredCount = 0
     } = resultsData;
 
     const percentage = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
@@ -57,6 +58,8 @@ export function renderResults(resultsData, onRestart, onHome) {
                         <div class="result-stat-label">Avg Speed</div>
                     </div>
                 </div>
+
+                ${erroredCount > 0 ? `<p class="text-xs color-text-muted mt-2">⚠️ ${erroredCount} سؤال لم يُحفظ بسبب انقطاع الاتصال ولم تُحتسب.</p>` : ''}
 
                 <div class="flex flex-col gap-3 mt-6">
                     ${wrongAnswers.length > 0 ? `

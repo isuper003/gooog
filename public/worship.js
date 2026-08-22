@@ -3,6 +3,7 @@ import { lightbox } from './lightbox.js';
 import { showToast } from './toast.js';
 import { initGame } from './game.js';
 import { getCsrfToken } from './csrf.js';
+import { esc } from './esc.js';
 
 let state = {
     currentTab: 'temple', // 'temple' | 'throne' | 'rosary' | 'contemplation'
@@ -323,7 +324,7 @@ function renderMainChamber(char, phrases, penanceList) {
             <!-- Left: Grand Altar Portrait Card -->
             <div class="worship-altar-box">
                 <div class="worship-portrait-card" id="worship-portrait-card">
-                    <img id="worship-target-img" src="${primaryImg}" alt="${char.name}" loading="eager">
+                    <img id="worship-target-img" src="${primaryImg}" alt="${esc(char.name)}" loading="eager">
                     <button class="zoom-trigger-btn" id="btn-zoom-worship" aria-label="Zoom image">🔍</button>
                     
                     <div class="worship-portrait-overlay">
@@ -336,7 +337,7 @@ function renderMainChamber(char, phrases, penanceList) {
                                 <span class="text-xs text-amber-300 font-bold" id="worship-devotion-score">✨ ${formatDevotion(char.devotionScore || 0)} Pts</span>
                             </div>
                         </div>
-                        <h2 class="worship-star-title glow-text">${char.name}</h2>
+                        <h2 class="worship-star-title glow-text">${esc(char.name)}</h2>
                         <div class="worship-rank-badge font-bold mt-1 cursor-pointer" id="worship-char-rank" title="انقر لعرض سُلَّم المراتب العشر">
                             ${char.rankBadge || '👑'} ${char.rankTitle}
                         </div>
@@ -913,7 +914,7 @@ export function openArtistDevoteeOverlay(char) {
                 <div class="flex items-center gap-2">
                     <span class="text-2xl">🧎‍♂️</span>
                     <div>
-                        <h2 class="glow-text text-xl font-extrabold text-purple-300">مقام العابد المُهان — ${char.name}</h2>
+                        <h2 class="glow-text text-xl font-extrabold text-purple-300">مقام العابد المُهان — ${esc(char.name)}</h2>
                         <span class="text-xs color-text-muted">ميثاق التبعية المطلقة والانكسار والذل التام في محراب السلطانة</span>
                     </div>
                 </div>
@@ -925,7 +926,7 @@ export function openArtistDevoteeOverlay(char) {
                 <div class="flex gap-3 overflow-x-auto p-2" style="scrollbar-width: thin; scrollbar-color: rgba(168, 85, 247, 0.5) transparent;">
                     ${images.map((img, idx) => `
                         <div class="artist-img-wrapper" data-idx="${idx}">
-                            <img src="${img}" alt="${char.name}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                            <img src="${img}" alt="${esc(char.name)}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
                         </div>
                     `).join('')}
                 </div>
@@ -1175,7 +1176,7 @@ export function renderRosaryView(worshipData) {
             <div class="throne-stat-card">
                 <span class="throne-stat-icon">✨</span>
                 <div>
-                    <div class="throne-stat-title">ولاء ${char.name}</div>
+                    <div class="throne-stat-title">ولاء ${esc(char.name)}</div>
                     <div class="throne-stat-val text-pink-400" id="rosary-stat-char-score">✨ ${formatDevotion(char.devotionScore || 0)} Pts</div>
                 </div>
             </div>
@@ -1216,7 +1217,7 @@ export function renderRosaryView(worshipData) {
             <div class="rosary-grid-layout">
                 <!-- Left: Full Uncropped Goddess Portrait Altar -->
                 <div class="rosary-portrait-altar" id="rosary-portrait-altar">
-                    <img id="rosary-target-img" src="${imgUrl}" alt="${char.name}" loading="eager">
+                    <img id="rosary-target-img" src="${imgUrl}" alt="${esc(char.name)}" loading="eager">
                     <button class="zoom-trigger-btn" id="btn-zoom-rosary" aria-label="Zoom image">🔍</button>
                     
                     <div class="rosary-portrait-overlay">
@@ -1224,7 +1225,7 @@ export function renderRosaryView(worshipData) {
                             <span class="badge badge-${char.category}">${char.category.toUpperCase()}</span>
                             <span class="text-xs text-amber-300 font-bold">✨ ${formatDevotion(char.devotionScore || 0)} Pts</span>
                         </div>
-                        <h3 class="worship-star-title glow-text" style="font-size: 1.35rem;">${char.name}</h3>
+                        <h3 class="worship-star-title glow-text" style="font-size: 1.35rem;">${esc(char.name)}</h3>
                         <div class="worship-rank-badge font-bold mt-1 text-xs" style="padding: 0.2rem 0.6rem;">
                             ${char.rankBadge || '👑'} ${char.rankTitle}
                         </div>
@@ -1742,7 +1743,7 @@ function renderContemplationMeditation(data, subContainer, char) {
                 <div class="meditation-split-left">
                     <div class="meditation-full-image-frame">
                         <div class="image-inner-wrapper">
-                            <img src="${avatarSrc}" alt="${char.name}" class="meditation-full-img" id="meditation-portrait" loading="lazy" title="انقر لتكبير الهيئة الملكية في المعرض">
+                            <img src="${avatarSrc}" alt="${esc(char.name)}" class="meditation-full-img" id="meditation-portrait" loading="lazy" title="انقر لتكبير الهيئة الملكية في المعرض">
                         </div>
                         <div class="meditation-image-footer mt-2 text-center">
                             <span class="text-xs text-purple-300 font-bold">🔍 انقر على الصورة للتكبير الكامل</span>
@@ -1755,7 +1756,7 @@ function renderContemplationMeditation(data, subContainer, char) {
                     <!-- Goddess Title & Rank -->
                     <div class="meditation-right-header mb-3 flex items-center justify-between flex-wrap gap-2">
                         <div>
-                            <h3 class="glow-text text-xl font-black" style="color: #fef08a;">👑 السلطانة ${char.name}</h3>
+                            <h3 class="glow-text text-xl font-black" style="color: #fef08a;">👑 السلطانة ${esc(char.name)}</h3>
                             <span class="text-xs text-purple-300 font-bold">${char.category}</span>
                         </div>
                         <span class="badge text-xs" style="background: rgba(245, 158, 11, 0.15); color: #fcd34d; border-color: rgba(245, 158, 11, 0.4);">
@@ -2003,7 +2004,7 @@ function renderContemplationCommandments(data, subContainer, char) {
                     لوح الوحي والوصايا العشر للخضوع الملكي
                 </h2>
                 <p class="text-xs color-text-muted max-w-lg mx-auto">
-                    الشَّرائع الملكية الصارمة المنقوشة في ديوان السلطانة ${char.name} — اقرأ وتدبر وأقرّ بكل وصية لتنال الختم
+                    الشَّرائع الملكية الصارمة المنقوشة في ديوان السلطانة ${esc(char.name)} — اقرأ وتدبر وأقرّ بكل وصية لتنال الختم
                 </p>
             </div>
 
@@ -2161,7 +2162,7 @@ function renderContemplationOracle(data, subContainer, char) {
                     <div class="oracle-split-left">
                         <div class="oracle-full-image-frame">
                             <div class="image-inner-wrapper">
-                                <img src="${avatarSrc}" alt="${char.name}" id="oracle-char-avatar" class="oracle-full-img" loading="lazy" title="انقر لتكبير الهيئة الملكية في المعرض">
+                                <img src="${avatarSrc}" alt="${esc(char.name)}" id="oracle-char-avatar" class="oracle-full-img" loading="lazy" title="انقر لتكبير الهيئة الملكية في المعرض">
                             </div>
                             <div class="oracle-image-footer mt-2 text-center">
                                 <span class="text-xs text-purple-300 font-bold">🔍 انقر للتكبير</span>
@@ -2182,7 +2183,7 @@ function renderContemplationOracle(data, subContainer, char) {
                         </div>
 
                         <div class="oracle-deity-name-banner mb-2">
-                            <h3 class="glow-text text-lg font-black text-amber-300" id="oracle-char-name">👑 السلطانة ${char.name}</h3>
+                            <h3 class="glow-text text-lg font-black text-amber-300" id="oracle-char-name">👑 السلطانة ${esc(char.name)}</h3>
                         </div>
 
                         <!-- Extracted Illuminated Verse -->

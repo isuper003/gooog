@@ -76,31 +76,45 @@ export async function onRequestPost(context) {
     let newStatus = action === 'approve' ? 'approved' : (action === 'reject' ? 'rejected' : 'deleted');
     
     try {
+        // Load the current status first: moderation actions only apply to the
+        // pending queue, and the audit entry must record the real previous
+        // state — never a hardcoded assumption.
+        const character = await db.prepare(
+            "SELECT id, status FROM characters WHERE id = ? AND deleted_at_ms IS NULL"
+        ).bind(characterId).first();
+
+        if (!character) {
+            return errorResponse("Character not found", 404);
+        }
+        if (character.status !== 'pending') {
+            return errorResponse(`Character is not pending review (current status: ${character.status})`, 409);
+        }
+
         const stmts = [];
-        
+
         if (action === 'delete') {
             stmts.push(db.prepare(`
-                UPDATE characters 
+                UPDATE characters
                 SET status = 'deleted', deleted_at_ms = ?, reviewed_by_user_id = ?, reviewed_at_ms = ?, review_reason = ?
-                WHERE id = ?
+                WHERE id = ? AND status = 'pending'
             `).bind(nowMs, data.user.id, nowMs, reason || 'Deleted by moderator', characterId));
         } else {
             stmts.push(db.prepare(`
-                UPDATE characters 
+                UPDATE characters
                 SET status = ?, reviewed_by_user_id = ?, reviewed_at_ms = ?, review_reason = ?
-                WHERE id = ?
+                WHERE id = ? AND status = 'pending'
             `).bind(newStatus, data.user.id, nowMs, reason || null, characterId));
         }
-        
+
         // Log in audit log
         const auditId = generateUUID();
         stmts.push(db.prepare(`
             INSERT INTO audit_log (id, actor_user_id, action, target_type, target_id, reason, metadata_json, created_at_ms)
             VALUES (?, ?, ?, 'character', ?, ?, ?, ?)
-        `).bind(auditId, data.user.id, `character_${action}`, characterId, reason || null, JSON.stringify({ previousStatus: 'pending', newStatus }), nowMs));
-        
+        `).bind(auditId, data.user.id, `character_${action}`, characterId, reason || null, JSON.stringify({ previousStatus: character.status, newStatus }), nowMs));
+
         await db.batch(stmts);
-        
+
         return successResponse({ message: `Character ${action}d successfully`, characterId, status: newStatus });
     } catch (e) {
         console.error("Moderation action error", e);

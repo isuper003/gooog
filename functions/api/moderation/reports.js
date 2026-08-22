@@ -10,6 +10,11 @@ export async function onRequestGet(context) {
     }
     
     try {
+        // Paginated backlog: clamped limit + offset so item #51+ is reachable.
+        const url = new URL(request.url);
+        const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit')) || 50));
+        const offset = Math.max(0, parseInt(url.searchParams.get('offset')) || 0);
+
         const { results: reports } = await db.prepare(`
             SELECT r.id, r.reason, r.note, r.status, r.created_at_ms,
                    u.username as reporter,
@@ -19,10 +24,10 @@ export async function onRequestGet(context) {
             LEFT JOIN characters c ON r.character_id = c.id
             WHERE r.status = 'open'
             ORDER BY r.created_at_ms DESC
-            LIMIT 50
-        `).all();
-        
-        return successResponse({ reports: reports || [] });
+            LIMIT ? OFFSET ?
+        `).bind(limit, offset).all();
+
+        return successResponse({ reports: reports || [], limit, offset });
     } catch (e) {
         console.error("Fetch reports error", e);
         return errorResponse("Failed to fetch reports", 500);
@@ -86,12 +91,18 @@ export async function onRequestPatch(context) {
     const nowMs = Date.now();
     
     try {
-        await db.prepare(`
-            UPDATE content_reports 
+        // Only open reports are resolvable: re-resolving or acting on unknown
+        // ids must fail loudly instead of silently "succeeding" on 0 rows.
+        const result = await db.prepare(`
+            UPDATE content_reports
             SET status = ?, resolved_by_user_id = ?, resolved_at_ms = ?
-            WHERE id = ?
+            WHERE id = ? AND status = 'open'
         `).bind(status, data.user.id, nowMs, reportId).run();
-        
+
+        if (!result.meta || result.meta.changes === 0) {
+            return errorResponse("Report not found or already resolved", 404);
+        }
+
         return successResponse({ message: `Report marked as ${status}`, reportId });
     } catch (e) {
         console.error("Resolve report error", e);

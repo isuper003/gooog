@@ -50,15 +50,22 @@ export async function onRequestGet(context) {
     const category = url.searchParams.get('category');
     
     try {
-        // Fetch list of approved characters for the selector and pantheon throne
+        // Fetch list of approved characters for the selector and pantheon throne.
+        // Primary image comes from one window-function join instead of a
+        // correlated subquery executed per row.
         let charQuery = `
             SELECT c.id, c.name, c.category,
                    COALESCE(p.times_correct, 0) as times_correct,
                    COALESCE(p.times_wrong, 0) as times_wrong,
                    COALESCE(p.mastery_level, 0) as mastery_level,
-                   (SELECT ci.image_url FROM character_images ci WHERE ci.character_id = c.id ORDER BY ci.display_order ASC LIMIT 1) as primary_image
+                   ci.image_url as primary_image
             FROM characters c
             LEFT JOIN user_character_progress p ON c.id = p.character_id AND p.user_id = ?
+            LEFT JOIN (
+                SELECT character_id, image_url,
+                       ROW_NUMBER() OVER (PARTITION BY character_id ORDER BY display_order ASC) as rn
+                FROM character_images
+            ) ci ON ci.character_id = c.id AND ci.rn = 1
             WHERE c.status = 'approved' AND c.deleted_at_ms IS NULL
         `;
         const params = [data.user.id];

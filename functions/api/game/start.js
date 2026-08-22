@@ -25,6 +25,14 @@ export async function onRequestPost(context) {
     const gameSessionId = generateUUID();
     
     try {
+        // Retire this user's stale active sessions so abandoned rounds cannot
+        // accumulate forever (the client keeps at most one round alive).
+        await db.prepare(`
+            UPDATE game_sessions
+            SET state = 'abandoned', completed_at_ms = ?
+            WHERE user_id = ? AND state = 'active'
+        `).bind(Date.now(), data.user.id).run();
+
         await db.prepare(`
             INSERT INTO game_sessions (id, user_id, category, mode, state, rounds_requested, started_at_ms)
             VALUES (?, ?, ?, ?, 'active', ?, ?)

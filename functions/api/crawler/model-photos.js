@@ -5,10 +5,13 @@ export async function onRequestGet(context) {
     const { env, request } = context;
     const db = env.DB;
 
-    // Verify session
+    // Verify session AND staff role: outbound scraping is a staff-only tool.
     const auth = await authenticateUser(request, db);
     if (auth.error) {
         return errorResponse(auth.error, auth.status);
+    }
+    if (auth.user?.role !== 'admin' && auth.user?.role !== 'moderator') {
+        return errorResponse("Crawler access requires moderator role", 403);
     }
 
     const url = new URL(request.url);
@@ -52,6 +55,7 @@ export async function onRequestGet(context) {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
             },
+            redirect: 'error',
             signal: controller.signal
         });
         clearTimeout(timeout);

@@ -1,15 +1,79 @@
-import { successResponse, errorResponse } from '../lib/response.js';
+﻿import { successResponse, errorResponse } from '../lib/response.js';
 import { generateUUID } from '../lib/crypto.js';
 import { authenticateUser } from '../lib/auth.js';
+import { validateCharacterName, validateLabel, validateImageUrls, hqImageUrl } from '../lib/validation.js';
 
 export async function onRequestGet(context) {
     const { env, request } = context;
     const db = env.DB;
     const url = new URL(request.url);
-    
+
     const isRandom = url.searchParams.get('random') === 'true' || url.searchParams.get('random') === '1';
     const category = url.searchParams.get('category');
-    
+
+    // Lightweight category counters: one GROUP BY query instead of shipping
+    // the whole library to the client just to count it client-side.
+    if (url.searchParams.get('counts') === '1') {
+        try {
+            const { results } = await db.prepare(`
+                SELECT
+                    COUNT(*) as total,
+                    SUM(CASE WHEN c.category = 'trans' THEN 1 ELSE 0 END) as trans,
+                    SUM(CASE WHEN c.category = 'sluts' THEN 1 ELSE 0 END) as sluts,
+                    SUM(CASE WHEN c.category = 'twinks' THEN 1 ELSE 0 END) as twinks
+                FROM characters c
+                WHERE c.status = 'approved' AND c.deleted_at_ms IS NULL
+            `).all();
+            const row = results?.[0] || {};
+            return successResponse({
+                counts: {
+                    total: row.total || 0,
+                    trans: row.trans || 0,
+                    sluts: row.sluts || 0,
+                    twinks: row.twinks || 0
+                }
+            });
+        } catch (e) {
+            console.error("Character counts error", e);
+            return errorResponse("Failed to fetch character counts", 500);
+        }
+    }
+
+    // Small random sample for UI backdrops/decoration (no pagination needed).
+    if (url.searchParams.get('random_sample') === '1') {
+        try {
+            const { results } = await db.prepare(`
+                SELECT c.id, c.name, c.category, c.label, c.status, c.submitted_by_user_id, u.username as added_by
+                FROM characters c
+                LEFT JOIN users u ON c.submitted_by_user_id = u.id
+                WHERE c.status = 'approved' AND c.deleted_at_ms IS NULL
+                ORDER BY RANDOM() LIMIT 40
+            `).all();
+            const sample = results || [];
+            if (sample.length > 0) {
+                const ids = sample.map(r => r.id);
+                const placeholders = ids.map(() => '?').join(',');
+                const { results: imgs } = await db.prepare(`
+                    SELECT character_id, image_url
+                    FROM (
+                        SELECT ci.character_id, ci.image_url,
+                               ROW_NUMBER() OVER (PARTITION BY ci.character_id ORDER BY ci.display_order ASC) as rn
+                        FROM character_images ci
+                        WHERE ci.character_id IN (${placeholders})
+                    )
+                    WHERE rn = 1
+                `).bind(...ids).all();
+                const firstImg = {};
+                (imgs || []).forEach(img => { if (!firstImg[img.character_id]) firstImg[img.character_id] = img.image_url; });
+                sample.forEach(c => { c.images = [firstImg[c.id]].filter(Boolean); });
+            }
+            return successResponse({ characters: sample });
+        } catch (e) {
+            console.error("Random sample error", e);
+            return errorResponse("Failed to fetch character sample", 500);
+        }
+    }
+
     // Fast single random approved character query
     if (isRandom) {
         let randQuery = `
@@ -45,8 +109,10 @@ export async function onRequestGet(context) {
         }
     }
 
-    const page = parseInt(url.searchParams.get('page')) || 1;
-    const limit = parseInt(url.searchParams.get('limit')) || 20;
+    // Clamp pagination: SQLite treats a negative LIMIT as unlimited, which
+    // turned `?limit=-1` into a full-table dump; keep sane bounds instead.
+    const page = Math.max(1, parseInt(url.searchParams.get('page')) || 1);
+    const limit = Math.min(2000, Math.max(1, parseInt(url.searchParams.get('limit')) || 20));
     const status = url.searchParams.get('status') || 'approved';
     
     // Non-approved status (pending, rejected, hidden) requires admin/mod role
@@ -83,19 +149,27 @@ export async function onRequestGet(context) {
     try {
         const stmt = db.prepare(query);
         const { results } = await stmt.bind(...params).all();
-        
+
+        // Single round-trip for primary images: ROW_NUMBER() keeps the first
+        // 4 ordered images per character, replacing the serial 30-id chunks
+        // (ceil(N/30) queries) with one query.
         if (results && results.length > 0) {
             const charIds = results.map(r => r.id);
             const imageMap = {};
-            const chunkSize = 30;
+            const chunkSize = 90;
 
             for (let i = 0; i < charIds.length; i += chunkSize) {
                 const chunk = charIds.slice(i, i + chunkSize);
                 const placeholders = chunk.map(() => '?').join(',');
                 const { results: imagesChunk } = await db.prepare(`
-                    SELECT character_id, image_url, display_order 
-                    FROM character_images 
-                    WHERE character_id IN (${placeholders})
+                    SELECT character_id, image_url
+                    FROM (
+                        SELECT ci.character_id, ci.image_url, ci.display_order,
+                               ROW_NUMBER() OVER (PARTITION BY ci.character_id ORDER BY ci.display_order ASC) as rn
+                        FROM character_images ci
+                        WHERE ci.character_id IN (${placeholders})
+                    )
+                    WHERE rn <= 4
                     ORDER BY character_id, display_order ASC
                 `).bind(...chunk).all();
 
@@ -104,7 +178,7 @@ export async function onRequestGet(context) {
                     imageMap[img.character_id].push(img.image_url);
                 });
             }
-            
+
             results.forEach(char => {
                 char.images = imageMap[char.id] || [];
             });
@@ -129,18 +203,19 @@ export async function onRequestPost(context) {
     }
     
     const { name, category, label, images } = body;
-    
-    if (!name || !category || !images || !Array.isArray(images) || images.length === 0 || images.length > 4) {
+
+    if (!validateCharacterName(name)) {
+        return errorResponse("Invalid character name. Use 2-80 letters, numbers, spaces or .-'& characters.", 400);
+    }
+    if (!validateLabel(label)) {
+        return errorResponse("Invalid label.", 400);
+    }
+    if (!images || !Array.isArray(images) || images.length === 0 || images.length > 4) {
         return errorResponse("Invalid character data. Provide name, category, and 1-4 images.", 400);
     }
-    
-    // Validate image URLs
-    for (const url of images) {
-        const trimmed = typeof url === 'string' ? url.trim() : '';
-        if (!trimmed.startsWith('https://') && !trimmed.startsWith('http://')) {
-            return errorResponse("Invalid image URL. Must be a valid http/https URL.", 400);
-        }
-    }
+
+    const urlError = validateImageUrls(images);
+    if (urlError) return errorResponse(urlError, 400);
     
     const validCategories = ['trans', 'sluts', 'twinks'];
     if (!validCategories.includes(category)) {
@@ -169,7 +244,7 @@ export async function onRequestPost(context) {
             const imgStmts = [];
             images.forEach((url, index) => {
                 if (url && url.trim().length > 0) {
-                    const hqUrl = url.trim().replace(/\/(?:460|300|560)\//g, '/1280/');
+                    const hqUrl = hqImageUrl(url);
                     const imageId = generateUUID();
                     imgStmts.push(db.prepare(`
                         INSERT INTO character_images (id, character_id, image_url, display_order, created_at_ms)
@@ -192,8 +267,7 @@ export async function onRequestPost(context) {
         
         images.forEach((url, index) => {
             if (url && url.trim().length > 0) {
-                // Ensure max 1280px resolution for pornpics CDN images
-                const hqUrl = url.trim().replace(/\/(?:460|300|560)\//g, '/1280/');
+                const hqUrl = hqImageUrl(url);
                 const imageId = generateUUID();
                 stmts.push(db.prepare(`
                     INSERT INTO character_images (id, character_id, image_url, display_order, created_at_ms)
@@ -206,7 +280,7 @@ export async function onRequestPost(context) {
         
         return successResponse({ message: "Character added successfully", status, id: characterId }, 201);
     } catch (e) {
-        if (e.message && e.message.includes('UNIQUE constraint failed')) {
+        if (/UNIQUE/i.test(e.message || '')) {
             return errorResponse("Character with this name already exists", 409);
         }
         console.error("Error adding character", e);
