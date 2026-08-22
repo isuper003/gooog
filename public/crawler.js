@@ -345,8 +345,8 @@ export function initCrawler(currentUser) {
 
             const profileImg = model.profileImage;
             const rawPhotos = model.photos || [];
-            const galleryPhotos = rawPhotos.filter(p => p !== profileImg);
-            const allImgs = galleryPhotos.length > 0 ? galleryPhotos : rawPhotos;
+            const galleryPhotos = rawPhotos.filter(p => p !== profileImg && !p.includes('/models/'));
+            const allImgs = galleryPhotos;
 
             const newChar = {
                 id: `direct_${Date.now()}`,
@@ -461,25 +461,17 @@ export function initCrawler(currentUser) {
                     const res = await fetch(`/api/crawler/model-photos?slug=${encodeURIComponent(char.slug)}`);
                     const data = await res.json();
                     if (data.success && data.data?.photos?.length > 0) {
-                        const rawPhotos = data.data.photos || [];
                         const profileImg = data.data.profileImage || char.profileImage;
-                        // Exclude profile avatar from the horizontal gallery strip
-                        const gallery = rawPhotos.filter(p => p !== profileImg);
-                        const allImgs = gallery.length > 0 ? gallery : rawPhotos;
+                        const rawPhotos = data.data.photos || [];
+                        // Strictly filter out profile avatar from horizontal strip gallery
+                        const gallery = rawPhotos.filter(p => p !== profileImg && !p.includes('/models/'));
 
-                        char.allImages = allImgs;
-                        char.profileImage = profileImg || (allImgs[0] || '');
-                        char.selectedImages = allImgs.slice(0, Math.min(4, allImgs.length));
-                    } else if (char.profileImage && char.allImages.length === 0) {
-                        char.allImages = [char.profileImage];
-                        char.selectedImages = [char.profileImage];
+                        char.allImages = gallery;
+                        char.profileImage = profileImg;
+                        char.selectedImages = gallery.slice(0, Math.min(4, gallery.length));
                     }
                 } catch (e) {
                     console.warn(`Failed to preload gallery for ${char.name}:`, e);
-                    if (char.profileImage && char.allImages.length === 0) {
-                        char.allImages = [char.profileImage];
-                        char.selectedImages = [char.profileImage];
-                    }
                 } finally {
                     char.isFullGalleryLoaded = true;
                     updateRowCardState(char);
@@ -594,7 +586,10 @@ export function initCrawler(currentUser) {
     }
 
     function renderThumbnailsHtml(char) {
-        if (char.allImages.length === 0) {
+        const profileUrl = char.profileImage || '';
+        const galleryPhotos = (char.allImages || []).filter(u => u && u !== profileUrl && !u.includes('/models/'));
+
+        if (galleryPhotos.length === 0) {
             if (char.isFullGalleryLoaded) {
                 return `
                     <div class="py-4 px-3 text-xs color-text-muted flex items-center gap-2" style="white-space: nowrap;">
@@ -605,7 +600,7 @@ export function initCrawler(currentUser) {
             return `<div class="py-6 px-4 text-xs color-text-muted" style="white-space: nowrap;">⏳ Loading full album photos...</div>`;
         }
 
-        return char.allImages.map((imgUrl, imgIdx) => {
+        return galleryPhotos.map((imgUrl, imgIdx) => {
             const isSelected = char.selectedImages.includes(imgUrl);
             const selOrder = char.selectedImages.indexOf(imgUrl) + 1;
             return `
@@ -633,11 +628,16 @@ export function initCrawler(currentUser) {
                 const res = await fetch(`/api/crawler/model-photos?slug=${encodeURIComponent(char.slug)}`);
                 const data = await res.json();
                 if (data.success && data.data?.photos?.length > 0) {
-                    char.allImages = data.data.photos;
-                    char.selectedImages = data.data.photos.slice(0, Math.min(4, data.data.photos.length));
+                    const profileImg = data.data.profileImage || char.profileImage;
+                    const rawPhotos = data.data.photos || [];
+                    const gallery = rawPhotos.filter(p => p !== profileImg && !p.includes('/models/'));
+
+                    char.allImages = gallery;
+                    char.profileImage = profileImg;
+                    char.selectedImages = gallery.slice(0, Math.min(4, gallery.length));
                     char.isFullGalleryLoaded = true;
                     updateRowCardState(char);
-                    showToast(`Loaded ${data.data.photos.length} photos for ${char.name}!`, 'success');
+                    showToast(`Loaded ${gallery.length} photos for ${char.name}!`, 'success');
                 } else {
                     showToast("Could not find gallery photos for this model.", "warning");
                     btn.disabled = false;
@@ -655,7 +655,9 @@ export function initCrawler(currentUser) {
             thumb.querySelector('.thumb-zoom-btn')?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const imgIdx = parseInt(thumb.dataset.imgIdx) || 0;
-                lightbox.open(char.allImages, {
+                const profileUrl = char.profileImage || '';
+                const galleryPhotos = (char.allImages || []).filter(u => u && u !== profileUrl && !u.includes('/models/'));
+                lightbox.open(galleryPhotos, {
                     initialIndex: imgIdx,
                     showCaption: true,
                     name: char.name,
@@ -699,10 +701,10 @@ export function initCrawler(currentUser) {
         const countEl = rowCard.querySelector(`#count-imgs-${char.id}`);
         if (countEl) countEl.innerText = char.selectedImages.length;
 
-        // Live update the Main Profile Avatar to reflect photo #1
+        // Keep the Main Profile Avatar locked strictly to the model's official profile portrait
         const avatarImg = rowCard.querySelector('.row-main-avatar img');
-        if (avatarImg) {
-            avatarImg.src = char.selectedImages[0] || char.profileImage || (char.allImages[0] || '');
+        if (avatarImg && char.profileImage) {
+            avatarImg.src = char.profileImage;
         }
 
         // Live update thumbnail classes and order badges in the horizontal strip
@@ -737,8 +739,8 @@ export function initCrawler(currentUser) {
         if (countEl) countEl.innerText = char.selectedImages.length;
 
         const avatarImg = rowCard.querySelector('.row-main-avatar img');
-        if (avatarImg) {
-            avatarImg.src = char.selectedImages[0] || char.profileImage || (char.allImages[0] || '');
+        if (avatarImg && char.profileImage) {
+            avatarImg.src = char.profileImage;
         }
 
         const stripContainer = rowCard.querySelector(`#strip-${char.id}`);
