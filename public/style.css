@@ -4807,6 +4807,8 @@ select.form-select::-webkit-scrollbar {
     justify-content: center;
     overflow-y: auto;
     padding: 2rem 1.5rem;
+}
+
 /* Mode 2: Live Meditation Altar (محراب التأمل الحي - تقسيم متوازن) */
 .meditation-altar-card {
     background: radial-gradient(circle at top, rgba(88, 28, 135, 0.35), rgba(8, 6, 18, 0.98));
