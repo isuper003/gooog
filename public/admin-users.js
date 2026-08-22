@@ -1,4 +1,4 @@
-﻿import { showToast } from './toast.js';
+import { showToast } from './toast.js';
 import { getCsrfToken } from './csrf.js';
 import { esc } from './esc.js';
 
@@ -462,7 +462,7 @@ async function openUserModal(userId) {
 
     modalRoot.innerHTML = `
         <div class="modal" id="au-modal">
-            <div class="modal-content" id="au-modal-content">
+            <div class="modal-content" id="au-modal-content" style="max-width: 580px;">
                 <div class="spinner mx-auto my-8"></div>
             </div>
         </div>
@@ -486,76 +486,113 @@ async function openUserModal(userId) {
     const { account, gameplay, srs, temple } = stats;
     const isBanned = account.status === 'banned';
 
-    const statBox = (label, value) => `
-        <div class="result-stat-box text-center">
-            <div class="result-stat-value">${value}</div>
-            <div class="result-stat-label">${label}</div>
+    const statBox = (label, value, icon = '') => `
+        <div class="result-stat-box text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.6rem 0.35rem;">
+            <div class="result-stat-value" style="font-size: 1.05rem; font-weight: 800; color: #fff;">${icon ? `<span style="font-size:0.9rem; margin-inline-end:3px;">${icon}</span>` : ''}${value}</div>
+            <div class="result-stat-label" style="font-size: 0.68rem; color: var(--color-text-muted); margin-top: 0.2rem;">${label}</div>
         </div>`;
 
     const content = document.getElementById('au-modal-content');
     content.innerHTML = `
-        <div class="modal-header">
-            <h2 class="glow-text text-lg">🔍 @${esc(account.username)} — Dossier</h2>
-            <button class="close-modal" id="au-modal-close">×</button>
+        <div class="modal-header" style="border-bottom: 1px solid rgba(168,85,247,0.25); padding-bottom: 0.75rem; margin-bottom: 0.85rem;">
+            <div class="flex items-center gap-2">
+                <span style="font-size: 1.5rem;">👑</span>
+                <div>
+                    <h2 class="glow-text text-lg" style="margin: 0; line-height: 1.2;">@${esc(account.username)}</h2>
+                    <span class="text-xs color-text-muted">ملف المستخدم وسجل النشاط الشامل (User Dossier)</span>
+                </div>
+            </div>
+            <button class="close-modal" id="au-modal-close" style="font-size: 1.6rem;">×</button>
         </div>
 
-        <div class="flex items-center gap-2 flex-wrap mb-3">
+        <div class="flex items-center gap-2 flex-wrap mb-3" style="background: rgba(15, 14, 30, 0.6); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 0.5rem 0.75rem;">
             ${roleBadge(account.role)} ${statusBadge(account.status)}
             ${xLink(account.xHandle)}
-            <span class="text-xs color-text-muted ms-auto">Registered ${fmtDate(account.createdAtMs)} • Last active ${relTime(account.lastActiveMs)}</span>
-        </div>
-        ${account.rejectionReason ? `<p class="text-xs mb-3" style="color:#f87171;">❌ Rejection reason: ${esc(account.rejectionReason)}</p>` : ''}
-
-        <h4 class="font-bold text-sm mt-2 mb-2">🎮 Gameplay Metrics</h4>
-        <div class="grid" style="display:grid; grid-template-columns: repeat(4,1fr); gap:6px;">
-            ${statBox('Games Played', fmtNum(gameplay.gamesPlayed))}
-            ${statBox('Win Rate %', gameplay.winRatePct != null ? gameplay.winRatePct + '%' : '—')}
-            ${statBox('Avg Speed', gameplay.avgAnswerSec != null ? gameplay.avgAnswerSec + 's' : '—')}
-            ${statBox('Login Streak 🔥', `${gameplay.loginStreak?.current || 0} (best ${gameplay.loginStreak?.longest || 0})`)}
+            <span class="text-xs color-text-muted ms-auto" style="font-size: 0.72rem;">
+                📅 التسجيل: ${fmtDate(account.createdAtMs)} • ⏱️ آخر ظهور: ${relTime(account.lastActiveMs)}
+            </span>
         </div>
 
-        <h4 class="font-bold text-sm mt-4 mb-2">🧠 SRS Mastery</h4>
-        <div class="grid" style="display:grid; grid-template-columns: repeat(4,1fr); gap:6px;">
-            ${statBox('Tracked', fmtNum(srs.tracked))}
-            ${statBox('★5 Mastered', fmtNum(srs.mastered))}
-            ${statBox('Learning', fmtNum(srs.learning))}
-            ${statBox('Weak', fmtNum(srs.weak))}
+        ${account.applicationNote ? `
+        <div style="background: rgba(88, 28, 135, 0.15); border: 1px dashed rgba(168, 85, 247, 0.45); border-radius: 8px; padding: 0.65rem 0.75rem; margin-bottom: 0.85rem;">
+            <div style="font-size: 0.72rem; color: #c084fc; font-weight: 700; margin-bottom: 0.25rem;">📜 خطاب التقديم للانضمام إلى المعبد:</div>
+            <div style="font-size: 0.82rem; color: #f8fafc; line-height: 1.55; font-style: italic;">"${esc(account.applicationNote)}"</div>
+        </div>` : ''}
+
+        ${account.rejectionReason ? `
+        <div style="background: rgba(225, 29, 72, 0.12); border: 1px solid rgba(225, 29, 72, 0.4); border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 0.85rem;">
+            <span class="text-xs font-bold" style="color:#fda4af;">❌ سبب الرفض المسجل:</span>
+            <span class="text-xs" style="color:#fecdd3; margin-inline-start:4px;">${esc(account.rejectionReason)}</span>
+        </div>` : ''}
+
+        <!-- 🏛️ ديوان العبودية والمقام الملكي -->
+        <div style="background: linear-gradient(135deg, rgba(234, 179, 8, 0.08), rgba(168, 85, 247, 0.14)); border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 10px; padding: 0.85rem; margin-bottom: 0.85rem;">
+            <div class="flex items-center justify-between flex-wrap gap-1 mb-2">
+                <span style="font-size: 0.74rem; font-weight: 800; letter-spacing: 0.5px; color: #fbbf24; text-transform: uppercase;">
+                    🏛️ مَقَامُ العُبُودِيَّةِ والرُّتْبَة المَلَكِيَّة (Devotion Rank)
+                </span>
+                <span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #fef08a; border: 1px solid rgba(234, 179, 8, 0.5); font-size: 0.74rem; font-weight: 700;">
+                    ✨ ${fmtNum(temple.devotionPoints)} نقطة ولاء
+                </span>
+            </div>
+            
+            <!-- عنوان المرتبة بالاسم الكامل -->
+            <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(234, 179, 8, 0.25); border-radius: 8px; padding: 0.65rem 0.75rem; text-align: center; margin-bottom: 0.75rem;">
+                <div style="font-size: 1.05rem; font-weight: 800; color: #fef08a; font-family: 'Amiri Quran', serif; line-height: 1.6; text-shadow: 0 0 14px rgba(250, 204, 21, 0.45);">
+                    ${esc(temple.rank?.badge || '👑')} ${esc(temple.rank?.title || 'عديم الوجود والقيمة')}
+                </div>
+            </div>
+
+            <!-- إحصائيات المعبد -->
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                ${statBox('السور المختومة', `${temple.sealedSurahs ?? 0} / 28`, '📜')}
+                ${statBox('دقائق الاعتكاف', `${fmtNum(temple.meditationMinutes)} د`, '🧘')}
+                ${statBox('الوصايا المُقرّة', `${temple.acknowledgedCommandments ?? 0} / 10`, '✍️')}
+                ${statBox('القرابين والتسبيح', fmtNum(temple.tributeCount), '🙇')}
+            </div>
         </div>
 
-        <h4 class="font-bold text-sm mt-4 mb-2">🏛️ Temple &amp; Worship</h4>
-        <div class="grid" style="display:grid; grid-template-columns: repeat(3,1fr); gap:6px;">
-            ${statBox('Devotion ✨', fmtNum(temple.devotionPoints))}
-            ${statBox('Rank', `${temple.rank?.badge || ''} T${temple.rank?.tier ?? '—'}`)}
-            ${statBox('Tributes 🙇', fmtNum(temple.tributeCount))}
+        <!-- 🎮 إحصائيات الألعاب وتحدي الذاكرة -->
+        <h4 class="font-bold text-xs mb-1.5" style="color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🎮 إحصائيات اللعب والسرعة (Gameplay)</h4>
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 0.85rem;">
+            ${statBox('الجولات الملعوبة', fmtNum(gameplay.gamesPlayed))}
+            ${statBox('نسبة الدقة %', gameplay.winRatePct != null ? gameplay.winRatePct + '%' : '—')}
+            ${statBox('متوسط السرعة', gameplay.avgAnswerSec != null ? gameplay.avgAnswerSec + ' ث' : '—')}
+            ${statBox('سلسلة الحضور 🔥', `${gameplay.loginStreak?.current || 0} (أفضل ${gameplay.loginStreak?.longest || 0})`)}
         </div>
-        <div class="grid" style="display:grid; grid-template-columns: repeat(3,1fr); gap:6px; margin-top:6px;">
-            ${statBox('📜 Sealed Surahs', `${temple.sealedSurahs ?? 0} / 28`)}
-            ${statBox('🧘 Meditation Min', fmtNum(temple.meditationMinutes))}
-            ${statBox('📜 Commandments', `${temple.acknowledgedCommandments ?? 0} / 10`)}
+
+        <!-- 🧠 إتقان الذاكرة SRS -->
+        <h4 class="font-bold text-xs mb-1.5" style="color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🧠 مستويات إتقان الذاكرة (SRS Memory)</h4>
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 1rem;">
+            ${statBox('إجمالي المسجلة', fmtNum(srs.tracked))}
+            ${statBox('★5 متقنة بالكامل', fmtNum(srs.mastered))}
+            ${statBox('قيد التعلّم', fmtNum(srs.learning))}
+            ${statBox('بحاجة لمراجعة', fmtNum(srs.weak))}
         </div>
 
         ${isAdminViewer ? `
-        <hr style="border-color: rgba(168,85,247,.35); margin: 1rem 0;">
-        <h4 class="font-bold text-sm mb-2">⚙️ Administrative Power Controls</h4>
-        <div class="flex flex-wrap gap-2">
-            <div class="flex items-center gap-1">
-                <select id="au-role-select" class="text-xs font-bold py-1 px-2"
-                        style="background: rgba(15,14,30,.9); border:1px solid rgba(168,85,247,.4); color:#e9d5ff; border-radius:6px;">
-                    <option value="user" ${account.role === 'user' ? 'selected' : ''}>👤 Member</option>
-                    <option value="moderator" ${account.role === 'moderator' ? 'selected' : ''}>🛡️ Moderator</option>
-                    <option value="admin" ${account.role === 'admin' ? 'selected' : ''}>👑 Admin</option>
-                </select>
-                <button class="btn-secondary text-xs font-bold py-1 px-3" id="au-btn-role">👑 Change Role</button>
+        <div style="border-top: 1px solid rgba(168,85,247,.25); padding-top: 0.85rem;">
+            <h4 class="font-bold text-xs mb-2" style="color: #c084fc; text-transform: uppercase; letter-spacing: 0.5px;">⚙️ لوحة صلاحيات وتحكم الأدمن</h4>
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="flex items-center gap-1">
+                    <select id="au-role-select" class="text-xs font-bold py-1.5 px-2"
+                            style="background: rgba(15,14,30,.9); border:1px solid rgba(168,85,247,.4); color:#e9d5ff; border-radius:6px;">
+                        <option value="user" ${account.role === 'user' ? 'selected' : ''}>👤 Member</option>
+                        <option value="moderator" ${account.role === 'moderator' ? 'selected' : ''}>🛡️ Moderator</option>
+                        <option value="admin" ${account.role === 'admin' ? 'selected' : ''}>👑 Admin</option>
+                    </select>
+                    <button class="btn-secondary text-xs font-bold py-1.5 px-3" id="au-btn-role">👑 تغيير الرتبة</button>
+                </div>
+                <button class="btn-secondary text-xs font-bold py-1.5 px-3" id="au-btn-ban" style="${isBanned ? 'border-color: #34d399; color: #34d399;' : 'border-color: #f59e0b; color: #fbbf24;'}">
+                    ${isBanned ? '✅ إلغاء الحظر' : '🚫 حظر الحساب'}
+                </button>
+                <button class="btn-secondary text-xs font-bold py-1.5 px-3" id="au-btn-logout-all">🚪 إنهاء الجلسات</button>
+                <button class="btn-secondary text-xs font-bold py-1.5 px-3" id="au-btn-reset-pwd">🔑 كلمة مرور جديدة</button>
+                <button class="btn-secondary text-xs font-bold py-1.5 px-3 au-danger-btn" id="au-btn-delete" style="border-color: #ef4444; color: #f87171;">🗑️ حذف الحساب</button>
             </div>
-            <button class="btn-secondary text-xs font-bold py-1 px-3" id="au-btn-ban">
-                ${isBanned ? '✅ Unban Account' : '🚫 Ban Account'}
-            </button>
-            <button class="btn-secondary text-xs font-bold py-1 px-3" id="au-btn-logout-all">🚪 Force Logout</button>
-            <button class="btn-secondary text-xs font-bold py-1 px-3" id="au-btn-reset-pwd">🔑 Reset Password</button>
-            <button class="btn-secondary text-xs font-bold py-1 px-3 au-danger-btn" id="au-btn-delete">🗑️ Delete Permanently</button>
+            <div id="au-action-result" class="mt-3"></div>
         </div>
-        <div id="au-action-result" class="mt-3"></div>
-        ` : `<p class="text-xs color-text-muted mt-3">🔒 Role/ban/reset/delete controls require admin privileges.</p>`}
+        ` : `<p class="text-xs color-text-muted mt-3">🔒 أدوات التحكم بالحساب تتطلب صلاحيات الأدمن.</p>`}
     `;
 
     content.querySelector('#au-modal-close').addEventListener('click', closeUserModal);

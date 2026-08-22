@@ -16,7 +16,7 @@ export async function onRequestGet(context) {
 
     try {
         const user = await db.prepare(`
-            SELECT id, username, x_handle, role, status, rejection_reason,
+            SELECT id, username, x_handle, application_note, role, status, rejection_reason,
                    created_at_ms, deletion_requested_at_ms
             FROM users WHERE id = ?
         `).bind(targetId).first();
@@ -107,6 +107,7 @@ export async function onRequestGet(context) {
                 id: user.id,
                 username: user.username,
                 xHandle: user.x_handle || null,
+                applicationNote: user.application_note || null,
                 role: user.role || 'user',
                 status: user.status || 'approved',
                 rejectionReason: user.rejection_reason || null,
