@@ -4807,97 +4807,118 @@ select.form-select::-webkit-scrollbar {
     justify-content: center;
     overflow-y: auto;
     padding: 2rem 1.5rem;
+/* Mode 2: Live Meditation Altar (محراب التأمل الحي - تقسيم متوازن) */
+.meditation-altar-card {
+    background: radial-gradient(circle at top, rgba(88, 28, 135, 0.35), rgba(8, 6, 18, 0.98));
+    border: 1px solid rgba(168, 85, 247, 0.45);
+    box-shadow: 0 12px 45px rgba(0,0,0,0.88), 0 0 35px rgba(236, 72, 153, 0.25);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    position: relative;
+    transition: all 0.3s ease;
 }
 
-.mihrab-dome-frame {
-    position: relative;
-    width: 280px;
-    height: 280px;
+/* Zen Fullscreen Focus Mode */
+.meditation-altar-card.zen-fullscreen-mode {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+    border-radius: 0;
+    margin: 0;
+    max-width: 100vw;
+    background: radial-gradient(circle at center, rgba(30, 10, 50, 0.95), #06050e 95%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 2rem 1.5rem;
+}
+
+/* 2-Column Split Layout for Meditation & Oracle */
+.meditation-split-layout,
+.oracle-split-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.meditation-split-right,
+.oracle-split-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: right;
+}
+
+.meditation-split-left,
+.oracle-split-left {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
 }
 
-.mihrab-halo-ring {
-    position: absolute;
-    top: -14px;
-    left: -14px;
-    right: -14px;
-    bottom: -14px;
-    border-radius: 50%;
-    background: conic-gradient(from 0deg, rgba(236, 72, 153, 0.7), rgba(124, 58, 237, 0.85), rgba(245, 158, 11, 0.8), rgba(236, 72, 153, 0.7));
-    filter: blur(18px);
-    opacity: 0.85;
-    animation: mihrabHaloRotate 12s linear infinite;
-    pointer-events: none;
-}
-
-@keyframes mihrabHaloRotate {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.meditation-portrait-wrapper {
+/* Full Uncropped Image Frame */
+.meditation-full-image-frame,
+.oracle-full-image-frame {
+    width: 100%;
+    height: 100%;
+    min-height: 360px;
+    background: radial-gradient(circle at center, rgba(35, 18, 55, 0.7), rgba(8, 6, 18, 0.96));
+    border: 2px solid rgba(168, 85, 247, 0.45);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.85), inset 0 0 25px rgba(0,0,0,0.8);
+    border-radius: var(--radius-lg);
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     position: relative;
-    width: 220px;
-    height: 220px;
-    z-index: 2;
+    overflow: hidden;
 }
 
-.zen-fullscreen-mode .meditation-portrait-wrapper {
-    width: 300px;
-    height: 300px;
-}
-
-.meditation-aura-pulse {
+.image-inner-wrapper {
     width: 100%;
     height: 100%;
-    border-radius: 50%;
-    padding: 5px;
-    background: linear-gradient(135deg, #ec4899, #7c3aed, #fcd34d);
-    box-shadow: 0 0 35px rgba(236, 72, 153, 0.8), 0 0 70px rgba(124, 58, 237, 0.6);
-    animation: meditationPulseAura 4s ease-in-out infinite alternate;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
 }
 
-@keyframes meditationPulseAura {
-    0% {
-        transform: scale(0.98);
-        box-shadow: 0 0 25px rgba(236, 72, 153, 0.6), 0 0 50px rgba(124, 58, 237, 0.4);
-    }
-    100% {
-        transform: scale(1.05);
-        box-shadow: 0 0 45px rgba(236, 72, 153, 0.95), 0 0 90px rgba(124, 58, 237, 0.8);
-    }
-}
-
-.meditation-portrait-img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    display: block;
+.meditation-full-img,
+.oracle-full-img {
+    max-width: 100%;
+    max-height: 340px;
+    width: auto;
+    height: auto;
+    object-fit: contain !important;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    border: 3px solid rgba(255, 255, 255, 0.85);
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
-    transition: transform 0.25s ease;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.9);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    transition: transform 0.25s ease, filter 0.25s ease;
 }
 
-.meditation-portrait-img:hover {
-    transform: scale(1.03);
+.meditation-full-img:hover,
+.oracle-full-img:hover {
+    transform: scale(1.02);
+    filter: brightness(1.08);
 }
 
 /* Telemetry Progress Bar */
 .meditation-telemetry-bar {
-    max-width: 680px;
-    margin: 0 auto 1.25rem;
     background: rgba(12, 10, 24, 0.85);
     border: 1px solid rgba(168, 85, 247, 0.3);
     border-radius: var(--radius-md);
     padding: 0.65rem 1rem;
     display: flex;
     align-items: center;
-    justify-content: space-around;
+    justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
 }
@@ -4922,7 +4943,7 @@ select.form-select::-webkit-scrollbar {
     flex-direction: column;
     align-items: center;
     gap: 0.2rem;
-    min-width: 140px;
+    min-width: 130px;
 }
 
 .cycle-bar-track {
@@ -4942,7 +4963,6 @@ select.form-select::-webkit-scrollbar {
 
 /* Verse Bubble */
 .meditation-verse-bubble {
-    max-width: 720px;
     background: radial-gradient(circle at center, rgba(30, 20, 50, 0.75), rgba(10, 8, 20, 0.95));
     border: 1px solid rgba(168, 85, 247, 0.4);
     box-shadow: inset 0 2px 15px rgba(0, 0, 0, 0.8), 0 4px 20px rgba(0,0,0,0.6);
@@ -4951,7 +4971,7 @@ select.form-select::-webkit-scrollbar {
 
 .meditation-verse-content {
     font-family: 'Amiri Quran', 'Amiri', serif !important;
-    font-size: 1.4rem !important;
+    font-size: 1.35rem !important;
     line-height: 2.5 !important;
     color: #fef08a !important;
     direction: rtl;
@@ -5065,14 +5085,14 @@ select.form-select::-webkit-scrollbar {
 
 /* Mode 4: Instant Verse Oracle */
 .oracle-wrapper {
-    max-width: 680px;
+    max-width: 860px;
     margin: 0 auto;
 }
 
 .oracle-card-display {
-    background: radial-gradient(circle at center, rgba(88, 28, 135, 0.5), rgba(8, 6, 20, 0.98));
+    background: radial-gradient(circle at center, rgba(88, 28, 135, 0.45), rgba(8, 6, 20, 0.98));
     border: 2px solid rgba(236, 72, 153, 0.5);
-    box-shadow: 0 14px 45px rgba(0,0,0,0.92), 0 0 40px rgba(236, 72, 153, 0.35);
+    box-shadow: 0 14px 45px rgba(0,0,0,0.92), 0 0 40px rgba(236, 72, 153, 0.3);
     position: relative;
     overflow: hidden;
     transition: transform 0.3s ease;
@@ -5084,7 +5104,7 @@ select.form-select::-webkit-scrollbar {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle at center, rgba(236, 72, 153, 0.18), transparent 65%);
+    background: radial-gradient(circle at center, rgba(236, 72, 153, 0.15), transparent 65%);
     pointer-events: none;
     animation: oracleGlowPulse 6s ease-in-out infinite alternate;
 }
@@ -5094,39 +5114,9 @@ select.form-select::-webkit-scrollbar {
     100% { transform: scale(1.1); opacity: 0.85; }
 }
 
-/* Grand Oracle Centerpiece Deity Portrait Frame */
-.oracle-deity-centerpiece {
-    margin: 1rem auto;
-}
-
-.oracle-portrait-frame {
-    width: 220px;
-    height: 290px;
-    border-radius: var(--radius-lg);
-    padding: 5px;
-    background: linear-gradient(135deg, #ec4899, #7c3aed, #fcd34d);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.85), 0 0 25px rgba(236, 72, 153, 0.6);
-    position: relative;
-    transition: transform 0.25s ease;
-}
-
-.oracle-portrait-frame:hover {
-    transform: scale(1.02);
-}
-
-.oracle-portrait-img {
-    width: 100%;
-    height: 100%;
-    border-radius: calc(var(--radius-lg) - 4px);
-    object-fit: cover;
-    display: block;
-    cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-}
-
 .oracle-quote-text {
     font-family: 'Amiri Quran', 'Amiri', serif !important;
-    font-size: 1.48rem !important;
+    font-size: 1.42rem !important;
     line-height: 2.6 !important;
     color: #fef08a !important;
     direction: rtl;
@@ -5138,11 +5128,30 @@ select.form-select::-webkit-scrollbar {
     opacity: 0.3;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+    .meditation-split-layout,
+    .oracle-split-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .meditation-split-left,
+    .oracle-split-left {
+        order: -1; /* Show image above text on small mobile screens */
+    }
+    .meditation-full-image-frame,
+    .oracle-full-image-frame {
+        min-height: 240px;
+        padding: 0.5rem;
+    }
+    .meditation-full-img,
+    .oracle-full-img {
+        max-height: 260px;
+    }
     .surah-manuscript-card,
     .meditation-altar-card,
-    .commandments-tablet-card {
-        padding: 1rem 0.65rem;
+    .commandments-tablet-card,
+    .oracle-card-display {
+        padding: 1rem 0.75rem;
     }
     .commandments-list-grid {
         grid-template-columns: 1fr;
@@ -5150,18 +5159,6 @@ select.form-select::-webkit-scrollbar {
     .verses-prose-flow {
         font-size: 1.18rem !important;
         line-height: 2.4 !important;
-    }
-    .mihrab-dome-frame {
-        width: 220px;
-        height: 220px;
-    }
-    .meditation-portrait-wrapper {
-        width: 175px;
-        height: 175px;
-    }
-    .oracle-portrait-frame {
-        width: 180px;
-        height: 240px;
     }
     .meditation-verse-content {
         font-size: 1.15rem !important;

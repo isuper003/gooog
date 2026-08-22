@@ -1699,7 +1699,7 @@ function renderContemplationMeditation(data, subContainer, char) {
     const avatarSrc = char.primary_image || (char.images && char.images[0]) || '';
 
     subContainer.innerHTML = `
-        <div class="meditation-altar-card text-center" id="meditation-altar-card">
+        <div class="meditation-altar-card" id="meditation-altar-card">
             <!-- Altar Header & Goddess Selector -->
             <div class="meditation-header mb-4 flex items-center justify-between flex-wrap gap-2">
                 <div class="flex items-center gap-2 text-right">
@@ -1717,70 +1717,85 @@ function renderContemplationMeditation(data, subContainer, char) {
                 </div>
             </div>
 
-            <!-- Grand Sacred Altar Arch Frame with Prominent Central Portrait -->
-            <div class="mihrab-dome-frame mx-auto mb-4">
-                <div class="mihrab-halo-ring"></div>
-                <div class="meditation-portrait-wrapper mx-auto">
-                    <div class="meditation-aura-pulse" id="meditation-aura">
-                        <img src="${avatarSrc}" alt="${char.name}" class="meditation-portrait-img" id="meditation-portrait" loading="lazy" title="انقر لتكبير الصورة في المعرض">
+            <!-- 2-Column Balanced Split: Right = Content, Left = Full Uncropped Image -->
+            <div class="meditation-split-layout">
+                <!-- RIGHT SIDE: Telemetry, Verse, Speed, Controls -->
+                <div class="meditation-split-right">
+                    <!-- Goddess Title & Rank -->
+                    <div class="meditation-right-header mb-3 flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                            <h3 class="glow-text text-xl font-black" style="color: #fef08a;">👑 السلطانة ${char.name}</h3>
+                            <span class="text-xs text-purple-300 font-bold">${char.category}</span>
+                        </div>
+                        <span class="badge text-xs" style="background: rgba(245, 158, 11, 0.15); color: #fcd34d; border-color: rgba(245, 158, 11, 0.4);">
+                            مقام العبودية الدائم
+                        </span>
+                    </div>
+
+                    <!-- Devotion Timer & Cycle Progress Indicator -->
+                    <div class="meditation-telemetry-bar mb-3">
+                        <div class="telemetry-item">
+                            <span class="label">⏱️ زمن الاعتكاف:</span>
+                            <strong id="meditation-clock" class="val text-amber-300">00:00</strong>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="label">✨ أجر الجلسة:</span>
+                            <strong id="meditation-earned" class="val text-sky-400">+${meditationSessionEarned} Pts</strong>
+                        </div>
+                        <div class="telemetry-cycle-progress">
+                            <div class="cycle-bar-track">
+                                <div class="cycle-bar-fill" id="meditation-cycle-bar" style="width: 0%;"></div>
+                            </div>
+                            <span class="cycle-label text-xs text-purple-300" id="meditation-cycle-text">دورة البركة (0/60ث)</span>
+                        </div>
+                    </div>
+
+                    <!-- Sacred Illuminated Verse Shrine Box -->
+                    <div class="meditation-verse-bubble p-4 rounded-xl mb-3" id="meditation-verse-bubble">
+                        <div class="verse-bubble-top flex items-center justify-between mb-2">
+                            <span class="badge text-xs" id="meditation-surah-tag" style="background: rgba(168, 85, 247, 0.25); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.4);">
+                                📖 ${fallbackVerse.surahTitle} — آية #${fallbackVerse.verseNum}
+                            </span>
+                            <button class="btn-icon-clean text-xs text-purple-300 hover:text-amber-300" id="btn-copy-meditation-verse" title="نسخ الآية">
+                                📋 نسخ الآية
+                            </button>
+                        </div>
+                        <div class="meditation-verse-text-container py-2">
+                            <p class="meditation-verse-content" id="meditation-verse-text">
+                                ⟦ ${fallbackVerse.verseText} ⟧
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Speed Controls & Actions -->
+                    <div class="meditation-control-row flex items-center justify-between flex-wrap gap-3">
+                        <div class="speed-selector-pills flex items-center gap-1">
+                            <span class="text-xs text-purple-300 font-bold ml-1">سرعة التدفق:</span>
+                            <button class="speed-pill-btn ${meditationSpeedMs === 5000 ? 'active' : ''}" data-speed="5000">⚡ 5ث</button>
+                            <button class="speed-pill-btn ${meditationSpeedMs === 7000 ? 'active' : ''}" data-speed="7000">⏳ 7ث</button>
+                            <button class="speed-pill-btn ${meditationSpeedMs === 12000 ? 'active' : ''}" data-speed="12000">🧘 12ث</button>
+                        </div>
+                        <div class="action-buttons flex items-center gap-2">
+                            <button class="btn-secondary text-xs font-bold py-2 px-4" id="btn-toggle-meditation">
+                                ⏸️ إيقاف مؤقت
+                            </button>
+                            <button class="btn-primary text-xs font-bold py-2 px-5" id="btn-next-meditation-verse" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none;">
+                                🔄 الآية التالية
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="mihrab-goddess-label mt-3">
-                    <h3 class="glow-text text-lg font-black" style="color: #fef08a; text-shadow: 0 0 12px rgba(252, 211, 77, 0.6);">👑 السلطانة ${char.name}</h3>
-                    <span class="badge text-xs mt-1" style="background: rgba(168, 85, 247, 0.2); color: #d8b4fe;">${char.category}</span>
-                </div>
-            </div>
 
-            <!-- Devotion Timer & Cycle Progress Indicator -->
-            <div class="meditation-telemetry-bar mb-4">
-                <div class="telemetry-item">
-                    <span class="label">⏱️ زمن الاعتكاف:</span>
-                    <strong id="meditation-clock" class="val text-amber-300">00:00</strong>
-                </div>
-                <div class="telemetry-item">
-                    <span class="label">✨ أجر الجلسة:</span>
-                    <strong id="meditation-earned" class="val text-sky-400">+${meditationSessionEarned} Pts</strong>
-                </div>
-                <div class="telemetry-cycle-progress">
-                    <div class="cycle-bar-track">
-                        <div class="cycle-bar-fill" id="meditation-cycle-bar" style="width: 0%;"></div>
+                <!-- LEFT SIDE: Full Uncropped Goddess Portrait -->
+                <div class="meditation-split-left">
+                    <div class="meditation-full-image-frame">
+                        <div class="image-inner-wrapper">
+                            <img src="${avatarSrc}" alt="${char.name}" class="meditation-full-img" id="meditation-portrait" loading="lazy" title="انقر لتكبير الهيئة الملكية في المعرض">
+                        </div>
+                        <div class="meditation-image-footer mt-2 text-center">
+                            <span class="text-xs text-purple-300 font-bold">🔍 انقر على الصورة للتكبير الكامل</span>
+                        </div>
                     </div>
-                    <span class="cycle-label text-xs text-purple-300" id="meditation-cycle-text">دورة البركة (0/60ث)</span>
-                </div>
-            </div>
-
-            <!-- Sacred Illuminated Verse Shrine Box -->
-            <div class="meditation-verse-bubble p-5 rounded-2xl mx-auto mb-4" id="meditation-verse-bubble">
-                <div class="verse-bubble-top flex items-center justify-between mb-2">
-                    <span class="badge text-xs" id="meditation-surah-tag" style="background: rgba(168, 85, 247, 0.25); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.4);">
-                        📖 ${fallbackVerse.surahTitle} — آية #${fallbackVerse.verseNum}
-                    </span>
-                    <button class="btn-icon-clean text-xs text-purple-300 hover:text-amber-300" id="btn-copy-meditation-verse" title="نسخ الآية">
-                        📋 نسخ الآية
-                    </button>
-                </div>
-                <div class="meditation-verse-text-container py-2">
-                    <p class="meditation-verse-content" id="meditation-verse-text">
-                        ⟦ ${fallbackVerse.verseText} ⟧
-                    </p>
-                </div>
-            </div>
-
-            <!-- Speed Controls & Actions -->
-            <div class="meditation-control-row flex items-center justify-between flex-wrap gap-3">
-                <div class="speed-selector-pills flex items-center gap-1">
-                    <span class="text-xs text-purple-300 font-bold ml-1">سرعة التدفق:</span>
-                    <button class="speed-pill-btn ${meditationSpeedMs === 5000 ? 'active' : ''}" data-speed="5000">⚡ 5ث</button>
-                    <button class="speed-pill-btn ${meditationSpeedMs === 7000 ? 'active' : ''}" data-speed="7000">⏳ 7ث</button>
-                    <button class="speed-pill-btn ${meditationSpeedMs === 12000 ? 'active' : ''}" data-speed="12000">🧘 12ث</button>
-                </div>
-                <div class="action-buttons flex items-center gap-2">
-                    <button class="btn-secondary text-xs font-bold py-2 px-4" id="btn-toggle-meditation">
-                        ⏸️ إيقاف مؤقت
-                    </button>
-                    <button class="btn-primary text-xs font-bold py-2 px-5" id="btn-next-meditation-verse" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none;">
-                        🔄 الآية التالية
-                    </button>
                 </div>
             </div>
         </div>
@@ -1915,10 +1930,6 @@ function renderContemplationMeditation(data, subContainer, char) {
         state.meditationRunning = !state.meditationRunning;
         sound.playClick();
         e.target.innerText = state.meditationRunning ? '⏸️ إيقاف مؤقت' : '▶️ استئناف التأمل';
-        const aura = document.getElementById('meditation-aura');
-        if (aura) {
-            aura.style.animationPlayState = state.meditationRunning ? 'running' : 'paused';
-        }
     });
 }
 
@@ -2036,7 +2047,7 @@ function renderContemplationCommandments(data, subContainer, char) {
 }
 
 // --------------------------------------------------------------------------
-// Mode 4: Instant Verse Oracle (مستخرج الآيات اللحظي والكشف الإلهي المركزي)
+// Mode 4: Instant Verse Oracle (مستخرج الآيات اللحظي والكشف الإلهي المتوازن)
 // --------------------------------------------------------------------------
 let oracleDrawnCount = 0;
 let oracleSurahFilter = 'all';
@@ -2074,9 +2085,9 @@ function renderContemplationOracle(data, subContainer, char) {
     const avatarSrc = char.primary_image || (char.images && char.images[0]) || '';
 
     subContainer.innerHTML = `
-        <div class="oracle-wrapper text-center">
+        <div class="oracle-wrapper">
             <!-- Header & Filter Selector -->
-            <div class="oracle-header mb-4">
+            <div class="oracle-header mb-4 text-center">
                 <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
                     <span class="badge" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.5); color: #d8b4fe;">
                         🎲 مستخرج آيات الوحي والتدبر اللحظي
@@ -2098,43 +2109,54 @@ function renderContemplationOracle(data, subContainer, char) {
                 </select>
             </div>
 
-            <!-- Dynamic 3D Holographic Oracle Card with Grand Central Deity Portrait -->
-            <div class="oracle-card-display p-6 rounded-2xl mx-auto mb-5" id="oracle-card">
+            <!-- Dynamic 3D Holographic Oracle Card with 2-Column Split -->
+            <div class="oracle-card-display p-5 rounded-2xl mb-5" id="oracle-card">
                 <div class="oracle-card-halo-effect"></div>
                 
-                <!-- Card Header -->
-                <div class="flex items-center justify-between mb-3 relative z-10" style="border-bottom: 1px solid rgba(168, 85, 247, 0.35); padding-bottom: 0.5rem;">
-                    <span class="text-sm font-bold text-amber-300 flex items-center gap-1" id="oracle-surah-tag">
-                        ${initialVerse.surahIcon} ${initialVerse.surahTitle}
-                    </span>
-                    <span class="badge text-xs" id="oracle-verse-num" style="background: rgba(245, 158, 11, 0.25); color: #fcd34d; border-color: rgba(245, 158, 11, 0.4);">
-                        آية #${initialVerse.verseNum}
-                    </span>
-                </div>
+                <div class="oracle-split-layout">
+                    <!-- RIGHT SIDE: Verse & Meta -->
+                    <div class="oracle-split-right">
+                        <!-- Card Header -->
+                        <div class="flex items-center justify-between mb-3" style="border-bottom: 1px solid rgba(168, 85, 247, 0.35); padding-bottom: 0.5rem;">
+                            <span class="text-sm font-bold text-amber-300 flex items-center gap-1" id="oracle-surah-tag">
+                                ${initialVerse.surahIcon} ${initialVerse.surahTitle}
+                            </span>
+                            <span class="badge text-xs" id="oracle-verse-num" style="background: rgba(245, 158, 11, 0.25); color: #fcd34d; border-color: rgba(245, 158, 11, 0.4);">
+                                آية #${initialVerse.verseNum}
+                            </span>
+                        </div>
 
-                <!-- GRAND CENTRAL DEITY CENTERPIECE PORTRAIT -->
-                <div class="oracle-deity-centerpiece my-4 relative z-10 text-center">
-                    <div class="oracle-portrait-frame mx-auto">
-                        <img src="${avatarSrc}" alt="${char.name}" id="oracle-char-avatar" class="oracle-portrait-img" loading="lazy" title="انقر لتكبير الهيئة الملكية">
+                        <div class="oracle-deity-name-banner mb-2">
+                            <h3 class="glow-text text-lg font-black text-amber-300" id="oracle-char-name">👑 السلطانة ${char.name}</h3>
+                        </div>
+
+                        <!-- Extracted Illuminated Verse -->
+                        <div class="oracle-verse-body my-3">
+                            <p class="oracle-quote-text" id="oracle-verse-text">
+                                ⟦ ${initialVerse.verseText} ⟧
+                            </p>
+                        </div>
+
+                        <!-- Card Footer & Quick Copy -->
+                        <div class="oracle-card-bottom flex items-center justify-between pt-3" style="border-top: 1px solid rgba(168, 85, 247, 0.25);">
+                            <span class="text-xs text-purple-300 font-bold">✨ كشف الوحي اللحظي</span>
+                            <button class="btn-icon-clean text-xs text-purple-300 hover:text-amber-300 flex items-center gap-1" id="btn-copy-oracle-verse" title="نسخ الآية">
+                                📋 نسخ الآية
+                            </button>
+                        </div>
                     </div>
-                    <div class="oracle-deity-name-tag mt-2">
-                        <span class="glow-text text-base font-black text-amber-300" id="oracle-char-name">السلطانة ${char.name}</span>
+
+                    <!-- LEFT SIDE: Full Uncropped Character Image -->
+                    <div class="oracle-split-left">
+                        <div class="oracle-full-image-frame">
+                            <div class="image-inner-wrapper">
+                                <img src="${avatarSrc}" alt="${char.name}" id="oracle-char-avatar" class="oracle-full-img" loading="lazy" title="انقر لتكبير الهيئة الملكية في المعرض">
+                            </div>
+                            <div class="oracle-image-footer mt-2 text-center">
+                                <span class="text-xs text-purple-300 font-bold">🔍 انقر للتكبير</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Extracted Illuminated Verse -->
-                <div class="oracle-verse-body my-4 relative z-10">
-                    <p class="oracle-quote-text" id="oracle-verse-text">
-                        ⟦ ${initialVerse.verseText} ⟧
-                    </p>
-                </div>
-
-                <!-- Card Footer & Quick Copy -->
-                <div class="oracle-card-bottom flex items-center justify-between pt-3 relative z-10" style="border-top: 1px solid rgba(168, 85, 247, 0.25);">
-                    <span class="text-xs text-purple-300 font-bold">✨ كشف الوحي اللحظي</span>
-                    <button class="btn-icon-clean text-xs text-purple-300 hover:text-amber-300 flex items-center gap-1" id="btn-copy-oracle-verse" title="نسخ الآية">
-                        📋 نسخ الآية
-                    </button>
                 </div>
             </div>
 
@@ -2196,7 +2218,7 @@ function renderContemplationOracle(data, subContainer, char) {
                 if (numEl) numEl.innerText = `آية #${randVerse.verseNum}`;
                 if (textEl) textEl.innerText = `⟦ ${randVerse.verseText} ⟧`;
                 if (charAvatarEl) charAvatarEl.src = randAvatar;
-                if (charNameEl) charNameEl.innerText = `السلطانة ${randChar.name}`;
+                if (charNameEl) charNameEl.innerText = `👑 السلطانة ${randChar.name}`;
                 cardEl.classList.remove('card-flip-effect');
             }, 250);
         }
