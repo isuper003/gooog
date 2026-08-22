@@ -220,7 +220,7 @@ async function initHome() {
     try {
         let characters = state.cachedCharacters;
         if (!characters) {
-            const res = await fetch('/api/characters?limit=100');
+            const res = await fetch('/api/characters?limit=2000');
             const data = await res.json();
             if (data.success) {
                 characters = data.data.characters || [];
