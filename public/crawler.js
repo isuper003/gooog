@@ -5,43 +5,47 @@ import { getCsrfToken } from './csrf.js';
 import { esc } from './esc.js';
 
 // ── Horizontal photo strips: press-drag scrolling for mouse users ─────────
-// Touch/trackpads scroll natively; this adds desktop drag support. A move
-// threshold swallows the trailing click so flicking through the album never
-// accidentally toggles a thumbnail's selection.
-let stripDragMoved = false;
-
 function enableStripDragScroll(strip) {
     let down = false;
     let startX = 0;
     let startScroll = 0;
+    let dragged = false;
 
     strip.addEventListener('pointerdown', (e) => {
         if (e.pointerType === 'touch' || e.button !== 0) return;
         down = true;
-        stripDragMoved = false;
+        dragged = false;
         startX = e.clientX;
         startScroll = strip.scrollLeft;
-        strip.classList.add('strip-dragging');
     });
 
     strip.addEventListener('pointermove', (e) => {
         if (!down) return;
         const dx = e.clientX - startX;
-        if (!stripDragMoved && Math.abs(dx) > 6) stripDragMoved = true;
-        if (stripDragMoved) strip.scrollLeft = startScroll - dx;
+        if (Math.abs(dx) > 15) {
+            dragged = true;
+            strip.classList.add('strip-dragging');
+            strip.scrollLeft = startScroll - dx;
+        }
     });
 
-    strip.addEventListener('pointerup', () => { down = false; strip.classList.remove('strip-dragging'); });
-    strip.addEventListener('pointercancel', () => { down = false; strip.classList.remove('strip-dragging'); });
+    const finishDrag = () => {
+        down = false;
+        strip.classList.remove('strip-dragging');
+    };
 
-    // Capture-phase click guard: consumes the click that follows a real drag.
+    strip.addEventListener('pointerup', finishDrag);
+    strip.addEventListener('pointercancel', finishDrag);
+
+    // Suppress click only if there was actual drag movement > 15px
     strip.addEventListener('click', (e) => {
-        const wasDrag = stripDragMoved;
-        stripDragMoved = false;
-        if (wasDrag) { e.preventDefault(); e.stopPropagation(); }
+        if (dragged) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragged = false;
+        }
     }, true);
 }
-window.addEventListener('click', () => { stripDragMoved = false; });
 
 export function initCrawler(currentUser) {
     // Lives in its own pane inside the admin shell so the Users Control
@@ -656,17 +660,19 @@ export function initCrawler(currentUser) {
                 const isCurrentlySelected = char.selectedImages.includes(imgUrl);
 
                 if (isCurrentlySelected) {
-                    if (char.selectedImages.length <= 1 && selectedCharIds.has(char.id)) {
-                        showToast("Each character needs at least 1 image selected.", "warning");
-                        return;
-                    }
+                    // Remove photo -> array shrinks and remaining photos shift down in order automatically
                     char.selectedImages = char.selectedImages.filter(u => u !== imgUrl);
+                    if (char.selectedImages.length === 0) {
+                        selectedCharIds.delete(char.id);
+                    }
                 } else {
+                    // Check if 4 photos already selected
                     if (char.selectedImages.length >= 4) {
-                        showToast("Maximum 4 images allowed per character.", "warning");
+                        showToast("الحد الأقصى 4 صور — اضغط على إحدى الصور المختارة (1..4) لإلغائها أولاً ثم اختر صورة جديدة", "warning");
                         return;
                     }
                     char.selectedImages.push(imgUrl);
+                    selectedCharIds.add(char.id);
                 }
 
                 sound.playClick();
@@ -683,25 +689,33 @@ export function initCrawler(currentUser) {
         const countEl = rowCard.querySelector(`#count-imgs-${char.id}`);
         if (countEl) countEl.innerText = char.selectedImages.length;
 
+        // Live update the Main Profile Avatar to reflect photo #1
+        const avatarImg = rowCard.querySelector('.row-main-avatar img');
+        if (avatarImg) {
+            avatarImg.src = char.selectedImages[0] || char.profileImage || (char.allImages[0] || '');
+        }
+
+        // Live update thumbnail classes and order badges in the horizontal strip
         rowCard.querySelectorAll('.img-strip-thumb').forEach(thumb => {
             const imgUrl = thumb.dataset.imgUrl;
-            const isSelected = char.selectedImages.includes(imgUrl);
+            const selIndex = char.selectedImages.indexOf(imgUrl);
             const checkEl = thumb.querySelector('.thumb-check');
 
-            if (isSelected) {
+            if (selIndex !== -1) {
                 thumb.classList.add('selected');
-                const selOrder = char.selectedImages.indexOf(imgUrl) + 1;
+                const selOrder = selIndex + 1;
                 if (checkEl) checkEl.innerText = selOrder;
+                thumb.title = `صورة مختارة رقم ${selOrder} — اضغط لإلغائها`;
             } else {
                 thumb.classList.remove('selected');
                 if (checkEl) checkEl.innerText = '+';
+                thumb.title = 'اضغط للاختيار (1..4)';
             }
         });
 
         const cb = rowCard.querySelector('.crawler-checkbox');
-        if (char.selectedImages.length === 0) {
-            selectedCharIds.delete(char.id);
-            if (cb) cb.checked = false;
+        if (cb && !char.isDuplicate) {
+            cb.checked = selectedCharIds.has(char.id);
         }
     }
 
@@ -712,6 +726,11 @@ export function initCrawler(currentUser) {
         const countEl = rowCard.querySelector(`#count-imgs-${char.id}`);
         if (countEl) countEl.innerText = char.selectedImages.length;
 
+        const avatarImg = rowCard.querySelector('.row-main-avatar img');
+        if (avatarImg) {
+            avatarImg.src = char.selectedImages[0] || char.profileImage || (char.allImages[0] || '');
+        }
+
         const stripContainer = rowCard.querySelector(`#strip-${char.id}`);
         if (stripContainer) {
             stripContainer.innerHTML = renderThumbnailsHtml(char);
@@ -719,9 +738,8 @@ export function initCrawler(currentUser) {
         }
 
         const cb = rowCard.querySelector('.crawler-checkbox');
-        if (char.selectedImages.length === 0) {
-            selectedCharIds.delete(char.id);
-            if (cb) cb.checked = false;
+        if (cb && !char.isDuplicate) {
+            cb.checked = selectedCharIds.has(char.id);
         }
     }
 
