@@ -64,40 +64,54 @@ export async function onRequestGet(context) {
         // Real rite counters from the worship_events log (migration 0005):
         // sealed surahs = DISTINCT surah ids; meditation = minute events;
         // commandments = latest reported acknowledgment count (0-10).
-        const ritesRows = await db.prepare(`
-            SELECT rite, meta, created_at_ms
-            FROM worship_events WHERE user_id = ?
-            ORDER BY created_at_ms ASC
-        `).bind(targetId).all();
-        const rites = ritesRows || [];
-        const sealedSurahIds = new Set(
-            rites.filter(r => r.rite === 'seal_surah' && r.meta).map(r => r.meta)
-        );
-        const meditationMinutes = rites.filter(r => r.rite === 'meditation_minute').length;
+        let sealedSurahsCount = 0;
+        let meditationMinutes = 0;
         let acknowledgedCommandments = 0;
-        for (const r of rites) {
-            if (r.rite !== 'seal_commandments') continue;
-            const n = parseInt(r.meta, 10);
-            if (Number.isFinite(n)) acknowledgedCommandments = Math.max(acknowledgedCommandments, Math.min(10, n));
+        try {
+            const ritesRes = await db.prepare(`
+                SELECT rite, meta, created_at_ms
+                FROM worship_events WHERE user_id = ?
+                ORDER BY created_at_ms ASC
+            `).bind(targetId).all();
+            const rites = Array.isArray(ritesRes?.results)
+                ? ritesRes.results
+                : (Array.isArray(ritesRes) ? ritesRes : []);
+            const sealedSurahIds = new Set(
+                rites.filter(r => r && r.rite === 'seal_surah' && r.meta).map(r => r.meta)
+            );
+            sealedSurahsCount = sealedSurahIds.size;
+            meditationMinutes = rites.filter(r => r && r.rite === 'meditation_minute').length;
+            for (const r of rites) {
+                if (r && r.rite === 'seal_commandments' && r.meta) {
+                    const n = parseInt(r.meta, 10);
+                    if (Number.isFinite(n)) acknowledgedCommandments = Math.max(acknowledgedCommandments, Math.min(10, n));
+                }
+            }
+        } catch (e) {
+            console.warn("Worship events query skipped or table missing", e);
         }
 
         const devotionScore = worshipRow?.devotion || 0;
-        const rank = getDevotionRank(devotionScore);
+        const rank = getDevotionRank(devotionScore) || { title: "خادم", badge: "👑", tier: 1 };
 
-        const lastActiveRow = await db.prepare(
-            "SELECT MAX(last_seen_at_ms) as last_active FROM sessions WHERE user_id = ?"
-        ).bind(targetId).first();
+        let lastActiveMs = null;
+        try {
+            const lastActiveRow = await db.prepare(
+                "SELECT MAX(last_seen_at_ms) as last_active FROM sessions WHERE user_id = ?"
+            ).bind(targetId).first();
+            lastActiveMs = lastActiveRow?.last_active || null;
+        } catch (e) {}
 
         return successResponse({
             account: {
                 id: user.id,
                 username: user.username,
                 xHandle: user.x_handle || null,
-                role: user.role,
-                status: user.status,
+                role: user.role || 'user',
+                status: user.status || 'approved',
                 rejectionReason: user.rejection_reason || null,
                 createdAtMs: user.created_at_ms,
-                lastActiveMs: lastActiveRow?.last_active || null,
+                lastActiveMs,
                 deletionRequestedAtMs: user.deletion_requested_at_ms || null
             },
             gameplay: {
@@ -125,13 +139,13 @@ export async function onRequestGet(context) {
                 devotionPoints: devotionScore,
                 rank: { title: rank.title, badge: rank.badge, tier: rank.tier },
                 tributeCount: worshipRow?.tributes || 0,
-                sealedSurahs: sealedSurahIds.size,      // distinct surahs of 28
+                sealedSurahs: sealedSurahsCount,      // distinct surahs of 28
                 meditationMinutes,
                 acknowledgedCommandments
             }
         });
     } catch (e) {
         console.error("User stats error", e);
-        return errorResponse("Failed to fetch user stats", 500);
+        return errorResponse("Failed to fetch user stats: " + (e?.message || 'Server error'), 500);
     }
 }
