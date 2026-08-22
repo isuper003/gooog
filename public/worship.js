@@ -1566,7 +1566,7 @@ function renderContemplationSurahs(data, subContainer, char) {
                 </select>
             </div>
             <span class="badge text-xs" style="background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #d8b4fe;">
-                📖 600 آية تدبرية كاملة (12 سورة)
+                📖 ${surahs.reduce((sum, s) => sum + (s.verses ? s.verses.length : 0), 0)} آية تدبرية كاملة (${surahs.length} سورة)
             </span>
         </div>
 
@@ -1585,7 +1585,7 @@ function renderContemplationSurahs(data, subContainer, char) {
             <div class="surah-card-header text-center pb-4 mb-4" style="border-bottom: 1px solid rgba(245, 158, 11, 0.3);">
                 <div class="surah-badge-number mb-1">
                     <span class="badge" style="background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); color: #fcd34d;">
-                        السورة رقم (${activeSurah.num || 1}) — 50 آية مُحْكَمَة
+                        السورة رقم (${activeSurah.num || 1}) — ${(activeSurah.verses || []).length} آية مُحْكَمَة
                     </span>
                 </div>
                 <h2 class="glow-text text-2xl font-black mb-1" style="color: #fef08a;">${activeSurah.title}</h2>
@@ -2104,7 +2104,7 @@ function renderContemplationOracle(data, subContainer, char) {
             <div class="oracle-filter-bar mb-4 flex items-center justify-center gap-2">
                 <span class="text-xs text-amber-300 font-bold">🎯 نطاق السحب:</span>
                 <select id="oracle-surah-filter-select" class="worship-select-clean text-xs font-bold" style="background: rgba(15, 14, 30, 0.9); border: 1px solid rgba(168, 85, 247, 0.4); color: #fef08a; padding: 0.35rem 0.75rem; border-radius: var(--radius-sm);">
-                    <option value="all" ${oracleSurahFilter === 'all' ? 'selected' : ''}>🌟 كافة السور (600 آية)</option>
+                    <option value="all" ${oracleSurahFilter === 'all' ? 'selected' : ''}>🌟 كافة السور (${surahs.reduce((sum, s) => sum + (s.verses ? s.verses.length : 0), 0)} آية)</option>
                     ${surahs.map(s => `<option value="${s.id}" ${s.id === oracleSurahFilter ? 'selected' : ''}>${s.icon} ${s.title}</option>`).join('')}
                 </select>
             </div>
