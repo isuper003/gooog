@@ -4,6 +4,13 @@ import { showToast } from './toast.js';
 import { getCsrfToken } from './csrf.js';
 import { esc } from './esc.js';
 
+function getModelProfileUrl(nameOrSlug) {
+    if (!nameOrSlug) return '';
+    const clean = nameOrSlug.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '');
+    const firstLetter = clean[0] || 'a';
+    return `https://cdni.pornpics.com/models/${firstLetter}/${clean}.jpg`;
+}
+
 // ── Horizontal photo strips: press-drag scrolling for mouse users ─────────
 function enableStripDragScroll(strip) {
     let down = false;
@@ -340,20 +347,27 @@ export function initCrawler(currentUser) {
             const model = data.data;
             const existingRes = await fetch('/api/characters?limit=2000');
             const existingData = await existingRes.json();
-            const existingNames = new Set((existingData.data?.characters || []).map(c => c.name.toLowerCase().trim()));
-            const isDup = existingNames.has(model.name.toLowerCase().trim());
+            const existingMap = new Map();
+            (existingData.data?.characters || []).forEach(c => {
+                if (c.name) existingMap.set(c.name.toLowerCase().trim(), c);
+            });
+            const existingChar = existingMap.get(model.name.toLowerCase().trim());
+            const isDup = !!existingChar;
+            const existingPhotos = isDup && existingChar.images && existingChar.images.length > 0 
+                ? existingChar.images 
+                : (isDup && existingChar.primary_image ? [existingChar.primary_image] : []);
 
-            const profileImg = model.profileImage;
-            const rawPhotos = model.photos || [];
+            const profileImg = model.profileImage || getModelProfileUrl(model.slug || model.name);
+            const rawPhotos = isDup && existingPhotos.length > 0 ? existingPhotos : (model.photos || []);
             const galleryPhotos = rawPhotos.filter(p => p !== profileImg && !p.includes('/models/'));
-            const allImgs = galleryPhotos;
+            const allImgs = galleryPhotos.length > 0 ? galleryPhotos : rawPhotos;
 
             const newChar = {
                 id: `direct_${Date.now()}`,
                 name: model.name,
                 slug: model.slug,
                 category: category,
-                profileImage: profileImg || (allImgs[0] || ''),
+                profileImage: profileImg, // In the small square avatar
                 allImages: allImgs, // Purely gallery album photos (excluding profile image)
                 selectedImages: allImgs.slice(0, Math.min(4, allImgs.length)),
                 isDuplicate: isDup,
@@ -415,16 +429,22 @@ export function initCrawler(currentUser) {
                 const existingPhotos = isDup && existingChar.images && existingChar.images.length > 0 
                     ? existingChar.images 
                     : (isDup && existingChar.primary_image ? [existingChar.primary_image] : []);
-                const defaultAvatar = isDup && existingPhotos.length > 0 ? existingPhotos[0] : (item.profileImage || '');
+                
+                // ALWAYS use the official Model Profile avatar for the small square box (even if character exists in DB)!
+                const officialAvatar = item.profileImage || getModelProfileUrl(item.slug || item.name) || (existingPhotos.find(p => p.includes('/models/')) || '');
+                
+                // For duplicates, their gallery photos in the strip are their saved photos from DB (excluding profile image)
+                const savedGallery = existingPhotos.filter(u => u !== officialAvatar && !u.includes('/models/'));
+                const displayPhotos = savedGallery.length > 0 ? savedGallery : existingPhotos;
 
                 return {
                     id: `crawl_${activePage}_${idx}`,
                     name: item.name,
                     slug: item.slug,
                     category: category,
-                    profileImage: defaultAvatar,
-                    allImages: isDup ? [...existingPhotos] : [], // Gallery photos (populated in background)
-                    selectedImages: isDup ? [...existingPhotos] : [],
+                    profileImage: officialAvatar || (existingPhotos[0] || ''), // Small square avatar
+                    allImages: isDup ? displayPhotos : [], // Horizontal strip photos
+                    selectedImages: isDup ? [...displayPhotos] : [],
                     isDuplicate: isDup,
                     isFullGalleryLoaded: isDup // Marked as loaded so background scraping skips it completely!
                 };
