@@ -84,24 +84,13 @@ export async function onRequestGet(context) {
                 }
             }
 
-            // Ensure main profile portrait image is ALWAYS placed as photo #1 (index 0)
-            const allPhotos = [];
-            if (mainProfileImg) {
-                allPhotos.push(mainProfileImg);
-            }
-            galleryPhotos.forEach(p => {
-                if (p !== mainProfileImg && !allPhotos.includes(p)) {
-                    allPhotos.push(p);
-                }
-            });
-
-            if (allPhotos.length > 0) {
+            if (galleryPhotos.length > 0) {
                 return successResponse({
                     name: extractedName || formattedName,
                     slug: hyphenSlug,
                     profileImage: mainProfileImg,
-                    photos: allPhotos,
-                    totalPhotos: allPhotos.length
+                    photos: galleryPhotos,
+                    totalPhotos: galleryPhotos.length
                 });
             }
         }
@@ -118,17 +107,11 @@ export async function onRequestGet(context) {
         return errorResponse(`Could not find photo gallery for "${formattedName}". Please check the spelling or paste a direct Pornpics URL.`, 404);
     }
 
-    const fallbackPhotos = [];
-    if (mainProfileImg) fallbackPhotos.push(mainProfileImg);
-    galleryPhotos.forEach(p => {
-        if (!fallbackPhotos.includes(p)) fallbackPhotos.push(p);
-    });
-
     return successResponse({
         name: formattedName,
         slug: hyphenSlug,
         profileImage: mainProfileImg,
-        photos: fallbackPhotos,
-        totalPhotos: fallbackPhotos.length
+        photos: galleryPhotos,
+        totalPhotos: galleryPhotos.length
     });
 }

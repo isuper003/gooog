@@ -343,20 +343,19 @@ export function initCrawler(currentUser) {
             const existingNames = new Set((existingData.data?.characters || []).map(c => c.name.toLowerCase().trim()));
             const isDup = existingNames.has(model.name.toLowerCase().trim());
 
-            const galleryPhotos = model.photos || [];
             const profileImg = model.profileImage;
-            const combined = profileImg && !galleryPhotos.includes(profileImg)
-                ? [profileImg, ...galleryPhotos]
-                : galleryPhotos;
+            const rawPhotos = model.photos || [];
+            const galleryPhotos = rawPhotos.filter(p => p !== profileImg);
+            const allImgs = galleryPhotos.length > 0 ? galleryPhotos : rawPhotos;
 
             const newChar = {
                 id: `direct_${Date.now()}`,
                 name: model.name,
                 slug: model.slug,
                 category: category,
-                profileImage: profileImg || (combined[0] || ''),
-                allImages: combined,
-                selectedImages: combined.slice(0, Math.min(4, combined.length)),
+                profileImage: profileImg || (allImgs[0] || ''),
+                allImages: allImgs, // Purely gallery album photos (excluding profile image)
+                selectedImages: allImgs.slice(0, Math.min(4, allImgs.length)),
                 isDuplicate: isDup,
                 isFullGalleryLoaded: true
             };
@@ -366,7 +365,7 @@ export function initCrawler(currentUser) {
 
             renderCrawlerRows();
             sound.playCorrect();
-            showToast(`🎉 Loaded ${combined.length} Ultra-HD photos for ${model.name}!`, "success");
+            showToast(`🎉 Loaded ${allImgs.length} gallery photos for ${model.name}!`, "success");
             if (directInput) directInput.value = '';
             
             // Scroll to the new card
@@ -417,7 +416,6 @@ export function initCrawler(currentUser) {
                     ? existingChar.images 
                     : (isDup && existingChar.primary_image ? [existingChar.primary_image] : []);
                 const defaultAvatar = isDup && existingPhotos.length > 0 ? existingPhotos[0] : (item.profileImage || '');
-                const initialPhotos = isDup ? [...existingPhotos] : (item.profileImage ? [item.profileImage] : []);
 
                 return {
                     id: `crawl_${activePage}_${idx}`,
@@ -425,8 +423,8 @@ export function initCrawler(currentUser) {
                     slug: item.slug,
                     category: category,
                     profileImage: defaultAvatar,
-                    allImages: initialPhotos, // Initially contains the model profile image!
-                    selectedImages: [...initialPhotos],
+                    allImages: isDup ? [...existingPhotos] : [], // Gallery photos (populated in background)
+                    selectedImages: isDup ? [...existingPhotos] : [],
                     isDuplicate: isDup,
                     isFullGalleryLoaded: isDup // Marked as loaded so background scraping skips it completely!
                 };
@@ -463,17 +461,15 @@ export function initCrawler(currentUser) {
                     const res = await fetch(`/api/crawler/model-photos?slug=${encodeURIComponent(char.slug)}`);
                     const data = await res.json();
                     if (data.success && data.data?.photos?.length > 0) {
-                        const photos = data.data.photos;
+                        const rawPhotos = data.data.photos || [];
                         const profileImg = data.data.profileImage || char.profileImage;
-                        // Ensure profile image is ALWAYS first photo (index 0)
-                        const combined = profileImg && !photos.includes(profileImg)
-                            ? [profileImg, ...photos]
-                            : photos;
+                        // Exclude profile avatar from the horizontal gallery strip
+                        const gallery = rawPhotos.filter(p => p !== profileImg);
+                        const allImgs = gallery.length > 0 ? gallery : rawPhotos;
 
-                        char.allImages = combined;
-                        char.profileImage = combined[0] || profileImg;
-                        // Automatically select top 4 photos starting with the profile portrait
-                        char.selectedImages = combined.slice(0, Math.min(4, combined.length));
+                        char.allImages = allImgs;
+                        char.profileImage = profileImg || (allImgs[0] || '');
+                        char.selectedImages = allImgs.slice(0, Math.min(4, allImgs.length));
                     } else if (char.profileImage && char.allImages.length === 0) {
                         char.allImages = [char.profileImage];
                         char.selectedImages = [char.profileImage];
@@ -562,9 +558,10 @@ export function initCrawler(currentUser) {
 
             // Avatar Lightbox Zoom on Click
             rowCard.querySelector('.row-main-avatar')?.addEventListener('click', () => {
-                lightbox.open(char.allImages.length > 0 ? char.allImages : [avatarSrc], {
+                const allPhotos = [char.profileImage, ...char.allImages].filter(Boolean);
+                lightbox.open(allPhotos.length > 0 ? allPhotos : [avatarSrc], {
                     showCaption: true,
-                    name: char.name,
+                    name: `${char.name} (Profile)`,
                     category: char.category
                 });
             });
