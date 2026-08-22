@@ -5,7 +5,9 @@ import { getCsrfToken } from './csrf.js';
 import { esc } from './esc.js';
 
 export function initCrawler(currentUser) {
-    const container = document.getElementById('page-admin');
+    // Lives in its own pane inside the admin shell so the Users Control
+    // Center can coexist as a sibling tab without overwriting each other.
+    const container = document.getElementById('pane-crawler') || document.getElementById('page-admin');
     if (!container) return;
 
     const isAdminOrMod = currentUser && (currentUser.role === 'admin' || currentUser.role === 'moderator');

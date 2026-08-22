@@ -6,9 +6,43 @@
 // name can never become an XSS payload downstream.
 const NAME_RE = /^[\p{L}\p{N} .\-']{2,80}$/u;
 
+// Temple gateway username rule (blueprint §1.A.1): 3-20 chars of a-z, 0-9,
+// hyphen and underscore only.
+const USERNAME_RE = /^[a-zA-Z0-9_-]{3,20}$/;
+
+// Official 𝕏 handle rules (blueprint §1.A.3): 1-15 of letters, numbers,
+// underscores. The leading '@' and surrounding whitespace are stripped
+// before validation by sanitizeXHandle().
+const X_HANDLE_RE = /^[_a-zA-Z0-9]{1,15}$/;
+
+const APPLICATION_NOTE_MIN = 15;
+const APPLICATION_NOTE_MAX = 2000;
 const LABEL_MAX = 60;
 const URL_MAX = 512;
 const IMAGE_HOST_SUFFIXES = ['.pornpics.com', '.phncdn.com'];
+
+export function validateUsername(username) {
+    return typeof username === 'string' && USERNAME_RE.test(username);
+}
+
+export function sanitizeXHandle(raw) {
+    if (typeof raw !== 'string') return '';
+    let handle = raw.trim();
+    if (handle.startsWith('@')) handle = handle.slice(1);
+    return handle.trim();
+}
+
+export function validateXHandle(sanitizedHandle) {
+    return typeof sanitizedHandle === 'string' && X_HANDLE_RE.test(sanitizedHandle);
+}
+
+export function validateApplicationNote(note) {
+    if (typeof note !== 'string') return false;
+    const trimmed = note.trim();
+    return trimmed.length >= APPLICATION_NOTE_MIN && trimmed.length <= APPLICATION_NOTE_MAX;
+}
+
+export { APPLICATION_NOTE_MIN };
 
 export function validateCharacterName(name) {
     return typeof name === 'string' && NAME_RE.test(name.trim());

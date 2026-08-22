@@ -1,6 +1,47 @@
 import { showToast } from './toast.js';
 import { setCsrfToken } from './csrf.js';
 
+// Blueprint §1.B — official Temple reception screen shown after a successful
+// application. Replaces the auth forms; the account cannot log in until
+// approved, so no session flow is started here.
+function renderPendingScreen(username) {
+    // The glass auth card that hosts tabs + both forms.
+    const card = document.querySelector('.auth-box');
+    if (!card) return;
+    card.innerHTML = `
+        <div class="temple-pending-screen text-center">
+            <div class="temple-pending-icon">🏛️📜</div>
+            <h2 class="glow-text" style="font-size: 1.15rem;">Your request to join the Temple has been successfully received! 🏛️📜</h2>
+            <p style="line-height: 1.9; margin-top: 0.75rem;">
+                Your application is currently under review by the Temple Keepers.<br>
+                You will be able to log in as soon as your membership has been approved and consecrated.
+            </p>
+            <p style="opacity: 0.7; font-size: 0.78rem; margin-top: 1rem;">@${username.replace(/</g, '&lt;')}</p>
+        </div>
+    `;
+}
+
+// Blueprint §1.C — styled status banner above the login form for
+// pending/rejected/banned verdicts returned by the API.
+function showAuthStatusAlert(message, kind) {
+    const form = document.getElementById('form-login');
+    const parent = form?.parentElement;
+    if (!parent) {
+        showToast(message, kind === 'pending' ? 'warning' : 'error');
+        return;
+    }
+    let alertBox = document.getElementById('auth-status-alert');
+    if (!alertBox) {
+        alertBox = document.createElement('div');
+        alertBox.id = 'auth-status-alert';
+        parent.insertBefore(alertBox, parent.firstChild);
+    }
+    alertBox.className = `auth-status-alert auth-status-${kind}`;
+    // Message originates from our own API with fixed wording; still escaped.
+    const safe = message.replace(/[<>&"]/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;' }[c]));
+    alertBox.textContent = safe;
+}
+
 export function initAuth() {
     const tabLogin = document.getElementById('tab-login');
     const tabRegister = document.getElementById('tab-register');
@@ -21,6 +62,18 @@ export function initAuth() {
         formLogin.classList.add('hidden');
     });
 
+    // Live interactive character counter for the application statement
+    const noteInput = document.getElementById('register-application-note');
+    const noteCounter = document.getElementById('register-note-counter');
+    noteInput?.addEventListener('input', () => {
+        const len = noteInput.value.trim().length;
+        if (noteCounter) {
+            noteCounter.innerText = `${len} / 15 characters minimum`;
+            noteCounter.classList.toggle('muted', len < 15);
+            noteCounter.classList.toggle('glowing', len >= 15);
+        }
+    });
+
     // Password Hide/Unhide Toggle
     document.querySelectorAll('.btn-toggle-pwd').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -39,6 +92,8 @@ export function initAuth() {
 
     formLogin?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        document.getElementById('auth-status-alert')?.remove();
+
         const username = document.getElementById('login-username').value;
         const password = document.getElementById('login-password').value;
         const rememberMe = document.getElementById('login-remember').checked;
@@ -53,7 +108,7 @@ export function initAuth() {
                 })
             });
             const data = await res.json();
-            
+
             if (res.ok && data.success) {
                 // No raw session token is persisted client-side anymore: the
                 // server sets an HttpOnly+Secure cookie and the middleware
@@ -69,7 +124,12 @@ export function initAuth() {
                     setTimeout(() => window.location.reload(), 300);
                 }
             } else {
-                showToast(data.error || 'Login failed', 'error');
+                // Membership gate verdicts get their own styled banner.
+                const msg = data.error || 'Login failed';
+                if (/pending/i.test(msg)) showAuthStatusAlert(msg, 'pending');
+                else if (/rejected/i.test(msg)) showAuthStatusAlert(msg, 'rejected');
+                else if (/suspended/i.test(msg)) showAuthStatusAlert(msg, 'banned');
+                else showToast(msg, 'error');
             }
         } catch (err) {
             console.error(err);
@@ -79,45 +139,26 @@ export function initAuth() {
 
     formRegister?.addEventListener('submit', async (e) => {
         e.preventDefault();
+
         const username = document.getElementById('register-username').value;
         const password = document.getElementById('register-password').value;
+        const rawHandle = document.getElementById('register-x-handle').value;
+        const applicationNote = document.getElementById('register-application-note').value;
+
+        // Client-side sanitization mirrors the server rule: strip @/whitespace.
+        const xHandle = rawHandle.trim().replace(/^@+/, '').trim();
 
         try {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ username, password, xHandle, applicationNote })
             });
             const data = await res.json();
-            
+
             if (res.ok && data.success) {
-                showToast('Account created! Logging in...', 'success');
-                // Automatically log in the user
-                const loginRes = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username, password, rememberMe: true,
-                        timezoneOffsetMinutes: new Date().getTimezoneOffset()
-                    })
-                });
-                const loginData = await loginRes.json();
-                if (loginRes.ok && loginData.success) {
-                    // Same as login: cookie-based session only, no raw token.
-                    if (loginData.data?.user) {
-                        localStorage.setItem('goooog_user', JSON.stringify(loginData.data.user));
-                    }
-                    setCsrfToken(loginData.data.csrfToken);
-                    if (typeof window.onLoginSuccess === 'function') {
-                        window.onLoginSuccess(loginData.data.user);
-                    } else {
-                        setTimeout(() => window.location.reload(), 300);
-                    }
-                } else {
-                    tabLogin?.click();
-                    const loginUserInput = document.getElementById('login-username');
-                    if (loginUserInput) loginUserInput.value = username;
-                }
+                showToast('🏛️ Application received!', 'success');
+                renderPendingScreen(username);
             } else {
                 showToast(data.error || 'Registration failed', 'error');
             }

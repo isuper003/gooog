@@ -32,9 +32,13 @@ export async function onRequestPost(context) {
     }
 
     try {
-        const stmt = db.prepare("SELECT id, password_hash, password_salt, role, deleted_at_ms, deletion_requested_at_ms FROM users WHERE username_normalized = ?").bind(normalizedUsername);
+        const stmt = db.prepare(`
+            SELECT id, password_hash, password_salt, role, status, rejection_reason,
+                   deleted_at_ms, deletion_requested_at_ms
+            FROM users WHERE username_normalized = ?
+        `).bind(normalizedUsername);
         const user = await stmt.first();
-        
+
         if (!user) {
             // Burn comparable CPU on unknown users so response timing does not
             // reveal whether a username exists.
@@ -48,6 +52,19 @@ export async function onRequestPost(context) {
             // Deleted accounts get the same generic verdict as wrong passwords:
             // no pre-auth oracle that discloses account state.
             return errorResponse("Invalid username or password", 401);
+        }
+
+        // Blueprint §1.C — membership status gate (checked only after
+        // credentials verify, so it never becomes an enumeration oracle).
+        if (user.status === 'pending') {
+            return errorResponse("⏳ Your request to join the Temple is still pending administrative review.", 403);
+        }
+        if (user.status === 'rejected') {
+            const reason = user.rejection_reason ? ` (Reason: ${user.rejection_reason})` : '.';
+            return errorResponse(`❌ Your application to join the Temple was rejected${reason}`, 403);
+        }
+        if (user.status === 'banned') {
+            return errorResponse("🚫 This account has been suspended for violating Temple terms.", 403);
         }
 
         // If user had requested deletion within grace period, cancel it upon successful login

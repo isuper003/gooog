@@ -139,14 +139,25 @@
                 
                 <form id="form-register" class="hidden">
                     <div class="input-wrap">
-                        <input type="text" id="register-username" placeholder="Choose Username (3-20 chars)" required minlength="3" maxlength="20" autocomplete="username">
+                        <input type="text" id="register-username" placeholder="Choose Username (3-20: a-z, 0-9, - _)" required minlength="3" maxlength="20" autocomplete="username" pattern="[a-zA-Z0-9_-]{3,20}">
                     </div>
                     <div class="input-wrap password-wrap">
-                        <input type="password" id="register-password" placeholder="Create Password (min 8 chars)" required minlength="8" autocomplete="new-password">
+                        <input type="password" id="register-password" placeholder="Create Password (min 6 chars)" required minlength="6" maxlength="128" autocomplete="new-password">
                         <button type="button" class="btn-toggle-pwd" data-target="register-password" aria-label="Toggle password visibility" title="Show/Hide Password">👁️</button>
                     </div>
+
+                    <div class="input-wrap x-handle-wrap">
+                        <span class="x-logo-badge">𝕏</span>
+                        <input type="text" id="register-x-handle" placeholder="@your 𝕏 handle (required)" required maxlength="16" autocomplete="off">
+                    </div>
+                    <p class="x-handle-warning">⚠️ <strong>Important Notice:</strong> A genuine, active 𝕏 account is required. Fake, newly created, or non-existent accounts will be rejected automatically.</p>
+
+                    <label for="register-application-note" class="application-note-label">📜 Temple Application Statement: Why do you wish to join the Temple?</label>
+                    <textarea id="register-application-note" rows="4" required minlength="15" maxlength="2000" placeholder="Write your application statement here..."></textarea>
+                    <div class="note-counter muted" id="register-note-counter">0 / 15 characters minimum</div>
+
                     <button type="submit" class="btn-primary auth-submit-btn">
-                        <span>Join & Play Now</span> <span>🚀</span>
+                        <span>Submit Temple Application</span> <span>🏛️</span>
                     </button>
                 </form>
             </div>

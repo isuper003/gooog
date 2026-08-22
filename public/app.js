@@ -4,6 +4,7 @@ import { initGame } from './game.js';
 import { initCharStats } from './char-stats.js';
 import { initLeaderboard } from './leaderboard.js';
 import { initCrawler } from './crawler.js';
+import { initAdminUsers } from './admin-users.js';
 import { initSettingsModal } from './settings.js';
 import { openRandomPicker } from './random-picker.js';
 import { initWorship, pauseWorshipTimers, resetWorshipSession } from './worship.js';
@@ -180,7 +181,7 @@ function initRouter() {
         if (page === 'stats') initCharStats();
         if (page === 'leaderboard') initLeaderboard();
         if (page === 'worship') initWorship();
-        if (page === 'admin') initCrawler(state.user);
+        if (page === 'admin') initAdminPage();
     };
 
     // Wire global listeners exactly once; re-login must not stack duplicate
@@ -442,8 +443,48 @@ function setupGlobalEvents() {
     });
 }
 
-async function checkDailyStreak() {
-    try {
+// Admin page shell: two sibling panes (Smart Import crawler + Users Control
+// Center) behind a persistent tab bar. Both modules own their pane only.
+let adminActiveTab = 'crawler';
+
+function initAdminPage() {
+    const container = document.getElementById('page-admin');
+    if (!container) return;
+
+    const staff = state.user && (state.user.role === 'admin' || state.user.role === 'moderator');
+    if (!staff) {
+        container.innerHTML = `<div class="text-center color-text-muted my-12">🔒 Admin or Moderator privileges required to access this area.</div>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="admin-tab-bar mb-4">
+            <button class="au-tab-btn ${adminActiveTab === 'crawler' ? 'active' : ''}" data-admin-tab="crawler">
+                🕷️ Smart Import &amp; Moderation
+            </button>
+            <button class="au-tab-btn ${adminActiveTab === 'users' ? 'active' : ''}" data-admin-tab="users">
+                👑 Users Control Center
+            </button>
+        </div>
+        <div id="pane-crawler" class="${adminActiveTab === 'crawler' ? '' : 'hidden'}"></div>
+        <div id="pane-users" class="${adminActiveTab === 'users' ? '' : 'hidden'}"></div>
+    `;
+
+    container.querySelectorAll('[data-admin-tab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            adminActiveTab = btn.dataset.adminTab;
+            container.querySelectorAll('[data-admin-tab]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('pane-crawler').classList.toggle('hidden', adminActiveTab !== 'crawler');
+            document.getElementById('pane-users').classList.toggle('hidden', adminActiveTab !== 'users');
+        });
+    });
+
+    initCrawler(state.user);
+    initAdminUsers(state.user);
+}
+
+async function checkDailyStreak() {    try {
         const res = await fetch('/api/me/streak');
         const data = await res.json();
         if (data.success) {
