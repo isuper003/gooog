@@ -1,4 +1,4 @@
-const CACHE_NAME = 'goooog-cache-v44';
+const CACHE_NAME = 'goooog-cache-v45';
 const IMAGE_CACHE_NAME = 'goooog-images-v2';
 const IMAGE_CACHE_MAX_ENTRIES = 150;
 const ASSETS_TO_CACHE = [
