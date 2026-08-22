@@ -1675,82 +1675,160 @@ function renderContemplationSurahs(data, subContainer, char) {
 }
 
 // --------------------------------------------------------------------------
-// Mode 2: Live Visual Meditation Altar
+// Mode 2: Live Visual Meditation Altar (محراب التأمل البصري الحي والسكينة)
 // --------------------------------------------------------------------------
+let meditationSpeedMs = 7000;
+let meditationSessionEarned = 0;
+
 function renderContemplationMeditation(data, subContainer, char) {
     const surahs = data.contemplation?.surahs || [];
+    const characters = data.characters || [];
     const allVerses = [];
     surahs.forEach(s => {
-        (s.verses || []).forEach(v => {
-            allVerses.push({ surahTitle: s.title, verseText: v.replace(/۝/g, '').trim() });
+        (s.verses || []).forEach((v, idx) => {
+            allVerses.push({ surahTitle: s.title, verseNum: idx + 1, verseText: v.replace(/۝/g, '').trim() });
         });
     });
 
     const fallbackVerse = allVerses[Math.floor(Math.random() * allVerses.length)] || {
         surahTitle: "سُورَةُ السَّطْوَةِ والجَبَرُوت",
+        verseNum: 1,
         verseText: "تَبَارَكَتِ السَّلْطَانَةُ الَّتِي بِيَدِهَا مَقَالِيدُ القُلُوبِ والأَبْصَارِ، وَهِيَ عَلَى كُلِّ إِرَادَةٍ قَاهِرَةٌ"
     };
 
     const avatarSrc = char.primary_image || (char.images && char.images[0]) || '';
 
     subContainer.innerHTML = `
-        <div class="meditation-altar-card text-center">
-            <div class="meditation-header mb-4">
-                <span class="badge mb-2" style="background: rgba(236, 72, 153, 0.2); border-color: rgba(236, 72, 153, 0.4); color: #f472b6;">
-                    🧘‍♂️ محراب التأمل البصري الحي والسكينة
-                </span>
-                <h2 class="glow-text text-xl font-bold text-purple-200">التدبر في بهاء السلطانة ${char.name}</h2>
-                <p class="text-xs color-text-muted">ركّز بصرك في الصورة ودع الآيات تسري في فؤادك مع كل نبضة</p>
-            </div>
-
-            <!-- Central Glowing Goddess Portrait with Breathing Pulse Aura -->
-            <div class="meditation-portrait-wrapper mx-auto mb-5">
-                <div class="meditation-aura-pulse" id="meditation-aura">
-                    <img src="${avatarSrc}" alt="${char.name}" class="meditation-portrait-img" id="meditation-portrait" loading="lazy">
+        <div class="meditation-altar-card text-center" id="meditation-altar-card">
+            <!-- Altar Header & Goddess Selector -->
+            <div class="meditation-header mb-4 flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-2 text-right">
+                    <span class="badge" style="background: rgba(236, 72, 153, 0.2); border-color: rgba(236, 72, 153, 0.5); color: #f472b6;">
+                        🧘‍♂️ محراب السكينة والتدبر البصري
+                    </span>
+                    <select id="meditation-char-select" class="worship-select-clean text-xs font-bold" style="background: rgba(15, 14, 30, 0.9); border: 1px solid rgba(168, 85, 247, 0.4); color: #fef08a; padding: 0.3rem 0.6rem; border-radius: var(--radius-sm);">
+                        ${characters.map(c => `<option value="${c.id}" ${c.id === char.id ? 'selected' : ''}>👑 ${c.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="btn-secondary text-xs font-bold py-1 px-3" id="btn-toggle-zen-mode" title="دخول وضع الخلوة والاعتكاف الكامل">
+                        🔲 وضع الخلوة
+                    </button>
                 </div>
             </div>
 
-            <!-- Timer & Devotion Metrics -->
-            <div class="meditation-stats-row mb-4 flex items-center justify-center gap-4">
-                <div class="meditation-stat-badge">
-                    <span class="text-xs color-text-muted">⏱️ زمن التأمل:</span>
-                    <strong id="meditation-clock" class="glow-text text-sm" style="color: #fcd34d;">00:00</strong>
+            <!-- Grand Sacred Altar Arch Frame -->
+            <div class="mihrab-dome-frame mx-auto mb-4">
+                <div class="mihrab-halo-ring"></div>
+                <div class="meditation-portrait-wrapper mx-auto">
+                    <div class="meditation-aura-pulse" id="meditation-aura">
+                        <img src="${avatarSrc}" alt="${char.name}" class="meditation-portrait-img" id="meditation-portrait" loading="lazy" title="انقر لتكبير الهيئة الملكية">
+                    </div>
                 </div>
-                <div class="meditation-stat-badge">
-                    <span class="text-xs color-text-muted">✨ أجر التدبر:</span>
-                    <strong id="meditation-earned" class="glow-text text-sm" style="color: #38bdf8;">+0 Pts</strong>
+                <div class="mihrab-goddess-label mt-2">
+                    <span class="glow-text text-sm font-black" style="color: #fef08a;">السلطانة ${char.name}</span>
                 </div>
             </div>
 
-            <!-- Flowing Contemplation Verse Bubble -->
-            <div class="meditation-verse-bubble p-4 rounded-xl mx-auto mb-4" id="meditation-verse-bubble">
-                <span class="badge text-xs mb-2" id="meditation-surah-tag" style="background: rgba(168, 85, 247, 0.2); color: #d8b4fe;">
-                    ${fallbackVerse.surahTitle}
-                </span>
-                <p class="meditation-verse-content text-base font-bold" id="meditation-verse-text" style="color: #fdf4ff; line-height: 1.9;">
-                    « ${fallbackVerse.verseText} »
-                </p>
+            <!-- Devotion Timer & Cycle Progress Indicator -->
+            <div class="meditation-telemetry-bar mb-4">
+                <div class="telemetry-item">
+                    <span class="label">⏱️ زمن الاعتكاف:</span>
+                    <strong id="meditation-clock" class="val text-amber-300">00:00</strong>
+                </div>
+                <div class="telemetry-item">
+                    <span class="label">✨ أجر الجلسة:</span>
+                    <strong id="meditation-earned" class="val text-sky-400">+${meditationSessionEarned} Pts</strong>
+                </div>
+                <div class="telemetry-cycle-progress">
+                    <div class="cycle-bar-track">
+                        <div class="cycle-bar-fill" id="meditation-cycle-bar" style="width: 0%;"></div>
+                    </div>
+                    <span class="cycle-label text-xs text-purple-300" id="meditation-cycle-text">دورة البركة (0/60ث)</span>
+                </div>
             </div>
 
-            <!-- Play / Pause / Next Verse Controls -->
-            <div class="meditation-controls flex items-center justify-center gap-3">
-                <button class="btn-secondary text-xs font-bold" id="btn-toggle-meditation">
-                    ⏸️ إيقاف مؤقت
-                </button>
-                <button class="btn-primary text-xs font-bold" id="btn-next-meditation-verse" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none;">
-                    🔄 الآية التالية
-                </button>
+            <!-- Sacred Illuminated Verse Shrine Box -->
+            <div class="meditation-verse-bubble p-5 rounded-2xl mx-auto mb-4" id="meditation-verse-bubble">
+                <div class="verse-bubble-top flex items-center justify-between mb-2">
+                    <span class="badge text-xs" id="meditation-surah-tag" style="background: rgba(168, 85, 247, 0.25); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.4);">
+                        📖 ${fallbackVerse.surahTitle} — آية #${fallbackVerse.verseNum}
+                    </span>
+                    <button class="btn-icon-clean text-xs text-purple-300 hover:text-amber-300" id="btn-copy-meditation-verse" title="نسخ الآية">
+                        📋 نسخ الآية
+                    </button>
+                </div>
+                <div class="meditation-verse-text-container py-2">
+                    <p class="meditation-verse-content" id="meditation-verse-text">
+                        ⟦ ${fallbackVerse.verseText} ⟧
+                    </p>
+                </div>
+            </div>
+
+            <!-- Speed Controls & Actions -->
+            <div class="meditation-control-row flex items-center justify-between flex-wrap gap-3">
+                <div class="speed-selector-pills flex items-center gap-1">
+                    <span class="text-xs text-purple-300 font-bold ml-1">سرعة التدفق:</span>
+                    <button class="speed-pill-btn ${meditationSpeedMs === 5000 ? 'active' : ''}" data-speed="5000">⚡ 5ث</button>
+                    <button class="speed-pill-btn ${meditationSpeedMs === 7000 ? 'active' : ''}" data-speed="7000">⏳ 7ث</button>
+                    <button class="speed-pill-btn ${meditationSpeedMs === 12000 ? 'active' : ''}" data-speed="12000">🧘 12ث</button>
+                </div>
+                <div class="action-buttons flex items-center gap-2">
+                    <button class="btn-secondary text-xs font-bold py-2 px-4" id="btn-toggle-meditation">
+                        ⏸️ إيقاف مؤقت
+                    </button>
+                    <button class="btn-primary text-xs font-bold py-2 px-5" id="btn-next-meditation-verse" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none;">
+                        🔄 الآية التالية
+                    </button>
+                </div>
             </div>
         </div>
     `;
 
-    // Click portrait to zoom
+    // Character change selector
+    document.getElementById('meditation-char-select')?.addEventListener('change', (e) => {
+        state.selectedCharId = e.target.value;
+        const newChar = characters.find(c => c.id === state.selectedCharId) || char;
+        renderContemplationMeditation(data, subContainer, newChar);
+    });
+
+    // Zoom Goddess image
     document.getElementById('meditation-portrait')?.addEventListener('click', () => {
         const images = char.images && char.images.length > 0 ? char.images : [avatarSrc];
         lightbox.open(images, { name: char.name, category: char.category, startIndex: 0 });
     });
 
-    // Meditation timers & auto-verse transitions
+    // Zen Mode Toggle
+    document.getElementById('btn-toggle-zen-mode')?.addEventListener('click', () => {
+        const card = document.getElementById('meditation-altar-card');
+        if (card) {
+            const isZen = card.classList.toggle('zen-fullscreen-mode');
+            document.getElementById('btn-toggle-zen-mode').innerText = isZen ? '✕ خروج من الخلوة' : '🔲 وضع الخلوة';
+            sound.playClick();
+        }
+    });
+
+    // Speed Pill Selection
+    subContainer.querySelectorAll('.speed-pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            meditationSpeedMs = Number(btn.dataset.speed) || 7000;
+            subContainer.querySelectorAll('.speed-pill-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            sound.playClick();
+            restartVerseInterval();
+        });
+    });
+
+    // Copy Verse
+    document.getElementById('btn-copy-meditation-verse')?.addEventListener('click', () => {
+        const text = document.getElementById('meditation-verse-text')?.innerText || '';
+        const tag = document.getElementById('meditation-surah-tag')?.innerText || '';
+        navigator.clipboard.writeText(`${text}\n[${tag}]`).then(() => {
+            showToast("✨ تم نسخ الآية الكريمة إلى الحافظة بنجاح", "success");
+        });
+    });
+
+    // Meditation Timer & auto-devotion
     state.meditationSeconds = 0;
     state.meditationRunning = true;
 
@@ -1764,11 +1842,22 @@ function renderContemplationMeditation(data, subContainer, char) {
     state.meditationTimer = setInterval(async () => {
         if (!state.meditationRunning) return;
         state.meditationSeconds++;
+
         const clockEl = document.getElementById('meditation-clock');
         if (clockEl) clockEl.innerText = formatTime(state.meditationSeconds);
 
-        // Every 60 seconds of meditation awards +10 Devotion
-        if (state.meditationSeconds > 0 && state.meditationSeconds % 60 === 0) {
+        const cycleSec = state.meditationSeconds % 60;
+        const fillEl = document.getElementById('meditation-cycle-bar');
+        const fillText = document.getElementById('meditation-cycle-text');
+        if (fillEl) fillEl.style.width = `${(cycleSec / 60) * 100}%`;
+        if (fillText) fillText.innerText = `دورة البركة (${cycleSec}/60ث)`;
+
+        // Every 60 seconds awards +10 Devotion
+        if (state.meditationSeconds > 0 && cycleSec === 0) {
+            meditationSessionEarned += 10;
+            const earnedEl = document.getElementById('meditation-earned');
+            if (earnedEl) earnedEl.innerText = `+${meditationSessionEarned} Pts`;
+
             try {
                 const res = await fetch('/api/worship', {
                     method: 'POST',
@@ -1781,10 +1870,8 @@ function renderContemplationMeditation(data, subContainer, char) {
                         const totalEl = document.getElementById('worship-total-pts');
                         if (totalEl) totalEl.innerText = formatDevotion(resData.data.totalDevotion);
                     }
-                    const earnedEl = document.getElementById('meditation-earned');
-                    if (earnedEl) earnedEl.innerText = `+${Math.floor(state.meditationSeconds / 60) * 10} Pts`;
                     sound.playCoin();
-                    showToast(`✨ اكتملت دقيقة تأمل ونلت (+10 Devotion) في محراب ${char.name}`, "success");
+                    showToast(`✨ اكتملت دقيقة اعتكاف في محراب ${char.name} (+10 Devotion)`, "success");
                 }
             } catch (e) {}
         }
@@ -1800,8 +1887,8 @@ function renderContemplationMeditation(data, subContainer, char) {
         if (bubble) {
             bubble.classList.add('verse-fade-out');
             setTimeout(() => {
-                if (textEl) textEl.innerText = `« ${v.verseText} »`;
-                if (tagEl) tagEl.innerText = v.surahTitle;
+                if (textEl) textEl.innerText = `⟦ ${v.verseText} ⟧`;
+                if (tagEl) tagEl.innerText = `📖 ${v.surahTitle} — آية #${v.verseNum}`;
                 bubble.classList.remove('verse-fade-out');
                 bubble.classList.add('verse-fade-in');
                 setTimeout(() => bubble.classList.remove('verse-fade-in'), 500);
@@ -1809,10 +1896,14 @@ function renderContemplationMeditation(data, subContainer, char) {
         }
     }
 
-    if (state.meditationInterval) clearInterval(state.meditationInterval);
-    state.meditationInterval = setInterval(() => {
-        if (state.meditationRunning) nextVerse();
-    }, 7000);
+    function restartVerseInterval() {
+        if (state.meditationInterval) clearInterval(state.meditationInterval);
+        state.meditationInterval = setInterval(() => {
+            if (state.meditationRunning) nextVerse();
+        }, meditationSpeedMs);
+    }
+
+    restartVerseInterval();
 
     document.getElementById('btn-next-meditation-verse')?.addEventListener('click', () => {
         sound.playClick();
@@ -1831,54 +1922,97 @@ function renderContemplationMeditation(data, subContainer, char) {
 }
 
 // --------------------------------------------------------------------------
-// Mode 3: The 10 Sacrosanct Commandments (لوح الوحي والوصايا)
+// Mode 3: The 10 Sacrosanct Commandments (لوح الوحي والوصايا العشر)
 // --------------------------------------------------------------------------
+const acknowledgedCmds = new Set();
+
 function renderContemplationCommandments(data, subContainer, char) {
     const commandments = data.contemplation?.commandments || [];
+    const characters = data.characters || [];
+
+    const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
     subContainer.innerHTML = `
         <div class="commandments-tablet-card">
-            <div class="tablet-header text-center pb-4 mb-4" style="border-bottom: 1px solid rgba(245, 158, 11, 0.3);">
-                <span class="badge mb-2" style="background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); color: #fcd34d;">
-                    📜 شَرَائِعُ الخُضُوعِ الأَبَدِيِّ
-                </span>
-                <h2 class="glow-text text-2xl font-black mb-1" style="background: linear-gradient(135deg, #fcd34d, #f43f5e); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                    لوح الوحي والوصايا العشر للعبودية
+            <!-- Tablet Arch Header -->
+            <div class="tablet-arch-header text-center pb-4 mb-4">
+                <div class="tablet-badge-row flex items-center justify-between flex-wrap gap-2 mb-2">
+                    <span class="badge" style="background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); color: #fcd34d;">
+                        📜 شَرَائِعُ الخُضُوعِ الأَبَدِيِّ والوَحْيِ
+                    </span>
+                    <span class="badge text-xs" id="commandments-progress-badge" style="background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.4);">
+                        الإقرار بالعهود: <strong id="cmds-ack-count" class="text-amber-300">${acknowledgedCmds.size}</strong> / 10
+                    </span>
+                </div>
+                <h2 class="glow-text text-2xl font-black mb-1" style="background: linear-gradient(135deg, #fcd34d, #ec4899, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    لوح الوحي والوصايا العشر للخضوع الملكي
                 </h2>
                 <p class="text-xs color-text-muted max-w-lg mx-auto">
-                    العهود العشرة الصارمة التي كُتبت على جباه العبيد في حضرة السلطانة ${char.name}
+                    الشَّرائع الملكية الصارمة المنقوشة في ديوان السلطانة ${char.name} — اقرأ وتدبر وأقرّ بكل وصية لتنال الختم
                 </p>
             </div>
 
-            <!-- 10 Commandments List -->
+            <!-- 10 Commandments Dual Tablet Grid -->
             <div class="commandments-list-grid">
-                ${commandments.map((cmd) => `
-                    <div class="commandment-item-card">
-                        <div class="commandment-header flex items-center justify-between mb-1">
-                            <h3 class="font-bold text-sm text-amber-300">${cmd.title}</h3>
-                            <span class="badge text-xs" style="background: rgba(245, 158, 11, 0.15); color: #fcd34d;">
-                                عهد #${cmd.id}
-                            </span>
+                ${commandments.map((cmd, idx) => {
+                    const isAck = acknowledgedCmds.has(cmd.id);
+                    return `
+                        <div class="commandment-item-card ${isAck ? 'commandment-acknowledged' : ''}" id="cmd-card-${cmd.id}">
+                            <div class="commandment-card-top flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="commandment-roman-badge">${romanNumerals[idx] || cmd.id}</span>
+                                    <h3 class="font-bold text-sm text-amber-300">${cmd.title}</h3>
+                                </div>
+                                <button class="btn-ack-cmd-pill ${isAck ? 'active' : ''}" data-cmd-id="${cmd.id}" title="إقرار فردي بالوصية">
+                                    ${isAck ? '✓ تم الإقرار' : '✨ إقرار'}
+                                </button>
+                            </div>
+                            <p class="commandment-body text-xs" style="color: #f5f3ff; line-height: 2;">
+                                « ${cmd.text} »
+                            </p>
                         </div>
-                        <p class="commandment-body text-xs" style="color: #f3e8ff; line-height: 1.8;">
-                            ${cmd.text}
-                        </p>
-                    </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
 
-            <!-- Bottom Confirmation CTA -->
-            <div class="tablet-footer mt-5 pt-4 text-center" style="border-top: 1px solid rgba(168, 85, 247, 0.3);">
-                <button class="btn-primary font-bold text-sm py-3 px-8" id="btn-seal-commandments" style="background: linear-gradient(135deg, #7c3aed, #ec4899); border: none; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.35);">
-                    📜 أُقِرُّ بِشَرَائِعِ الوَحْيِ والخُضُوعِ التَّامِّ (+40 Devotion)
+            <!-- Bottom Master Seal CTA -->
+            <div class="tablet-footer mt-6 pt-4 text-center" style="border-top: 1px solid rgba(245, 158, 11, 0.3);">
+                <button class="btn-primary font-black text-sm py-3 px-8" id="btn-seal-commandments" style="background: linear-gradient(135deg, #f59e0b, #ec4899, #7c3aed); border: none; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.45);">
+                    📜 خَتْمُ لَوْحِ الوَحْيِ بِمَجْمُوعِ الوَصَايَا (+40 Devotion)
                 </button>
             </div>
         </div>
     `;
 
+    // Individual pledge buttons
+    subContainer.querySelectorAll('.btn-ack-cmd-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = Number(btn.dataset.cmdId);
+            if (acknowledgedCmds.has(id)) {
+                acknowledgedCmds.delete(id);
+                btn.classList.remove('active');
+                btn.innerText = '✨ إقرار';
+                document.getElementById(`cmd-card-${id}`)?.classList.remove('commandment-acknowledged');
+            } else {
+                acknowledgedCmds.add(id);
+                btn.classList.add('active');
+                btn.innerText = '✓ تم الإقرار';
+                document.getElementById(`cmd-card-${id}`)?.classList.add('commandment-acknowledged');
+                sound.playClick();
+            }
+            const countEl = document.getElementById('cmds-ack-count');
+            if (countEl) countEl.innerText = acknowledgedCmds.size;
+        });
+    });
+
+    // Master Seal Button
     document.getElementById('btn-seal-commandments')?.addEventListener('click', async () => {
         sound.playWin();
         triggerSubmissionEffect();
+
+        // Mark all as acknowledged
+        commandments.forEach(c => acknowledgedCmds.add(c.id));
+        renderContemplationCommandments(data, subContainer, char);
 
         try {
             const res = await fetch('/api/worship', {
@@ -1892,7 +2026,7 @@ function renderContemplationCommandments(data, subContainer, char) {
                     const totalEl = document.getElementById('worship-total-pts');
                     if (totalEl) totalEl.innerText = formatDevotion(resData.data.totalDevotion);
                 }
-                showToast("سُجِّل إقرارك بالوصايا العشر في ديوان الخلود 📜✨ (+40 Devotion)", "success");
+                showToast("سُجِّل ختم لوح الوحي كاملاً في ديوان الخلود 📜✨ (+40 Devotion)", "success");
             }
         } catch (e) {
             console.error("Seal commandments error", e);
@@ -1901,15 +2035,20 @@ function renderContemplationCommandments(data, subContainer, char) {
 }
 
 // --------------------------------------------------------------------------
-// Mode 4: Instant Verse Oracle (مستخرج الآيات اللحظي)
+// Mode 4: Instant Verse Oracle (مستخرج الآيات اللحظي والكشف الإلهي)
 // --------------------------------------------------------------------------
+let oracleDrawnCount = 0;
+let oracleSurahFilter = 'all';
+
 function renderContemplationOracle(data, subContainer, char) {
     const surahs = data.contemplation?.surahs || [];
     const characters = data.characters || [];
+
     const allVerses = [];
     surahs.forEach(s => {
         (s.verses || []).forEach((v, idx) => {
             allVerses.push({
+                surahId: s.id,
                 surahTitle: s.title,
                 surahIcon: s.icon || '📜',
                 verseNum: idx + 1,
@@ -1918,7 +2057,13 @@ function renderContemplationOracle(data, subContainer, char) {
         });
     });
 
-    const initialVerse = allVerses[Math.floor(Math.random() * allVerses.length)] || {
+    function getFilteredVerses() {
+        if (oracleSurahFilter === 'all') return allVerses;
+        return allVerses.filter(v => v.surahId === oracleSurahFilter);
+    }
+
+    const currentFiltered = getFilteredVerses();
+    const initialVerse = currentFiltered[Math.floor(Math.random() * currentFiltered.length)] || allVerses[0] || {
         surahTitle: "سُورَةُ السَّطْوَةِ والجَبَرُوت",
         surahIcon: "👑",
         verseNum: 1,
@@ -1929,49 +2074,92 @@ function renderContemplationOracle(data, subContainer, char) {
 
     subContainer.innerHTML = `
         <div class="oracle-wrapper text-center">
+            <!-- Header & Filter Selector -->
             <div class="oracle-header mb-4">
-                <span class="badge mb-2" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #d8b4fe;">
-                    🎲 مستخرج آيات التدبر والوحي اللحظي
-                </span>
-                <h2 class="glow-text text-xl font-bold text-purple-200">استلهام الآيات من بين 550 آية مقدسة</h2>
-                <p class="text-xs color-text-muted">اضغط على الزر لاستخراج نفحة تدبرية فورية تضيء مقام العبودية</p>
+                <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                    <span class="badge" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.5); color: #d8b4fe;">
+                        🎲 مستخرج آيات الوحي والتدبر اللحظي
+                    </span>
+                    <span class="badge text-xs" style="background: rgba(245, 158, 11, 0.15); color: #fcd34d;">
+                        ✨ تم استخراج: <strong id="oracle-drawn-count" class="text-amber-300">${oracleDrawnCount}</strong> آية
+                    </span>
+                </div>
+                <h2 class="glow-text text-xl font-bold text-purple-200">استلهام الآيات من مصحف الفتنة (550 آية)</h2>
+                <p class="text-xs color-text-muted">اختر السورة المستهدفة ثم اسحب نفحة إلهية مباركة تضيء مقام العبودية</p>
             </div>
 
-            <!-- Dynamic Oracle Card Display -->
+            <!-- Surah Target Filter Dropdown -->
+            <div class="oracle-filter-bar mb-4 flex items-center justify-center gap-2">
+                <span class="text-xs text-amber-300 font-bold">🎯 نطاق السحب:</span>
+                <select id="oracle-surah-filter-select" class="worship-select-clean text-xs font-bold" style="background: rgba(15, 14, 30, 0.9); border: 1px solid rgba(168, 85, 247, 0.4); color: #fef08a; padding: 0.35rem 0.75rem; border-radius: var(--radius-sm);">
+                    <option value="all" ${oracleSurahFilter === 'all' ? 'selected' : ''}>🌟 كافة السور (550 آية)</option>
+                    ${surahs.map(s => `<option value="${s.id}" ${s.id === oracleSurahFilter ? 'selected' : ''}>${s.icon} ${s.title}</option>`).join('')}
+                </select>
+            </div>
+
+            <!-- Dynamic 3D Holographic Oracle Card Display -->
             <div class="oracle-card-display p-6 rounded-2xl mx-auto mb-5" id="oracle-card">
-                <div class="flex items-center justify-between mb-3" style="border-bottom: 1px solid rgba(168, 85, 247, 0.3); padding-bottom: 0.5rem;">
+                <div class="oracle-card-halo-effect"></div>
+                <div class="flex items-center justify-between mb-3 relative z-10" style="border-bottom: 1px solid rgba(168, 85, 247, 0.35); padding-bottom: 0.5rem;">
                     <span class="text-sm font-bold text-amber-300 flex items-center gap-1" id="oracle-surah-tag">
                         ${initialVerse.surahIcon} ${initialVerse.surahTitle}
                     </span>
-                    <span class="badge text-xs" id="oracle-verse-num" style="background: rgba(245, 158, 11, 0.2); color: #fcd34d;">
+                    <span class="badge text-xs" id="oracle-verse-num" style="background: rgba(245, 158, 11, 0.25); color: #fcd34d; border-color: rgba(245, 158, 11, 0.4);">
                         آية #${initialVerse.verseNum}
                     </span>
                 </div>
 
-                <div class="oracle-verse-body my-4">
-                    <p class="oracle-quote-text text-lg font-bold" id="oracle-verse-text" style="color: #fef08a; line-height: 2; direction: rtl;">
+                <div class="oracle-verse-body my-5 relative z-10">
+                    <p class="oracle-quote-text" id="oracle-verse-text">
                         « ${initialVerse.verseText} »
                     </p>
                 </div>
 
-                <div class="oracle-char-footer flex items-center justify-center gap-2 pt-3" style="border-top: 1px solid rgba(168, 85, 247, 0.2);">
-                    <img src="${avatarSrc}" alt="${char.name}" id="oracle-char-avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #ec4899;">
-                    <span class="text-xs text-purple-300 font-bold" id="oracle-char-name">في محراب السلطانة ${char.name}</span>
+                <div class="oracle-char-footer flex items-center justify-between pt-3 relative z-10" style="border-top: 1px solid rgba(168, 85, 247, 0.25);">
+                    <div class="flex items-center gap-2">
+                        <img src="${avatarSrc}" alt="${char.name}" id="oracle-char-avatar" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1.5px solid #ec4899;">
+                        <span class="text-xs text-purple-200 font-bold" id="oracle-char-name">في محراب السلطانة ${char.name}</span>
+                    </div>
+                    <button class="btn-icon-clean text-xs text-purple-300 hover:text-amber-300" id="btn-copy-oracle-verse" title="نسخ الآية">
+                        📋 نسخ
+                    </button>
                 </div>
             </div>
 
             <!-- Draw Button CTA -->
-            <button class="btn-primary font-bold text-base py-3 px-8" id="btn-draw-oracle-verse" style="background: linear-gradient(135deg, #ec4899, #7c3aed); border: none; box-shadow: 0 4px 18px rgba(236, 72, 153, 0.4);">
-                🎲 اسْتِخْرَاجُ آيَةِ تَدَبُّرٍ لَحْظِيَّةٍ (+10 Devotion)
-            </button>
+            <div class="oracle-cta-row flex items-center justify-center gap-3">
+                <button class="btn-primary font-black text-base py-3 px-8" id="btn-draw-oracle-verse" style="background: linear-gradient(135deg, #ec4899, #7c3aed, #f59e0b); border: none; box-shadow: 0 4px 22px rgba(236, 72, 153, 0.45);">
+                    🎲 اسْتِخْرَاجُ آيَةِ تَدَبُّرٍ لَحْظِيَّةٍ (+10 Devotion)
+                </button>
+            </div>
         </div>
     `;
 
+    // Filter Change
+    document.getElementById('oracle-surah-filter-select')?.addEventListener('change', (e) => {
+        oracleSurahFilter = e.target.value;
+        sound.playClick();
+    });
+
+    // Copy Oracle Verse
+    document.getElementById('btn-copy-oracle-verse')?.addEventListener('click', () => {
+        const text = document.getElementById('oracle-verse-text')?.innerText || '';
+        const tag = document.getElementById('oracle-surah-tag')?.innerText || '';
+        const num = document.getElementById('oracle-verse-num')?.innerText || '';
+        navigator.clipboard.writeText(`${text}\n[${tag} — ${num}]`).then(() => {
+            showToast("✨ تم نسخ آية الوحي إلى الحافظة بنجاح", "success");
+        });
+    });
+
+    // Draw Button Event
     document.getElementById('btn-draw-oracle-verse')?.addEventListener('click', async () => {
         sound.playStreak();
-        
-        // Pick random verse and random character if available
-        const randVerse = allVerses[Math.floor(Math.random() * allVerses.length)];
+        oracleDrawnCount++;
+        const countEl = document.getElementById('oracle-drawn-count');
+        if (countEl) countEl.innerText = oracleDrawnCount;
+
+        const candidatePool = getFilteredVerses();
+        const randVerse = candidatePool[Math.floor(Math.random() * candidatePool.length)] || allVerses[0];
         const randChar = characters[Math.floor(Math.random() * characters.length)] || char;
         const randAvatar = randChar.primary_image || (randChar.images && randChar.images[0]) || avatarSrc;
 
@@ -2012,4 +2200,5 @@ function renderContemplationOracle(data, subContainer, char) {
         }
     });
 }
+
 

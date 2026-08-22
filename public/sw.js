@@ -1,4 +1,4 @@
-const CACHE_NAME = 'goooog-cache-v23';
+const CACHE_NAME = 'goooog-cache-v24';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
